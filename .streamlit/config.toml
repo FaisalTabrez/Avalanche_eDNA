@@ -1,0 +1,23 @@
+[server]
+# Maximum file upload size (10GB in MB)
+maxUploadSize = 10240
+
+# Request timeout for large files (in seconds)
+maxMessageSize = 10240
+enableCORS = false
+enableXsrfProtection = false
+
+# Other server configurations
+port = 8504
+address = "0.0.0.0"
+
+[theme]
+# Theme configuration
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+
+[browser]
+# Browser configuration
+gatherUsageStats = false

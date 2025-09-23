@@ -1,0 +1,81 @@
+# Swiss-Prot Protein Database Analysis Report
+Generated on: 2025-09-17 20:54:14
+
+## 📊 Basic Sequence Statistics
+- Total sequences: 5,000
+- Minimum length: 7
+- Maximum length: 7,095
+- Mean length: 387.36
+- Median length: 314.00
+- Standard deviation: 367.79
+
+### Length Distribution Percentiles
+- 25th percentile: 184.00
+- 75th percentile: 477.00
+- 90th percentile: 703.10
+- 95th percentile: 931.15
+
+## 🧬 Sequence Composition (PROTEIN)
+- Total characters analyzed: 1,936,785
+- Unique characters: 25
+
+### Character Frequencies
+| Character | Frequency | Percentage |
+|-----------|-----------|------------|
+| L | 0.096760 | 9.676% |
+| A | 0.079868 | 7.987% |
+| G | 0.069374 | 6.937% |
+| S | 0.068409 | 6.841% |
+| V | 0.068069 | 6.807% |
+| E | 0.066780 | 6.678% |
+| I | 0.059285 | 5.929% |
+| K | 0.058835 | 5.883% |
+| D | 0.054379 | 5.438% |
+| R | 0.053950 | 5.395% |
+| T | 0.053902 | 5.390% |
+| P | 0.047935 | 4.794% |
+| N | 0.041217 | 4.122% |
+| F | 0.039512 | 3.951% |
+| Q | 0.039120 | 3.912% |
+
+## 📝 Annotation Analysis
+- Sequences with organism info: 5,000
+- Sequences with descriptions: 5,000
+- Sequences with features: 0
+
+### Top Organisms
+| Organism | Count |
+|----------|-------|
+| Unknown | 5,000 |
+
+### Description Patterns
+| Pattern | Count |
+|---------|-------|
+| precursor | 585 |
+| uncharacterized | 138 |
+| putative | 128 |
+| fragment | 1 |
+
+## 🔍 Quality Analysis
+- Sequences with quality scores: 0
+- Low quality sequences (Q<20): 0
+
+## 🌿 Biodiversity Metrics
+- Species richness: 1
+- Shannon diversity index: -0.0000
+- Simpson diversity index: 0.0000
+- Evenness: 0.0000
+- Total abundance: 5,000
+
+## ⏱️ Processing Information
+- Total processing time: 0.20 seconds
+- File format: fasta
+- File size: 136.60 MB
+
+### Step-by-step timing:
+- sequence_loading: 0.09s
+- basic_statistics: 0.01s
+- composition_analysis: 0.08s
+- annotation_analysis: 0.01s
+- quality_analysis: 0.01s
+- diversity_metrics: 0.00s

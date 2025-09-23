@@ -1,0 +1,121 @@
+# Configuration file for eDNA Biodiversity Assessment System
+
+# Data paths
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  reference_dir: "data/reference"
+  output_dir: "data/output"
+
+# Reference databases (NCBI BLAST)
+databases:
+  ncbi_ftp: "https://ftp.ncbi.nlm.nih.gov/blast/db/"
+  blast_dbs:
+    - "nt"           # Nucleotide collection
+    - "16S_ribosomal_RNA"  # 16S rRNA sequences
+    - "18S_fungal_sequences"  # 18S fungal sequences
+    - "28S_ribosomal_RNA"  # 28S rRNA sequences
+  
+  # Other reference databases
+  silva:
+    url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/"
+    files:
+      - "SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz"
+      - "SILVA_138.1_LSURef_NR99_tax_silva.fasta.gz"
+  
+  greengenes:
+    url: "http://greengenes.secondgenome.com/downloads/database/13_5/"
+    files:
+      - "gg_13_5.fasta.gz"
+
+# Preprocessing parameters
+preprocessing:
+  quality_threshold: 20
+  min_length: 50
+  max_length: 500
+  adapter_sequences:
+    - "AGATCGGAAGAGC"  # Illumina TruSeq adapter
+    - "CTGTCTCTTATA"   # Nextera adapter
+  
+  # Quality filtering
+  quality_filter:
+    window_size: 4
+    required_quality: 15
+    max_n_bases: 5
+  
+  # Chimera detection
+  chimera_detection:
+    method: "vsearch"
+    reference_db: "data/reference/silva_138.1_99_otus.fasta"
+
+# Sequence embedding model
+embedding:
+  model_type: "transformer"  # or "autoencoder"
+  kmer_size: 6
+  max_sequence_length: 512
+  embedding_dim: 256
+  
+  # Transformer specific
+  transformer:
+    num_layers: 6
+    num_heads: 8
+    dropout: 0.1
+    
+  # Training parameters
+  training:
+    batch_size: 32
+    learning_rate: 0.0001
+    epochs: 100
+    validation_split: 0.2
+
+# Clustering parameters
+clustering:
+  method: "hdbscan"  # or "kmeans", "dbscan"
+  min_cluster_size: 10
+  min_samples: 5
+  metric: "euclidean"
+  
+  # UMAP for dimensionality reduction
+  umap:
+    n_neighbors: 15
+    min_dist: 0.1
+    n_components: 50
+
+# Taxonomic assignment
+taxonomy:
+  blast:
+    database: "data/reference/nt"
+    evalue: 1e-5
+    max_targets: 10
+    identity_threshold: 97.0
+  
+  # Novelty detection thresholds
+  novelty:
+    similarity_threshold: 0.85
+    abundance_threshold: 0.001
+    cluster_coherence: 0.7
+
+# Visualization
+visualization:
+  dashboard_port: 8501
+  plot_backend: "plotly"
+  color_scheme: "viridis"
+  
+  # Interactive plots
+  plots:
+    max_points: 10000
+    opacity: 0.7
+    marker_size: 3
+
+# Performance
+performance:
+  n_jobs: -1  # Use all available cores
+  chunk_size: 1000
+  use_gpu: true
+  gpu_memory_fraction: 0.8
+
+# Logging
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "logs/edna_analysis.log"
