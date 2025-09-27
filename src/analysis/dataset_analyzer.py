@@ -33,6 +33,17 @@ except ImportError:
             return default
     config = Config()
 
+# Import enhanced analyzers
+try:
+    from .advanced_taxonomic_analyzer import AdvancedTaxonomicAnalyzer
+    from .environmental_context_analyzer import EnvironmentalContextAnalyzer
+    from .enhanced_diversity_analyzer import EnhancedDiversityAnalyzer
+except ImportError:
+    # Fallback if enhanced analyzers not available
+    AdvancedTaxonomicAnalyzer = None
+    EnvironmentalContextAnalyzer = None
+    EnhancedDiversityAnalyzer = None
+
 
 class DatasetAnalyzer:
     """
@@ -53,6 +64,11 @@ class DatasetAnalyzer:
         self.config = config
         self.fast_mode = fast_mode
         self.n_workers = min(cpu_count(), 8)  # Limit workers to avoid memory issues
+        
+        # Initialize enhanced analyzers
+        self.advanced_taxonomic_analyzer = AdvancedTaxonomicAnalyzer() if AdvancedTaxonomicAnalyzer else None
+        self.environmental_context_analyzer = EnvironmentalContextAnalyzer() if EnvironmentalContextAnalyzer else None
+        self.enhanced_diversity_analyzer = EnhancedDiversityAnalyzer() if EnhancedDiversityAnalyzer else None
         
         # Optimize worker count based on system resources
         if fast_mode:
@@ -736,6 +752,18 @@ class DatasetAnalyzer:
             lines.append(f"- Total abundance: {div['total_abundance']:,}")
             lines.append("")
         
+        # Enhanced Diversity Analysis
+        if 'enhanced_diversity' in analysis_results:
+            self._add_enhanced_diversity_section(lines, analysis_results['enhanced_diversity'])
+        
+        # Advanced Taxonomic Analysis
+        if 'advanced_taxonomic' in analysis_results:
+            self._add_advanced_taxonomic_section(lines, analysis_results['advanced_taxonomic'])
+        
+        # Environmental Context Analysis
+        if 'environmental_context' in analysis_results:
+            self._add_environmental_context_section(lines, analysis_results['environmental_context'])
+        
         # Processing Information
         if 'processing_info' in analysis_results:
             proc = analysis_results['processing_info']
@@ -757,6 +785,139 @@ class DatasetAnalyzer:
             f.write('\n'.join(lines))
         
         print(f"Report saved to: {output_path}")
+    
+    def _add_enhanced_diversity_section(self, lines: List[str], diversity_data: Dict[str, Any]) -> None:
+        """Add enhanced diversity analysis section to report."""
+        lines.append("## 🔬 Enhanced Diversity Analysis")
+        
+        # Alpha diversity metrics
+        if 'alpha_diversity' in diversity_data:
+            alpha = diversity_data['alpha_diversity']
+            lines.append("### Alpha Diversity Metrics")
+            lines.append(f"- Chao1 estimator: {alpha.get('chao1', 0):.2f}")
+            lines.append(f"- ACE estimator: {alpha.get('ace', 0):.2f}")
+            lines.append(f"- Fisher's alpha: {alpha.get('fisher_alpha', 0):.2f}")
+            lines.append(f"- Effective species number: {alpha.get('effective_species_number', 0):.2f}")
+            lines.append(f"- Berger-Parker index: {alpha.get('berger_parker', 0):.4f}")
+            lines.append("")
+        
+        # Community structure
+        if 'community_structure' in diversity_data:
+            community = diversity_data['community_structure']
+            lines.append("### Community Structure")
+            lines.append(f"- Dominant species (>5%): {community.get('dominant_species_count', 0)}")
+            lines.append(f"- Rare species (<1%): {community.get('rare_species_count', 0)}")
+            lines.append(f"- Evenness category: {community.get('community_evenness_category', 'unknown')}")
+            lines.append("")
+        
+        # Sampling adequacy
+        if 'sampling_adequacy' in diversity_data:
+            adequacy = diversity_data['sampling_adequacy']
+            lines.append("### Sampling Adequacy")
+            lines.append(f"- Completeness: {adequacy.get('sampling_completeness', 0):.2%}")
+            lines.append(f"- Adequacy level: {adequacy.get('adequacy_level', 'unknown')}")
+            if adequacy.get('additional_sampling_needed', False):
+                lines.append("- ⚠️ Additional sampling recommended")
+            lines.append("")
+    
+    def _add_advanced_taxonomic_section(self, lines: List[str], taxonomic_data: Dict[str, Any]) -> None:
+        """Add advanced taxonomic analysis section to report."""
+        lines.append("## 🦠 Advanced Taxonomic Analysis")
+        
+        # Confidence assessment
+        if 'confidence_assessment' in taxonomic_data:
+            confidence = taxonomic_data['confidence_assessment']
+            lines.append("### Assignment Confidence")
+            lines.append(f"- High confidence assignments: {confidence.get('high_confidence_count', 0)}")
+            lines.append(f"- Medium confidence assignments: {confidence.get('medium_confidence_count', 0)}")
+            lines.append(f"- Low confidence assignments: {confidence.get('low_confidence_count', 0)}")
+            lines.append(f"- Average confidence: {confidence.get('average_confidence', 0):.2%}")
+            lines.append("")
+        
+        # Novel candidate detection
+        if 'novel_candidates' in taxonomic_data:
+            novel_candidates = taxonomic_data['novel_candidates']
+            lines.append("### Novel Species Candidates")
+            
+            # Handle novel_candidates as a list (which it actually is)
+            if isinstance(novel_candidates, list):
+                candidate_count = len(novel_candidates)
+                lines.append(f"- Potential novel species: {candidate_count}")
+                
+                # Calculate percentage if we have assignment data
+                total_assignments = taxonomic_data.get('total_sequences', 0)
+                if total_assignments > 0:
+                    novel_percentage = (candidate_count / total_assignments) * 100
+                    lines.append(f"- Novel candidate percentage: {novel_percentage:.1f}%")
+                else:
+                    lines.append("- Novel candidate percentage: N/A")
+                
+                if candidate_count > 0:
+                    lines.append("✨ Novel species candidates detected - consider further investigation")
+                    
+                    # Add details about top candidates
+                    if candidate_count > 0:
+                        lines.append("")
+                        lines.append("**Top Novel Candidates:**")
+                        for i, candidate in enumerate(novel_candidates[:5], 1):  # Top 5
+                            # Additional safety check for each candidate
+                            if isinstance(candidate, dict):
+                                novelty_score = candidate.get('novelty_score', 0)
+                                potential_rank = candidate.get('potential_rank', 'unknown')
+                                lines.append(f"{i}. {candidate.get('sequence_id', 'Unknown')} (novelty: {novelty_score:.3f}, rank: {potential_rank})")
+                            else:
+                                lines.append(f"{i}. Invalid candidate format")
+            
+            # Fallback for unexpected data structure
+            elif isinstance(novel_candidates, dict):
+                candidate_count = novel_candidates.get('candidate_count', 0)
+                lines.append(f"- Potential novel species: {candidate_count}")
+                lines.append(f"- Novel candidate percentage: {novel_candidates.get('novel_percentage', 0):.1f}%")
+                if candidate_count > 0:
+                    lines.append("✨ Novel species candidates detected - consider further investigation")
+            
+            lines.append("")
+        
+        # Phylogenetic patterns
+        if 'phylogenetic_patterns' in taxonomic_data:
+            phylo = taxonomic_data['phylogenetic_patterns']
+            lines.append("### Phylogenetic Diversity")
+            lines.append(f"- Phylum diversity: {phylo.get('phylum_diversity', 0)}")
+            lines.append(f"- Order diversity: {phylo.get('order_diversity', 0)}")
+            lines.append(f"- Family diversity: {phylo.get('family_diversity', 0)}")
+            lines.append("")
+    
+    def _add_environmental_context_section(self, lines: List[str], env_data: Dict[str, Any]) -> None:
+        """Add environmental context analysis section to report."""
+        lines.append("## 🌍 Environmental Context Analysis")
+        
+        # Habitat classification
+        if 'habitat_classification' in env_data:
+            habitat = env_data['habitat_classification']
+            lines.append("### Habitat Classification")
+            lines.append(f"- Primary habitat: {habitat.get('primary_habitat', 'unknown')}")
+            lines.append(f"- Confidence: {habitat.get('classification_confidence', 0):.2%}")
+            lines.append(f"- Habitat complexity: {habitat.get('habitat_complexity', 'unknown')}")
+            lines.append("")
+        
+        # Ecological indicators
+        if 'ecological_indicators' in env_data:
+            indicators = env_data['ecological_indicators']
+            lines.append("### Ecological Indicators")
+            if indicators.get('indicator_species'):
+                lines.append(f"- Indicator species detected: {len(indicators['indicator_species'])}")
+            lines.append(f"- Ecosystem health: {indicators.get('ecosystem_health_score', 'unknown')}")
+            lines.append(f"- Pollution indicators: {indicators.get('pollution_indicators', 'none detected')}")
+            lines.append("")
+        
+        # Environmental stress
+        if 'environmental_stress_indicators' in env_data:
+            stress = env_data['environmental_stress_indicators']
+            lines.append("### Environmental Stress Assessment")
+            lines.append(f"- Stress level: {stress.get('stress_level', 'unknown')}")
+            if stress.get('stress_indicators'):
+                lines.append(f"- Stress indicators detected: {len(stress['stress_indicators'])}")
+            lines.append("")
     
     def analyze_dataset(self, input_path: str, output_path: str,
                        dataset_name: Optional[str] = None,
@@ -824,6 +985,41 @@ class DatasetAnalyzer:
         results['diversity'] = self.calculate_diversity_metrics(sequences)
         step_times['diversity_metrics'] = time.time() - step_start
         
+        # Step 7: Enhanced Taxonomic Analysis
+        if self.advanced_taxonomic_analyzer:
+            try:
+                step_start = time.time()
+                results['advanced_taxonomic'] = self.advanced_taxonomic_analyzer.analyze_taxonomic_composition(sequences)
+                step_times['advanced_taxonomic_analysis'] = time.time() - step_start
+            except Exception as e:
+                print(f"Enhanced taxonomic analysis failed: {str(e)}")
+                results['advanced_taxonomic'] = {}
+        
+        # Step 8: Enhanced Diversity Analysis
+        if self.enhanced_diversity_analyzer:
+            try:
+                step_start = time.time()
+                # Create taxonomic data from annotations if available
+                taxonomic_data = self._prepare_taxonomic_data(results.get('annotations', {}))
+                results['enhanced_diversity'] = self.enhanced_diversity_analyzer.analyze_comprehensive_diversity(taxonomic_data)
+                step_times['enhanced_diversity_analysis'] = time.time() - step_start
+            except Exception as e:
+                print(f"Enhanced diversity analysis failed: {str(e)}")
+                results['enhanced_diversity'] = {}
+        
+        # Step 9: Environmental Context Analysis
+        if self.environmental_context_analyzer:
+            try:
+                step_start = time.time()
+                # Extract environmental data from sequence metadata
+                environmental_data = self._extract_environmental_data(sequences)
+                taxonomic_data = self._prepare_taxonomic_data(results.get('annotations', {}))
+                results['environmental_context'] = self.environmental_context_analyzer.analyze_environmental_context(environmental_data, taxonomic_data)
+                step_times['environmental_context_analysis'] = time.time() - step_start
+            except Exception as e:
+                print(f"Environmental context analysis failed: {str(e)}")
+                results['environmental_context'] = {}
+        
         # Processing information
         total_time = time.time() - start_time
         results['processing_info'] = {
@@ -844,6 +1040,94 @@ class DatasetAnalyzer:
         print(f"Analyzed {len(sequences):,} sequences")
         
         return results
+    
+    def _prepare_taxonomic_data(self, annotations: Dict[str, Any]) -> Dict[str, Any]:
+        """Prepare taxonomic data from annotation results."""
+        taxonomic_data = {
+            'taxonomic_distribution': {
+                'genus': {
+                    'counts': {},
+                    'unique_taxa': 0
+                },
+                'species': {
+                    'counts': {},
+                    'unique_taxa': 0
+                }
+            }
+        }
+        
+        # Extract organism distribution from annotations
+        if 'organism_distribution' in annotations:
+            organism_dist = annotations['organism_distribution']
+            
+            # Convert organism names to taxonomic counts
+            genus_counts = {}
+            species_counts = {}
+            
+            for organism, count in organism_dist.items():
+                # Ensure count is not None and is a valid integer
+                if count is None:
+                    count = 0
+                count = int(count) if count is not None else 0
+                
+                # Simple parsing of organism names
+                parts = organism.replace('_', ' ').split()
+                if len(parts) >= 2:
+                    genus = parts[0]
+                    species = f"{parts[0]} {parts[1]}"
+                    genus_counts[genus] = genus_counts.get(genus, 0) + count
+                    species_counts[species] = species_counts.get(species, 0) + count
+                elif len(parts) == 1:
+                    genus_counts[parts[0]] = genus_counts.get(parts[0], 0) + count
+            
+            # Filter out None values and ensure positive counts
+            genus_counts = {k: v for k, v in genus_counts.items() if v is not None and v > 0}
+            species_counts = {k: v for k, v in species_counts.items() if v is not None and v > 0}
+            
+            taxonomic_data['taxonomic_distribution']['genus']['counts'] = genus_counts
+            taxonomic_data['taxonomic_distribution']['genus']['unique_taxa'] = len(genus_counts)
+            taxonomic_data['taxonomic_distribution']['species']['counts'] = species_counts
+            taxonomic_data['taxonomic_distribution']['species']['unique_taxa'] = len(species_counts)
+        
+        return taxonomic_data
+    
+    def _extract_environmental_data(self, sequences: List[SeqRecord]) -> Dict[str, Any]:
+        """Extract environmental data from sequence metadata."""
+        environmental_data = {
+            'sample_type': 'unknown',
+            'habitat': 'unknown',
+            'depth': None,
+            'temperature': None,
+            'salinity': None,
+            'ph': None,
+            'location': 'unknown',
+            'collection_date': None
+        }
+        
+        # Extract environmental info from sequence descriptions
+        habitat_keywords = {
+            'marine': ['marine', 'ocean', 'sea', 'seawater'],
+            'freshwater': ['freshwater', 'lake', 'river', 'pond'],
+            'terrestrial': ['soil', 'terrestrial', 'land'],
+            'brackish': ['brackish', 'estuary', 'estuarine']
+        }
+        
+        habitat_counts = {}
+        
+        for seq in sequences[:100]:  # Sample first 100 sequences
+            description = str(seq.description).lower()
+            
+            for habitat, keywords in habitat_keywords.items():
+                if any(keyword in description for keyword in keywords):
+                    habitat_counts[habitat] = habitat_counts.get(habitat, 0) + 1
+        
+        # Set most common habitat
+        if habitat_counts:
+            most_common_habitat = max(habitat_counts.items(), key=lambda x: x[1])[0]
+            environmental_data['habitat'] = most_common_habitat
+            environmental_data['sample_type'] = most_common_habitat
+        
+        return environmental_data
 
 
 def main():
