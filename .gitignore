@@ -137,3 +137,5 @@ models/
 checkpoints/
 logs/
 wandb/
+# Generated analysis outputs
+results/

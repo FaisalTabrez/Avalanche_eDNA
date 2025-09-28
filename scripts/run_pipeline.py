@@ -18,7 +18,7 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 from utils.config import config
 from preprocessing.pipeline import PreprocessingPipeline
 from models.tokenizer import DNATokenizer
-from models.embeddings import DNATransformerEmbedder
+from models.embeddings_stub import DNATransformerEmbedder
 from models.trainer import EmbeddingTrainer
 from clustering.algorithms import EmbeddingClusterer
 from clustering.taxonomy import HybridTaxonomyAssigner, BlastTaxonomyAssigner, MLTaxonomyClassifier

@@ -16,7 +16,14 @@ except ImportError:
     HDBSCAN_AVAILABLE = False
     import warnings
     warnings.warn("HDBSCAN not available. Using DBSCAN as fallback for clustering.")
-import umap
+# Try optional UMAP; fall back to PCA if unavailable
+try:
+    import umap  # type: ignore
+    UMAP_AVAILABLE = True
+except ImportError:
+    UMAP_AVAILABLE = False
+    from sklearn.decomposition import PCA
+
 from scipy.spatial.distance import pdist, squareform
 from scipy.cluster.hierarchy import linkage, fcluster
 import matplotlib.pyplot as plt
@@ -226,12 +233,13 @@ class EmbeddingClusterer:
                          n_neighbors: int = 15,
                          min_dist: float = 0.1) -> np.ndarray:
         """
-        Reduce dimensionality for visualization using UMAP
+        Reduce dimensionality for visualization.
+        Uses UMAP if available; otherwise falls back to PCA.
         
         Args:
             n_components: Number of dimensions for reduced space
-            n_neighbors: UMAP n_neighbors parameter
-            min_dist: UMAP min_dist parameter
+            n_neighbors: UMAP n_neighbors parameter (ignored for PCA)
+            min_dist: UMAP min_dist parameter (ignored for PCA)
             
         Returns:
             Reduced embeddings
@@ -241,14 +249,19 @@ class EmbeddingClusterer:
         
         logger.info(f"Reducing dimensionality to {n_components}D for visualization")
         
-        self.umap_reducer = umap.UMAP(
-            n_components=n_components,
-            n_neighbors=n_neighbors,
-            min_dist=min_dist,
-            random_state=42
-        )
+        if UMAP_AVAILABLE:
+            self.umap_reducer = umap.UMAP(
+                n_components=n_components,
+                n_neighbors=n_neighbors,
+                min_dist=min_dist,
+                random_state=42
+            )
+            self.reduced_embeddings = self.umap_reducer.fit_transform(self.embeddings)
+        else:
+            logger.warning("UMAP not available; using PCA fallback for dimensionality reduction")
+            pca = PCA(n_components=n_components, random_state=42)
+            self.reduced_embeddings = pca.fit_transform(self.embeddings)
         
-        self.reduced_embeddings = self.umap_reducer.fit_transform(self.embeddings)
         return self.reduced_embeddings
     
     def plot_clusters(self, 
