@@ -131,7 +131,8 @@ class BiodiversityPlotter:
                 df, 
                 values='Count', 
                 names='Taxonomy',
-                title=f"Taxonomic Composition (Top {top_n})"
+                title=f"Taxonomic Composition (Top {top_n})",
+                color_discrete_sequence=px.colors.qualitative.Set3
             )
         
         elif plot_type == "bar":

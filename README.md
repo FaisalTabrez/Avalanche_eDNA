@@ -13,29 +13,44 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 ## 🔧 Features
 
 - **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal
-- **Deep Learning Embeddings**: Transformer-based sequence representation learning
+- **Transformer Embeddings**: Nucleotide Transformer (HF) with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
 - **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
 - **Interactive Dashboard**: Web-based visualization and analysis interface
 - **Scalable Architecture**: GPU acceleration and cloud deployment ready
+- **NCBI SRA Integration**: Direct access to 1000+ eDNA studies from NCBI Sequence Read Archive
+- **Multi-Format Support**: Universal support for FASTA, FASTQ, Swiss-Prot, GenBank, EMBL, and SRA formats
+- **Real-time Processing**: Live progress tracking with interactive visualizations
 
 ## 📁 Project Structure
 
 ```
-├── data/                   # Sample datasets and test data
-├── src/                   # Source code
-│   ├── preprocessing/     # Data cleaning and preparation
-│   ├── models/           # Deep learning models
-│   ├── clustering/       # Taxonomic clustering algorithms
-│   ├── visualization/    # Dashboard and plotting utilities
-│   └── utils/           # Shared utilities and helpers
-├── notebooks/            # Jupyter notebooks for analysis
-├── tests/               # Unit and integration tests
-├── docs/                # Documentation
-├── scripts/             # Pipeline and automation scripts
-└── requirements.txt     # Python dependencies
+├── data/                        # Sample datasets and test data
+├── src/                         # Source code
+│   ├── analysis/                # Dataset analysis utilities
+│   ├── api/                     # Report management API
+│   ├── clustering/              # Clustering algorithms and taxonomy helpers
+│   ├── dashboards/              # Streamlit dashboard modules
+│   ├── database/                # Database models and manager
+│   ├── novelty/                 # Novelty detection logic
+│   ├── organism_profiling/      # Organism profiling modules
+│   ├── preprocessing/           # Data cleaning and preparation
+│   ├── report_management/       # Report/catalogue management
+│   ├── similarity/              # Cross-analysis engine
+│   ├── utils/                   # Shared utilities and config
+│   └── visualization/           # Plotting and dashboard utilities
+├── notebooks/                   # Jupyter notebooks for analysis
+├── tests/                       # Unit and integration tests
+├── docs/                        # Documentation
+├── scripts/                     # Pipeline and automation scripts
+├── streamlit_app.py             # Streamlit UI entrypoint
+└── requirements*.txt            # Python dependencies
 ```
 
+> Note: The current pipeline uses placeholder embeddings and a demo ML taxonomy classifier trained on synthetic data. Replace the embedding step with real models and training when src/models is introduced.
+
 ## 🚀 Quick Start
+
+Note: The default embedding backend uses a pretrained Nucleotide Transformer from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
 
 1. **Setup Environment**
    ```bash
@@ -57,7 +72,7 @@ This system addresses the challenges of deep-sea eDNA analysis by:
    ```bash
    python scripts/launch_dashboard.py
    ```
-   Then open http://localhost:8501 in your browser
+   Then open http://localhost:8504 in your browser
 
 4. **View Results**
    ```bash
@@ -119,6 +134,55 @@ print(f"Found {results['summary']['novel_taxa_candidates']} novel taxa candidate
 7. **Visualization**: Interactive plots and reports
 
 See the [documentation](docs/) for detailed usage instructions and tutorials.
+
+## 🧬 NCBI SRA Integration
+
+The system now includes comprehensive NCBI SRA (Sequence Read Archive) integration for accessing real-world eDNA datasets:
+
+### SRA Features
+
+- **Automated Study Discovery**: Search NCBI SRA for eDNA-relevant studies using keywords
+- **Direct Data Download**: Download SRA runs using SRA Toolkit or FTP
+- **Format Conversion**: Automatic conversion from SRA to FASTQ format
+- **eDNA-Specific Filtering**: Specialized filtering for environmental DNA sequences
+- **Integrated Processing**: Seamless integration with the main analysis pipeline
+
+### SRA Usage Examples
+
+```bash
+# Search and download eDNA studies
+python scripts/download_sra_data.py --search --max-results 10
+
+# Download specific SRA accession
+python scripts/download_sra_data.py --accession SRP123456
+
+# Download marine sediment eDNA datasets
+python scripts/download_sra_data.py --download-type marine_sediment --max-results 5
+
+# Process SRA data with full pipeline
+python scripts/run_pipeline.py --input data/sra/SRP123456/ --output results/sra_analysis
+
+# Run complete SRA integration demo
+python scripts/sra_integration_example.py
+```
+
+### SRA Configuration
+
+The system is pre-configured with:
+- **eDNA-specific search keywords**: "eDNA", "environmental DNA", "metabarcoding"
+- **Study type categories**: marine_sediment, deep_sea, plankton
+- **Quality thresholds**: Minimum 1M sequence reads per study
+- **Automatic format detection** and conversion
+
+### SRA Data Processing Workflow
+
+1. **Study Discovery**: Search NCBI SRA for relevant eDNA studies
+2. **Data Download**: Download selected SRA runs
+3. **Format Conversion**: Convert SRA files to FASTQ format
+4. **Quality Filtering**: Apply eDNA-specific quality filters
+5. **Marker Gene Detection**: Identify sequences containing eDNA marker genes (18S, 16S, COI, etc.)
+6. **Pipeline Integration**: Process through standard analysis pipeline
+7. **Biodiversity Analysis**: Generate comprehensive biodiversity reports
 
 ## 🧪 Testing
 

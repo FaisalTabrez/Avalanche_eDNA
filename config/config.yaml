@@ -7,22 +7,62 @@ data:
   reference_dir: "data/reference"
   output_dir: "data/output"
 
-# Reference databases (NCBI BLAST)
+# Storage roots for datasets and analysis runs
+storage:
+  datasets_dir: "F:\\AvalancheData\\datasets"   # where uploaded/managed datasets are stored
+  runs_dir: "F:\\AvalancheData\\runs"                 # where analysis outputs are organized
+
+# Reference databases (NCBI BLAST + SRA)
 databases:
   ncbi_ftp: "https://ftp.ncbi.nlm.nih.gov/blast/db/"
+  sra_base_url: "https://www.ncbi.nlm.nih.gov/sra"
+  sra_ftp: "https://ftp.ncbi.nlm.nih.gov/sra/"
+
   blast_dbs:
     - "nt"           # Nucleotide collection
     - "16S_ribosomal_RNA"  # 16S rRNA sequences
     - "18S_fungal_sequences"  # 18S fungal sequences
     - "28S_ribosomal_RNA"  # 28S rRNA sequences
-  
+
+  # NCBI SRA Configuration
+  sra:
+    # SRA Toolkit paths (if installed locally)
+    sra_tools:
+      prefetch_path: "prefetch"  # SRA prefetch tool
+      fastq_dump_path: "fastq-dump"  # SRA fastq-dump tool
+      sam_dump_path: "sam-dump"  # SRA sam-dump tool
+
+    # Download settings
+    download:
+      max_retries: 3
+      timeout: 300  # seconds
+      chunk_size: 8192
+
+    # eDNA specific SRA studies
+    edna_studies:
+      marine_sediment:
+        - "SRP123456"  # Example: Marine sediment eDNA studies
+        - "SRP789012"
+      deep_sea:
+        - "SRP345678"  # Example: Deep-sea eDNA projects
+        - "SRP901234"
+      plankton:
+        - "SRP567890"  # Example: Plankton diversity studies
+
+    # SRA search and filter parameters
+    search:
+      edna_keywords: ["eDNA", "environmental DNA", "metabarcoding", "marine sediment", "deep sea"]
+      exclude_keywords: ["amplicon", "mock", "control"]
+      min_spots: 1000000  # Minimum number of sequence reads
+      max_spots: 100000000  # Maximum number of sequence reads
+
   # Other reference databases
   silva:
     url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/"
     files:
       - "SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz"
       - "SILVA_138.1_LSURef_NR99_tax_silva.fasta.gz"
-  
+
   greengenes:
     url: "http://greengenes.secondgenome.com/downloads/database/13_5/"
     files:
@@ -57,6 +97,13 @@ embedding:
   
   # Transformer specific
   transformer:
+    # Hugging Face model id for nucleotide transformer
+    model_id: "zhihan1996/DNABERT-2-117M"
+    # Inference settings
+    stride: 128
+    batch_size: 256
+    
+    # Legacy/local transformer hyperparameters (unused with HF model)
     num_layers: 6
     num_heads: 8
     dropout: 0.1
@@ -67,6 +114,15 @@ embedding:
     learning_rate: 0.0001
     epochs: 100
     validation_split: 0.2
+
+  # Post-processing for embeddings
+  postprocess:
+    l2_normalize: true
+    pca:
+      enabled: true
+      n_components: 256
+      random_state: 42
+      whiten: false
 
 # Clustering parameters
 clustering:
@@ -83,11 +139,40 @@ clustering:
 
 # Taxonomic assignment
 taxonomy:
+  # Primary: KNN + LCA on pretrained embeddings
+  knn:
+    reference_dir: "data/reference"
+    embeddings_path: "data/reference/reference_embeddings.npy"
+    labels_path: "data/reference/reference_labels.csv"
+    index: "flat_ip"
+    k: 50
+    min_similarity: 0.65
+    distance_margin: 0.07
+    min_agreement:
+      species: 0.8
+      genus: 0.7
+      family: 0.6
+    species_confidence: 0.8
+
+  # BLAST settings (used by fallback, and for general blast usage)
   blast:
-    database: "data/reference/nt"
+    database: "F:\\Dataset\\env_nt_extracted\\env_nt"
     evalue: 1e-5
     max_targets: 10
     identity_threshold: 97.0
+
+  # BLAST fallback policy
+  blast_fallback:
+    enable: true
+    database: "F:\\Dataset\\env_nt_extracted\\env_nt"
+    min_identity_species: 97.0
+
+  # Cluster consensus to smooth assignments
+  cluster_consensus:
+    min_cluster_agreement: 0.7
+
+  # Optional: NCBI taxdump directory for lineage enrichment
+  taxdump_dir: "F:\\Dataset\\taxdump"
   
   # Novelty detection thresholds
   novelty:

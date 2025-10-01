@@ -17,6 +17,10 @@ import time
 import json
 from io import StringIO
 import base64
+import streamlit.components.v1 as components
+
+# Project config
+from src.utils.config import config as app_config
 
 # Add project modules
 import sys
@@ -73,109 +77,179 @@ st.markdown("""
 def main():
     """Main application function"""
     
-    # Initialize session state for navigation
-    if 'current_page' not in st.session_state:
-        st.session_state.current_page = "🏠 Home"
-    
+    # Initialize session state for navigation (use stable keys to avoid emoji encoding issues)
+    if 'current_page_key' not in st.session_state:
+        st.session_state.current_page_key = 'home'
+
     # Header
     st.markdown('<h1 class="main-header">🧬 eDNA Biodiversity Assessment System</h1>', unsafe_allow_html=True)
     st.markdown("---")
-    
+
     # Sidebar navigation
-    st.sidebar.title("🔬 Navigation")
-    
-    # Use session state to control navigation
-    page_options = ["🏠 Home", "📁 Dataset Analysis", "📊 Batch Analysis", "📈 Results Viewer", "ℹ️ About"]
-    
-    # Find current page index
-    try:
-        current_index = page_options.index(st.session_state.current_page)
-    except ValueError:
-        current_index = 0
-        st.session_state.current_page = "🏠 Home"
-    
-    page = st.sidebar.selectbox(
+    st.sidebar.title("Navigation")
+
+    PAGES = [
+        {"key": "home", "label": "Home"},
+        {"key": "analysis", "label": "Dataset Analysis"},
+        {"key": "batch", "label": "Batch Analysis"},
+        {"key": "results", "label": "Results Viewer"},
+        {"key": "runs", "label": "Run Browser"},
+        {"key": "taxonomy", "label": "Taxonomy Viewer"},
+        {"key": "about", "label": "About"},
+    ]
+
+    # Find current index
+    key_to_index = {p["key"]: i for i, p in enumerate(PAGES)}
+    current_index = key_to_index.get(st.session_state.current_page_key, 0)
+
+    selection = st.sidebar.selectbox(
         "Choose Analysis Type",
-        page_options,
+        PAGES,
         index=current_index,
+        format_func=lambda p: p["label"],
         key="page_selector"
     )
-    
+
     # Update session state when selection changes
-    if page != st.session_state.current_page:
-        st.session_state.current_page = page
+    if selection["key"] != st.session_state.current_page_key:
+        st.session_state.current_page_key = selection["key"]
         st.rerun()
-    
-    if page == "🏠 Home":
+
+    page_key = st.session_state.current_page_key
+
+    if page_key == "home":
         show_home_page()
-    elif page == "📁 Dataset Analysis":
+    elif page_key == "analysis":
         show_analysis_page()
-    elif page == "📊 Batch Analysis":
+    elif page_key == "batch":
         show_batch_analysis_page()
-    elif page == "📈 Results Viewer":
+    elif page_key == "results":
         show_results_viewer()
-    elif page == "ℹ️ About":
+    elif page_key == "runs":
+        show_run_browser()
+    elif page_key == "taxonomy":
+        show_taxonomy_viewer()
+    elif page_key == "about":
         show_about_page()
 
 def show_home_page():
-    """Display the home page"""
+    """Display the home page with navigation and quick links"""
+    from pathlib import Path
     
     col1, col2, col3 = st.columns([1, 2, 1])
-    
     with col2:
-        st.image("https://via.placeholder.com/400x200/1f77b4/ffffff?text=eDNA+Analysis", 
-                 caption="Environmental DNA Biodiversity Assessment")
+        st.image(
+            "https://via.placeholder.com/400x200/1f77b4/ffffff?text=eDNA+Analysis",
+            caption="Environmental DNA Biodiversity Assessment"
+        )
     
     st.markdown("""
     ## Welcome to the eDNA Biodiversity Assessment System
     
-    This comprehensive platform provides advanced analysis of environmental DNA (eDNA) datasets
-    using machine learning and bioinformatics techniques.
+    This platform provides advanced analysis of environmental DNA (eDNA) datasets using
+    machine learning and bioinformatics techniques.
     """)
     
-    # Feature overview
-    col1, col2, col3 = st.columns(3)
+    # Navigation tiles
+    st.markdown("---")
+    st.markdown("## 🧭 Navigate")
+    nav_col1, nav_col2, nav_col3 = st.columns(3)
+    with nav_col1:
+        if st.button("📁 Dataset Analysis", use_container_width=True):
+            st.session_state.current_page_key = "analysis"
+            st.rerun()
+        if st.button("🧬 Taxonomy Viewer", use_container_width=True):
+            st.session_state.current_page_key = "taxonomy"
+            st.rerun()
+    with nav_col2:
+        if st.button("📈 Results Viewer", use_container_width=True):
+            st.session_state.current_page_key = "results"
+            st.rerun()
+        if st.button("🗂️ Run Browser", use_container_width=True):
+            st.session_state.current_page_key = "runs"
+            st.rerun()
+        if st.button("ℹ️ About", use_container_width=True):
+            st.session_state.current_page_key = "about"
+            st.rerun()
+    with nav_col3:
+        st.markdown("### Quick Actions")
+        if st.button("🚀 Start New Analysis", type="primary", use_container_width=True):
+            st.session_state.current_page_key = "analysis"
+            st.rerun()
     
+    # Recent runs quick links (from configured storage.runs_dir)
+    st.markdown("---")
+    st.markdown("## 🗂️ Recent Runs")
+    runs_root = Path(app_config.get('storage.runs_dir', 'runs'))
+    try:
+        if runs_root.exists():
+            # Find run folders two levels deep: runs_root/dataset_name/timestamp
+            candidates = []
+            for dataset_dir in runs_root.iterdir():
+                if dataset_dir.is_dir():
+                    for run_dir in dataset_dir.iterdir():
+                        if run_dir.is_dir():
+                            try:
+                                mtime = run_dir.stat().st_mtime
+                            except Exception:
+                                mtime = 0
+                            candidates.append((mtime, dataset_dir.name, run_dir))
+            candidates.sort(reverse=True)
+            top = candidates[:6]
+            if top:
+                cols = st.columns(3)
+                for idx, (_, ds_name, run_path) in enumerate(top):
+                    with cols[idx % 3]:
+                        label = f"{ds_name} / {run_path.name}"
+                        if st.button(f"📦 {label}", key=f"recent_{idx}", use_container_width=True):
+                            st.session_state.prefill_results_dir = str(run_path.resolve())
+                            st.session_state.current_page_key = "results"
+                            st.rerun()
+            else:
+                st.info(f"No runs found in {runs_root}")
+        else:
+            st.info(f"Runs directory not found: {runs_root}")
+    except Exception as e:
+        st.warning(f"Could not list recent runs: {e}")
+    
+    # Feature overview
+    st.markdown("---")
+    st.markdown("## ✨ Features")
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
         ### 🧬 Sequence Analysis
-        - **Multi-format support** (FASTA, FASTQ, Swiss-Prot)
-        - **Automatic format detection**
-        - **Quality assessment**
-        - **Composition analysis**
+        - Multi-format support (FASTA, FASTQ, Swiss-Prot)
+        - Automatic format detection
+        - Quality assessment
+        - Composition analysis
         """)
-    
     with col2:
         st.markdown("""
         ### 📊 Biodiversity Metrics
-        - **Shannon diversity index**
-        - **Simpson diversity index**
-        - **Species richness**
-        - **Evenness measures**
+        - Shannon and Simpson indices
+        - Species richness
+        - Evenness measures
         """)
-    
     with col3:
         st.markdown("""
         ### 🎯 Advanced Features
-        - **Real-time processing**
-        - **Interactive visualizations**
-        - **Batch analysis**
-        - **Export capabilities**
+        - Interactive visualizations
+        - Batch analysis (planned)
+        - Export capabilities
         """)
-    
-    # Quick start
-    st.markdown("---")
-    st.markdown("## 🚀 Quick Start")
-    
-    if st.button("📁 Start New Analysis", type="primary", use_container_width=True):
-        st.session_state.current_page = "📁 Dataset Analysis"
-        st.rerun()
 
 def show_analysis_page():
     """Display the main analysis page"""
     
     try:
         st.title("📁 Dataset Analysis")
+        
+        # Resolve storage directories from config
+        datasets_dir = Path(app_config.get('storage.datasets_dir', 'data/datasets'))
+        runs_root = Path(app_config.get('storage.runs_dir', 'runs'))
+        datasets_dir.mkdir(parents=True, exist_ok=True)
+        runs_root.mkdir(parents=True, exist_ok=True)
         
         # File upload section
         st.markdown("## 1. Upload Your Dataset")
@@ -299,33 +373,41 @@ def show_analysis_page():
 
 def run_analysis(uploaded_file, dataset_name, max_sequences, format_override, 
                 analysis_level, enable_quality, enable_diversity, enable_visualization, fast_mode=True):
-    """Execute the analysis with progress tracking"""
+    """Execute the analysis with progress tracking and persist inputs/outputs to configured storage"""
     
-    # Initialize variables
-    output_path = None
-    tmp_file_path = None
-    
-    # Create temporary file with safe file extension handling
+    # Resolve storage roots
+    datasets_dir = Path(app_config.get('storage.datasets_dir', 'data/datasets'))
+    runs_root = Path(app_config.get('storage.runs_dir', 'runs'))
+    datasets_dir.mkdir(parents=True, exist_ok=True)
+    runs_root.mkdir(parents=True, exist_ok=True)
+
+    # Build run directory
+    safe_name = ''.join(c if c.isalnum() or c in ('-','_') else '_' for c in (dataset_name or 'dataset'))
+    ts = time.strftime('%Y%m%d_%H%M%S')
+    run_dir = runs_root / safe_name / ts
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # Persist uploaded file to datasets_dir
     try:
-        # Get file extension safely
         if '.' in uploaded_file.name:
             file_ext = uploaded_file.name.split('.')[-1]
         else:
-            file_ext = 'txt'  # Default extension
-            
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{file_ext}") as tmp_file:
-            tmp_file.write(uploaded_file.getvalue())
-            tmp_file_path = tmp_file.name
+            file_ext = 'fasta'
+        dataset_path = datasets_dir / f"{safe_name}_{ts}.{file_ext}"
+        with open(dataset_path, 'wb') as f:
+            f.write(uploaded_file.getvalue())
     except Exception as e:
-        st.error(f"❌ Failed to process uploaded file: {str(e)}")
+        st.error(f"✂ Failed to store uploaded file: {e}")
         return
-    
+
+    # Prepare output report path inside run directory
+    output_path = str(run_dir / 'analysis_report.txt')
+
     try:
         # Initialize progress
         progress_bar = st.progress(0)
         status_text = st.empty()
-        output_path = None  # Initialize output_path
-        
+
         # Initialize analyzer with fast mode
         status_text.text("Initializing analyzer...")
         analyzer = DatasetAnalyzer(fast_mode=fast_mode)
@@ -337,42 +419,29 @@ def run_analysis(uploaded_file, dataset_name, max_sequences, format_override,
         format_type = None if format_override == "Auto-detect" else format_override.lower()
         max_seq = None if max_sequences == 0 else max_sequences
         
-        # Run analysis with timeout protection
+        # Run analysis with progress monitoring
         status_text.text("Running analysis...")
         progress_bar.progress(30)
         
         # Add warning for large files
         if uploaded_file and len(uploaded_file.getvalue()) > 100 * 1024 * 1024:  # > 100MB
-            st.warning("⏱️ Large file detected. Analysis may take several minutes. Please be patient...")
+            st.warning("⏳ Large file detected. Analysis may take several minutes. Please be patient...")
             if len(uploaded_file.getvalue()) > 200 * 1024 * 1024:  # > 200MB
                 st.warning("📊 For files > 200MB, consider using a smaller subset or the command-line tool for better performance.")
         
-        # Create temporary output file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as output_file:
-            output_path = output_file.name
-        
         start_time = time.time()
         
-        # Execute analysis with progress monitoring
-        try:
-            results = analyzer.analyze_dataset(
-                input_path=tmp_file_path,
-                output_path=output_path,
-                dataset_name=dataset_name,
-                format_type=format_type,
-                max_sequences=max_seq
-            )
-            
-            # Check if analysis completed successfully
-            if not results or 'basic_stats' not in results:
-                raise ValueError("Analysis did not complete successfully or returned incomplete results")
-                
-        except Exception as analysis_error:
-            elapsed = time.time() - start_time
-            if elapsed > 300:  # 5 minutes
-                raise TimeoutError(f"Analysis timeout after {elapsed:.1f} seconds. Consider using a smaller dataset or the command-line tool for large files.")
-            else:
-                raise analysis_error
+        # Execute analysis
+        results = analyzer.analyze_dataset(
+            input_path=str(dataset_path),
+            output_path=output_path,
+            dataset_name=dataset_name,
+            format_type=format_type,
+            max_sequences=max_seq
+        )
+        
+        if not results or 'basic_stats' not in results:
+            raise ValueError("Analysis did not complete successfully or returned incomplete results")
         
         progress_bar.progress(80)
         status_text.text("Generating visualizations...")
@@ -383,26 +452,15 @@ def run_analysis(uploaded_file, dataset_name, max_sequences, format_override,
         progress_bar.progress(100)
         status_text.text("Analysis complete!")
         
-        # Show completion message
         elapsed_time = time.time() - start_time
         st.success(f"✅ Analysis completed in {elapsed_time:.2f} seconds!")
+        st.info(f"Inputs saved to: {dataset_path}")
+        st.info(f"Run outputs: {run_dir}")
         
     except Exception as e:
-        st.error(f"❌ Analysis failed: {str(e)}")
+        st.error(f"✂ Analysis failed: {str(e)}")
         import traceback
         st.error(f"Error details: {traceback.format_exc()}")
-    
-    finally:
-        # Cleanup temporary files
-        try:
-            os.unlink(tmp_file_path)
-        except:
-            pass
-        try:
-            if output_path is not None:
-                os.unlink(output_path)
-        except:
-            pass
 
 def display_results(results, output_path, enable_visualization):
     """Display analysis results with visualizations"""
@@ -544,7 +602,8 @@ def show_composition_tab(results, enable_visualization):
                 fig = px.pie(
                     values=freqs,
                     names=chars,
-                    title=f"{comp.get('sequence_type', 'Unknown').upper()} Character Distribution"
+                    title=f"{comp.get('sequence_type', 'Unknown').upper()} Character Distribution",
+                    color_discrete_sequence=px.colors.qualitative.Set3
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -699,6 +758,164 @@ def show_batch_analysis_page():
 
 def show_results_viewer():
     """Display results viewer page"""
+    st.title("📈 Results Viewer")
+
+    # Choose results directory (support prefill from homepage)
+    default_dir = str(Path(app_config.get('storage.runs_dir', 'runs')).resolve())
+    prefill = st.session_state.get('prefill_results_dir')
+    if prefill and Path(prefill).exists():
+        default_dir = prefill
+    
+    results_dir = st.text_input(
+        "Results directory",
+        value=default_dir,
+        help="Folder containing pipeline_results.json and subfolders: clustering, taxonomy, novelty, visualizations",
+        key="results_dir_input"
+    )
+    # Persist last used results dir for quick navigation
+    if results_dir:
+        st.session_state.prefill_results_dir = results_dir
+
+    if not results_dir:
+        return
+    base = Path(results_dir)
+    if not base.exists():
+        st.warning(f"Directory not found: {base}")
+        return
+
+    # Helper to check files
+    def p(*parts):
+        return base.joinpath(*parts)
+
+    st.markdown("---")
+    # 1) Pipeline summary
+    st.subheader("Pipeline Summary")
+    summary_cols = st.columns(5)
+    pr_path = p('pipeline_results.json')
+    ui_report_path = p('analysis_report.txt')
+    try:
+        if pr_path.exists():
+            with open(pr_path, 'r', encoding='utf-8') as f:
+                pr = json.load(f)
+            s = pr.get('summary', {})
+            summary_cols[0].metric("Total sequences", f"{s.get('total_sequences_processed', 0):,}")
+            summary_cols[1].metric("Clusters", f"{s.get('total_clusters', 0):,}")
+            summary_cols[2].metric("Taxa identified", f"{s.get('total_taxa_identified', 0):,}")
+            summary_cols[3].metric("Novel candidates", f"{s.get('novel_taxa_candidates', 0):,}")
+            summary_cols[4].metric("Novel %", f"{s.get('novelty_percentage', 0)}%")
+        else:
+            # Fallback to UI report-only runs
+            if ui_report_path.exists():
+                summary_cols[0].metric("Report only", "Yes")
+                st.info("Detected UI analysis report (no pipeline_results.json). Showing the text report below.")
+            else:
+                st.info("pipeline_results.json not found; showing sections based on available files")
+    except Exception as e:
+        st.warning(f"Could not read pipeline_results.json: {e}")
+
+    # UI text report display
+    if ui_report_path.exists():
+        st.markdown("### Analysis Report (UI)")
+        try:
+            st.text_area("analysis_report.txt", ui_report_path.read_text(encoding='utf-8', errors='ignore'), height=240)
+            st.download_button("Download analysis_report.txt", data=ui_report_path.read_bytes(), file_name="analysis_report.txt")
+        except Exception:
+            st.write(f"Open report: {ui_report_path}")
+
+    st.markdown("---")
+    # 2) Clustering
+    st.subheader("Clustering")
+    clus_img = p('clustering', 'cluster_visualization.png')
+    clus_stats = p('clustering', 'cluster_stats.txt')
+    clus_csv = p('clustering', 'cluster_assignments.csv')
+
+    cols = st.columns([2,1])
+    with cols[0]:
+        if clus_img.exists():
+            st.image(str(clus_img), caption="Cluster visualization")
+        else:
+            st.info("No cluster_visualization.png found")
+    with cols[1]:
+        if clus_stats.exists():
+            try:
+                st.text_area("Cluster stats", clus_stats.read_text(encoding='utf-8'), height=200)
+            except Exception:
+                st.text("cluster_stats.txt present (could not display)")
+        if clus_csv.exists():
+            try:
+                dfc = pd.read_csv(clus_csv)
+                st.write("Cluster assignments (first 10 rows):")
+                st.dataframe(dfc.head(10), hide_index=True, use_container_width=True)
+                st.download_button("Download cluster_assignments.csv", data=clus_csv.read_bytes(), file_name="cluster_assignments.csv")
+            except Exception as e:
+                st.warning(f"Could not read cluster_assignments.csv: {e}")
+
+    st.markdown("---")
+    # 3) Taxonomy
+    st.subheader("Taxonomy")
+    tax_csv = p('taxonomy', 'taxonomy_predictions.csv')
+    if tax_csv.exists():
+        try:
+            dft = pd.read_csv(tax_csv)
+            # Summary
+            tcols = st.columns(4)
+            tcols[0].metric("Rows", f"{len(dft):,}")
+            if 'assigned_label' in dft.columns:
+                tcols[1].metric("Unique taxa", f"{dft['assigned_label'].dropna().nunique():,}")
+            if 'tiebreak_winner' in dft.columns:
+                try:
+                    tb_counts = dft['tiebreak_winner'].value_counts()
+                    tcols[2].metric("BLAST wins", f"{int(tb_counts.get('blast',0)):,}")
+                    tcols[3].metric("KNN wins", f"{int(tb_counts.get('knn',0)):,}")
+                except Exception:
+                    pass
+            st.write("Top taxa (bar chart)")
+            if 'assigned_label' in dft.columns:
+                top_counts = dft['assigned_label'].fillna('Unknown').value_counts().head(15)
+                chart_df = pd.DataFrame({"Taxon": top_counts.index, "Count": top_counts.values})
+                fig = px.bar(chart_df, x='Taxon', y='Count', title="Top 15 Assigned Taxa")
+                st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(dft.head(50), use_container_width=True, hide_index=True)
+            st.download_button("Download taxonomy_predictions.csv", data=tax_csv.read_bytes(), file_name="taxonomy_predictions.csv")
+            # Conflicts report
+            tb_report = p('taxonomy', 'taxonomy_tiebreak_report.csv')
+            if tb_report.exists():
+                st.download_button("Download taxonomy_tiebreak_report.csv", data=tb_report.read_bytes(), file_name="taxonomy_tiebreak_report.csv")
+        except Exception as e:
+            st.warning(f"Could not parse taxonomy_predictions.csv: {e}")
+    else:
+        st.info("No taxonomy_predictions.csv found")
+
+    st.markdown("---")
+    # 4) Novelty
+    st.subheader("Novelty")
+    nov_json = p('novelty', 'novelty_analysis.json')
+    nov_img = p('novelty', 'novelty_visualization.png')
+    if nov_json.exists():
+        try:
+            nov = json.loads(nov_json.read_text(encoding='utf-8'))
+            ncols = st.columns(4)
+            ncols[0].metric("Total sequences", f"{nov.get('total_sequences',0):,}")
+            ncols[1].metric("Novel candidates", f"{nov.get('novel_candidates',0):,}")
+            ncols[2].metric("Novel %", f"{nov.get('novel_percentage',0):.2f}%")
+            if nov_img.exists():
+                st.image(str(nov_img), caption="Novelty visualization")
+        except Exception as e:
+            st.warning(f"Could not read novelty_analysis.json: {e}")
+    else:
+        st.info("No novelty analysis found")
+
+    st.markdown("---")
+    # 5) Dashboard
+    st.subheader("Dashboard")
+    dash_html = p('visualizations', 'analysis_dashboard.html')
+    if dash_html.exists():
+        try:
+            components.html(dash_html.read_text(encoding='utf-8'), height=600, scrolling=True)
+        except Exception:
+            st.write(f"Open dashboard: {dash_html}")
+    else:
+        st.info("No analysis_dashboard.html found")
     
     st.title("📈 Results Viewer")
     st.info("🚧 Results viewer coming soon! This will allow you to browse and compare previous analyses.")
@@ -711,6 +928,181 @@ def show_results_viewer():
     - **Trend analysis**
     - **Export utilities**
     """)
+
+def show_run_browser():
+    """Browse and open runs stored under the configured runs directory"""
+    import time as _time
+    st.title("🗂️ Run Browser")
+
+    # Base directory input
+    default_root = str(Path(app_config.get('storage.runs_dir', 'runs')).resolve())
+    root_dir = st.text_input(
+        "Runs root directory",
+        value=default_root,
+        help="Root folder containing runs organized as <dataset_name>/<timestamp>"
+    )
+
+    if not root_dir:
+        return
+    base = Path(root_dir)
+    if not base.exists():
+        st.warning(f"Directory not found: {base}")
+        return
+
+    # Discover dataset folders
+    datasets = sorted([d.name for d in base.iterdir() if d.is_dir()])
+    cols_top = st.columns([2,2,2,1])
+    with cols_top[0]:
+        ds_filter = st.selectbox("Dataset", ["All"] + datasets)
+    with cols_top[1]:
+        search = st.text_input("Search (dataset/run)", "")
+    with cols_top[2]:
+        try:
+            show_n = st.number_input("Show top N", min_value=5, max_value=500, value=20, step=5)
+        except Exception:
+            show_n = 20
+    with cols_top[3]:
+        refresh = st.button("Refresh")
+
+    # Collect runs
+    rows = []
+    for ds in datasets:
+        if ds_filter != "All" and ds != ds_filter:
+            continue
+        ds_path = base / ds
+        try:
+            for run_dir in ds_path.iterdir():
+                if not run_dir.is_dir():
+                    continue
+                try:
+                    mtime = run_dir.stat().st_mtime
+                    mtime_str = _time.strftime('%Y-%m-%d %H:%M:%S', _time.localtime(mtime))
+                except Exception:
+                    mtime, mtime_str = 0, ""
+                pr = (run_dir / 'pipeline_results.json').exists()
+                tx = (run_dir / 'taxonomy' / 'taxonomy_predictions.csv').exists()
+                nv = (run_dir / 'novelty' / 'novelty_analysis.json').exists()
+                rows.append({
+                    'dataset': ds,
+                    'run': run_dir.name,
+                    'path': str(run_dir.resolve()),
+                    'modified': mtime_str,
+                    'mtime': mtime,
+                    'has_pipeline': pr,
+                    'has_taxonomy': tx,
+                    'has_novelty': nv,
+                })
+        except Exception:
+            continue
+
+    # Apply search filter
+    if search:
+        s = search.lower()
+        rows = [r for r in rows if s in r['dataset'].lower() or s in r['run'].lower()]
+
+    # Sort and cap
+    rows.sort(key=lambda r: r.get('mtime', 0), reverse=True)
+    rows_view = rows[: int(show_n)] if show_n and len(rows) > show_n else rows
+
+    # Render list
+    if not rows_view:
+        st.info("No runs found for the current filters.")
+        return
+
+    for i, r in enumerate(rows_view):
+        with st.container():
+            c1, c2, c3, c4, c5 = st.columns([3, 2, 1, 1, 1])
+            c1.markdown(f"**{r['dataset']} / {r['run']}**\n\n``{r['path']}``")
+            c2.text(r['modified'])
+            c3.markdown("✅ results" if r['has_pipeline'] else "—")
+            c4.markdown("🧬 taxonomy" if r['has_taxonomy'] else "—")
+            if c5.button("Open", key=f"open_run_{i}"):
+                st.session_state.prefill_results_dir = r['path']
+                st.session_state.current_page_key = "results"
+                st.rerun()
+
+
+def show_taxonomy_viewer():
+    """Display taxonomy viewer page with conflict and lineage summaries"""
+    st.title("Taxonomy Viewer")
+    st.info("Load taxonomy_predictions.csv (and optional tiebreak report) from a results directory.")
+
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        default_dir = str(Path("results").resolve())
+        results_dir = st.text_input("Results directory", value=default_dir, help="Folder containing taxonomy/taxonomy_predictions.csv")
+    with col2:
+        refresh = st.button("Load", type="primary")
+
+    if results_dir:
+        tax_csv = Path(results_dir) / "taxonomy" / "taxonomy_predictions.csv"
+        report_csv = Path(results_dir) / "taxonomy" / "taxonomy_tiebreak_report.csv"
+        if not tax_csv.exists():
+            st.warning(f"taxonomy_predictions.csv not found at {tax_csv}")
+            return
+        try:
+            df = pd.read_csv(tax_csv)
+        except Exception as e:
+            st.error(f"Failed to read taxonomy_predictions.csv: {e}")
+            return
+
+        # Summary cards
+        total = len(df)
+        unique_labels = df['assigned_label'].dropna().nunique() if 'assigned_label' in df.columns else 0
+        conflicts = 0
+        if 'conflict_flag' in df.columns:
+            try:
+                conflicts = int(df['conflict_flag'].astype(str).str.lower().eq('true').sum())
+            except Exception:
+                conflicts = 0
+        colA, colB, colC, colD = st.columns(4)
+        colA.metric("Total Sequences", f"{total:,}")
+        colB.metric("Unique Taxa", f"{unique_labels:,}")
+        colC.metric("Conflicts", f"{conflicts:,}")
+        if report_csv.exists():
+            colD.download_button("Download Tiebreak Report", data=report_csv.read_bytes(), file_name="taxonomy_tiebreak_report.csv")
+
+        st.markdown("---")
+
+        # Filters
+        with st.expander("Filters"):
+            only_conflicts = st.checkbox("Show only conflicts", value=False)
+            top_n = st.number_input("Top N taxa chart", min_value=5, max_value=100, value=15)
+
+        view_df = df.copy()
+        if only_conflicts and 'conflict_flag' in view_df.columns:
+            try:
+                view_df = view_df[view_df['conflict_flag'].astype(str).str.lower() == 'true']
+            except Exception:
+                pass
+
+        # Top taxa chart
+        try:
+            if 'assigned_label' in view_df.columns and len(view_df) > 0:
+                top_counts = view_df['assigned_label'].fillna('Unknown').value_counts().head(int(top_n))
+                chart_df = pd.DataFrame({"Taxon": top_counts.index, "Count": top_counts.values})
+                fig = px.bar(chart_df, x='Taxon', y='Count', title=f"Top {int(top_n)} Assigned Taxa")
+                st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            pass
+
+        # Data table (selected columns)
+        cols = [c for c in [
+            'sequence_id', 'assigned_rank', 'assigned_label', 'confidence',
+            'knn_rank', 'knn_label', 'knn_confidence', 'blast_label', 'blast_identity', 'blast_taxid',
+            'tiebreak_winner', 'tiebreak_reason', 'conflict_flag',
+            'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'
+        ] if c in view_df.columns]
+        st.dataframe(view_df[cols], use_container_width=True, hide_index=True)
+
+        # Download enriched predictions
+        st.download_button(
+            label="Download taxonomy_predictions.csv",
+            data=tax_csv.read_bytes(),
+            file_name="taxonomy_predictions.csv",
+            use_container_width=True
+        )
+
 
 def show_about_page():
     """Display about page"""
