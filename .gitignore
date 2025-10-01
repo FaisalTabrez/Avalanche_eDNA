@@ -16,7 +16,6 @@ logs/
 
 # Results and large artifacts
 results/
-AvalancheData/
 # Common large numpy artifacts
 *.npy
 *.npz
