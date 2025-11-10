@@ -1,0 +1,109 @@
+# My Dataset Analysis Report
+Generated on: 2025-10-01 15:12:51
+
+## 📊 Basic Sequence Statistics
+- Total sequences: 318,338
+- Minimum length: 250
+- Maximum length: 250
+- Mean length: 250.00
+- Median length: 250.00
+- Standard deviation: 0.00
+
+### Length Distribution Percentiles
+- 25th percentile: 250.00
+- 75th percentile: 250.00
+- 90th percentile: 250.00
+- 95th percentile: 250.00
+
+## 🧬 Sequence Composition (DNA)
+- Total characters analyzed: 1,250,000
+- Unique characters: 5
+
+### Character Frequencies
+| Character | Frequency | Percentage |
+|-----------|-----------|------------|
+| G | 0.258636 | 25.864% |
+| C | 0.256509 | 25.651% |
+| T | 0.248390 | 24.839% |
+| A | 0.235896 | 23.590% |
+| N | 0.000570 | 0.057% |
+
+## 📝 Annotation Analysis
+- Sequences with organism info: 0
+- Sequences with descriptions: 318,338
+- Sequences with features: 0
+
+### Top Organisms
+| Organism | Count |
+|----------|-------|
+| Unknown | 3,000 |
+
+## 🔍 Quality Analysis
+- Sequences with quality scores: 0
+- Low quality sequences (Q<20): 0
+
+## 🌿 Biodiversity Metrics
+- Species richness: 1
+- Shannon diversity index: -0.0000
+- Simpson diversity index: 0.0000
+- Evenness: 0.0000
+- Total abundance: 318,338
+
+## 🔬 Enhanced Diversity Analysis
+### Alpha Diversity Metrics
+- Chao1 estimator: 1.00
+- ACE estimator: 1.00
+- Fisher's alpha: 0.10
+- Effective species number: 1.00
+- Berger-Parker index: 1.0000
+
+### Community Structure
+- Dominant species (>5%): 1
+- Rare species (<1%): 0
+- Evenness category: highly_uneven
+
+### Sampling Adequacy
+- Completeness: 100.00%
+- Adequacy level: excellent
+
+## 🦠 Advanced Taxonomic Analysis
+### Novel Species Candidates
+- Potential novel species: 50
+- Novel candidate percentage: 0.0%
+✨ Novel species candidates detected - consider further investigation
+
+**Top Novel Candidates:**
+1. SRR35551197.1 (novelty: 0.700, rank: genus_or_higher)
+2. SRR35551197.1 (novelty: 0.699, rank: genus_or_higher)
+3. SRR35551197.1 (novelty: 0.699, rank: genus_or_higher)
+4. SRR35551197.1 (novelty: 0.699, rank: genus_or_higher)
+5. SRR35551197.1 (novelty: 0.699, rank: genus_or_higher)
+
+## 🌍 Environmental Context Analysis
+### Habitat Classification
+- Primary habitat: unknown
+- Confidence: 0.00%
+- Habitat complexity: low
+
+### Ecological Indicators
+- Ecosystem health: 0.5
+- Pollution indicators: []
+
+### Environmental Stress Assessment
+- Stress level: unknown
+
+## ⏱️ Processing Information
+- Total processing time: 19.92 seconds
+- File format: fasta
+- File size: 13.87 MB
+
+### Step-by-step timing:
+- sequence_loading: 4.64s
+- basic_statistics: 0.19s
+- composition_analysis: 0.12s
+- annotation_analysis: 0.00s
+- quality_analysis: 0.01s
+- diversity_metrics: 0.06s
+- advanced_taxonomic_analysis: 14.87s
+- enhanced_diversity_analysis: 0.03s
+- environmental_context_analysis: 0.00s
