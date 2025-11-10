@@ -147,13 +147,14 @@ class TaxdumpResolver:
         return out
 
 class BlastTaxonomyAssigner:
-    """BLAST-based taxonomic assignment"""
+    """BLAST-based taxonomic assignment using Windows BLAST runner"""
     
     def __init__(self,
                  blast_db: str,
                  evalue: float = 1e-5,
                  max_targets: int = 10,
-                 identity_threshold: float = 97.0):
+                 identity_threshold: float = 97.0,
+                 blast_config: Optional[Dict[str, Any]] = None):
         """
         Initialize BLAST taxonomy assigner
         
@@ -162,26 +163,28 @@ class BlastTaxonomyAssigner:
             evalue: E-value threshold
             max_targets: Maximum number of target sequences
             identity_threshold: Minimum identity threshold for assignment
+            blast_config: Optional BLAST configuration override
         """
         self.blast_db = blast_db
         self.evalue = evalue
         self.max_targets = max_targets
         self.identity_threshold = identity_threshold
         
-        # Check if BLAST is available
-        self._check_blast_availability()
+        # Import Windows BLAST runner
+        from utils.blast_utils import WindowsBLASTRunner
+        
+        # Create BLAST configuration
+        blast_cfg = blast_config or config.get('taxonomy', {}).get('blast', {})
+        blast_cfg.update({
+            'evalue': self.evalue,
+            'max_targets': self.max_targets,
+            'identity_threshold': self.identity_threshold
+        })
+        
+        # Initialize BLAST runner
+        self.blast_runner = WindowsBLASTRunner(blast_cfg)
         
         logger.info(f"BLAST taxonomy assigner initialized with database: {blast_db}")
-    
-    def _check_blast_availability(self) -> None:
-        """Check if BLAST tools are available"""
-        try:
-            result = subprocess.run(['blastn', '-version'], 
-                                  capture_output=True, text=True)
-            if result.returncode != 0:
-                raise RuntimeError("BLAST tools not found")
-        except FileNotFoundError:
-            raise RuntimeError("BLAST tools not installed or not in PATH")
     
     def assign_taxonomy(self, 
                        sequences: List[str],
@@ -201,25 +204,75 @@ class BlastTaxonomyAssigner:
         
         logger.info(f"Assigning taxonomy to {len(sequences)} sequences using BLAST")
         
-        # Create temporary FASTA file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.fasta', delete=False) as temp_fasta:
-            for seq_id, sequence in zip(sequence_ids, sequences):
-                temp_fasta.write(f">{seq_id}\n{sequence}\n")
-            temp_fasta_path = temp_fasta.name
-        
         try:
-            # Run BLAST
-            blast_results = self._run_blast(temp_fasta_path)
+            # Run BLAST using Windows BLAST runner
+            blast_results = self.blast_runner.run_blastn_search(
+                query_sequences=sequences,
+                database_path=self.blast_db,
+                sequence_ids=sequence_ids
+            )
             
-            # Parse results
-            taxonomy_assignments = self._parse_blast_results(blast_results, sequence_ids)
+            # Convert BLAST results to taxonomy assignments
+            taxonomy_assignments = self._convert_blast_to_taxonomy(blast_results)
             
             return taxonomy_assignments
+            
+        except Exception as e:
+            logger.error(f"Error in BLAST taxonomy assignment: {e}")
+            # Return empty results for all sequences
+            return [{
+                'sequence_id': seq_id,
+                'best_hit': None,
+                'identity': 0.0,
+                'evalue': float('inf'),
+                'coverage': 0.0,
+                'taxonomy': 'Unknown',
+                'taxid': None,
+                'all_hits': []
+            } for seq_id in sequence_ids]
+    
+    def _convert_blast_to_taxonomy(self, blast_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Convert BLAST results to taxonomy assignment format
         
-        finally:
-            # Clean up temporary file
-            os.unlink(temp_fasta_path)
+        Args:
+            blast_results: Results from WindowsBLASTRunner
+            
+        Returns:
+            List of taxonomy assignment results
+        """
+        taxonomy_assignments = []
         
+        for result in blast_results:
+            # Extract taxonomy from hit title if available
+            taxonomy_info = 'Unknown'
+            taxid = None
+            
+            if result['has_hit'] and result['subject_id']:
+                # Extract taxonomy from subject title
+                taxonomy_dict = self.blast_runner.extract_taxonomy_from_hit(result['subject_id'])
+                taxonomy_info = taxonomy_dict.get('species', 'Unknown')
+                
+                # Try to extract taxid (basic implementation)
+                taxid = self._extract_taxid_from_hit(result['subject_id'])
+            
+            # Calculate coverage (approximation)
+            coverage = (result['alignment_length'] / max(result['query_end'] - result['query_start'], 1)) * 100 if result['has_hit'] else 0.0
+            
+            assignment = {
+                'sequence_id': result['query_id'],
+                'best_hit': result['subject_id'] if result['has_hit'] else None,
+                'identity': result['identity_pct'],
+                'evalue': result['evalue'],
+                'coverage': coverage,
+                'taxonomy': taxonomy_info,
+                'taxid': taxid,
+                'all_hits': [result] if result['has_hit'] else []  # Simplified - could expand to include all hits
+            }
+            
+            taxonomy_assignments.append(assignment)
+        
+        return taxonomy_assignments
 
     def _apply_cluster_consensus(self, results: List[Dict[str, Any]], cluster_labels: np.ndarray) -> List[Dict[str, Any]]:
         # Build consensus per cluster at the most specific rank with agreement >= threshold

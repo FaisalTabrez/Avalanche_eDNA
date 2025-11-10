@@ -12,11 +12,12 @@ port = 8504
 address = "0.0.0.0"
 
 [theme]
-# Theme configuration
-primaryColor = "#1f77b4"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#262730"
+# Dark theme configuration
+base = "dark"
+primaryColor = "#00E5FF"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#111111"
+textColor = "#EEEEEE"
 
 [browser]
 # Browser configuration

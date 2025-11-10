@@ -41,35 +41,75 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Plotly dark theme and high-contrast palette
+import plotly.io as pio
+pio.templates.default = "plotly_dark"
+px.defaults.template = "plotly_dark"
+px.defaults.color_discrete_sequence = (
+    px.colors.qualitative.Bold + px.colors.qualitative.Set3 + px.colors.qualitative.Vivid
+)
+
+# Custom CSS for dark UI styling and better contrast
 st.markdown("""
 <style>
+    /* App background and global text color */
+    [data-testid=\"stAppViewContainer\"] {
+        background-color: #000000 !important;
+        color: #EEEEEE !important;
+    }
+    [data-testid=\"stHeader\"] { background: #000000 !important; }
+    [data-testid=\"stSidebar\"] { background-color: #111111 !important; }
+
+    /* Headings */
     .main-header {
         font-size: 2.5rem;
-        color: #1f77b4;
+        color: #00E5FF; /* cyan accent */
         text-align: center;
         margin-bottom: 2rem;
     }
+
+    /* Buttons */
+    .stButton>button {
+        background-color: #00E5FF !important;
+        color: #000000 !important;
+        border: 1px solid #00E5FF !important;
+        border-radius: 6px !important;
+    }
+    .stButton>button:hover {
+        background-color: #33F0FF !important;
+        border-color: #33F0FF !important;
+        color: #000000 !important;
+    }
+
+    /* Inputs & selects */
+    .stSelectbox, .stTextInput, .stNumberInput, .stTextArea {
+        color: #EEEEEE !important;
+    }
+
+    /* Info boxes with dark theme variants */
     .success-box {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
+        background-color: rgba(27, 94, 32, 0.35);
+        border: 1px solid #2E7D32;
         border-radius: 0.375rem;
         padding: 1rem;
         margin: 1rem 0;
+        color: #E8F5E9;
     }
     .info-box {
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
+        background-color: rgba(1, 87, 155, 0.35);
+        border: 1px solid #0288D1;
         border-radius: 0.375rem;
         padding: 1rem;
         margin: 1rem 0;
+        color: #E1F5FE;
     }
     .warning-box {
-        background-color: #fff3cd;
-        border: 1px solid #ffeaa7;
+        background-color: rgba(255, 160, 0, 0.25);
+        border: 1px solid #FFB300;
         border-radius: 0.375rem;
         padding: 1rem;
         margin: 1rem 0;
+        color: #FFF3E0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1086,18 +1126,19 @@ def show_taxonomy_viewer():
         except Exception:
             pass
 
-        # Data table (selected columns)
-        cols = [c for c in [
+        # Simplified data table with core columns
+        preferred_cols = [
             'sequence_id', 'assigned_rank', 'assigned_label', 'confidence',
-            'knn_rank', 'knn_label', 'knn_confidence', 'blast_label', 'blast_identity', 'blast_taxid',
-            'tiebreak_winner', 'tiebreak_reason', 'conflict_flag',
-            'kingdom', 'phylum', 'class', 'order', 'family', 'genus', 'species'
-        ] if c in view_df.columns]
+            'tiebreak_winner', 'conflict_flag'
+        ]
+        cols = [c for c in preferred_cols if c in view_df.columns]
         st.dataframe(view_df[cols], use_container_width=True, hide_index=True)
-
-        # Download enriched predictions
+        
+        st.caption("Download the complete, unfiltered taxonomy table below.")
+        
+        # Download full (complete) table
         st.download_button(
-            label="Download taxonomy_predictions.csv",
+            label="Download full taxonomy_predictions.csv (complete table)",
             data=tax_csv.read_bytes(),
             file_name="taxonomy_predictions.csv",
             use_container_width=True

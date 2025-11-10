@@ -68,6 +68,38 @@ databases:
     files:
       - "gg_13_5.fasta.gz"
 
+# Marine eukaryote references (for labeling only; discovery remains unsupervised)
+references:
+  enabled: true
+  sources:
+    - name: pr2
+      marker: "18S"
+      fasta: "reference\\pr2\\pr2_18S.fasta"
+      taxonomy: "reference\\pr2\\taxonomy.tsv"
+      weight: 1.0
+    - name: silva
+      marker: "18S"
+      fasta: "reference\\silva\\silva_18S_euk.fasta"
+      taxonomy: "reference\\silva\\taxonomy.tsv"
+      weight: 0.8
+  combined:
+    marker: "18S"
+    fasta: "reference\\combined\\18S\\references.fasta"
+    taxonomy: "reference\\combined\\18S\\taxonomy.csv"
+    blast_db_prefix: "reference\\indices\\18S\\combined_18S"
+    faiss_embeddings: "reference\\indices\\18S\\reference_embeddings.npy"
+    faiss_labels: "reference\\indices\\18S\\reference_labels.csv"
+  thresholds:
+    knn_min_similarity: 0.65
+    knn_distance_margin: 0.07
+    knn_min_agreement:
+      species: 0.8
+      genus: 0.7
+      family: 0.6
+    blast_min_identity: 0.90
+    blast_min_coverage: 0.80
+    lca_conflict_tolerance: "genus"
+
 # Preprocessing parameters
 preprocessing:
   quality_threshold: 20
@@ -141,9 +173,9 @@ clustering:
 taxonomy:
   # Primary: KNN + LCA on pretrained embeddings
   knn:
-    reference_dir: "data/reference"
-    embeddings_path: "data/reference/reference_embeddings.npy"
-    labels_path: "data/reference/reference_labels.csv"
+    reference_dir: "reference"
+    embeddings_path: "reference\\indices\\18S\\reference_embeddings.npy"
+    labels_path: "reference\\indices\\18S\\reference_labels.csv"
     index: "flat_ip"
     k: 50
     min_similarity: 0.65
@@ -156,23 +188,63 @@ taxonomy:
 
   # BLAST settings (used by fallback, and for general blast usage)
   blast:
-    database: "F:\\Dataset\\env_nt_extracted\\env_nt"
+    # Windows BLAST executable paths
+    blast_bin_dir: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin"
+    blastn_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\blastn.exe"
+    makeblastdb_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\makeblastdb.exe"
+    
+    # Database settings
+    database: "reference\\indices\\18S\\combined_18S"
     evalue: 1e-5
     max_targets: 10
     identity_threshold: 97.0
+    
+    # Output format settings
+    output_format: 5  # XML format
+    num_threads: 4
 
   # BLAST fallback policy
   blast_fallback:
     enable: true
-    database: "F:\\Dataset\\env_nt_extracted\\env_nt"
+    blastn_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\blastn.exe"
+    database: "reference\\indices\\18S\\combined_18S"
     min_identity_species: 97.0
+    evalue: 1e-5
+    max_targets: 5
 
   # Cluster consensus to smooth assignments
   cluster_consensus:
     min_cluster_agreement: 0.7
 
-  # Optional: NCBI taxdump directory for lineage enrichment
+  # Enhanced taxonomic lineage system
   taxdump_dir: "F:\\Dataset\\taxdump"
+  taxdump_backup_dir: "F:\\Dataset\\taxdump\\backups"
+  keep_taxdump_backups: 5
+  
+  # Enhanced lineage configuration
+  enhanced_lineage:
+    enable_caching: true
+    cache_db_path: null  # Auto-generate in taxdump_dir if null
+    extended_ranks: true  # Enable extended taxonomic ranks
+    common_names: true   # Extract common names from taxdump
+    synonyms: true       # Extract synonyms from taxdump
+    external_refs: true  # Generate external database references
+  
+  # Multi-source taxonomy integration
+  multi_source:
+    enabled: true
+    silva_file: null     # Path to SILVA taxonomy file
+    pr2_file: null       # Path to PR2 taxonomy file
+    unite_file: null     # Path to UNITE taxonomy file
+    gtdb_file: null      # Path to GTDB taxonomy file
+    custom_file: null    # Path to custom taxonomy file
+  
+  # Automatic taxdump updates
+  auto_update:
+    enabled: false
+    check_interval_days: 7
+    auto_install: false  # Require manual approval
+    backup_before_update: true
   
   # Novelty detection thresholds
   novelty:
@@ -191,6 +263,28 @@ visualization:
     max_points: 10000
     opacity: 0.7
     marker_size: 3
+  
+  # Enhanced lineage visualization
+  lineage_viz:
+    width: 1200
+    height: 800
+    font_size: 12
+    show_confidence: true
+    show_evidence: true
+    interactive: true
+    export_format: "html"
+    
+    # Tree visualization
+    tree:
+      layout: "sunburst"  # sunburst, treemap, or radial
+      color_by: "confidence"  # confidence, rank, or evidence
+      max_depth: 7  # Maximum taxonomic depth to display
+    
+    # Export formats
+    export:
+      formats: ["json", "csv", "xml", "json-ld", "rdf"]
+      include_metadata: true
+      generate_reports: true
 
 # Performance
 performance:

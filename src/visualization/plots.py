@@ -5,6 +5,7 @@ Plotting utilities for biodiversity analysis visualization
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
+import plotly.io as pio
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
@@ -39,8 +40,15 @@ class BiodiversityPlotter:
         # Set style
         sns.set_style(style)
         plt.style.use('default')
+
+        # Plotly dark theme and high-contrast palette
+        pio.templates.default = "plotly_dark"
+        px.defaults.template = "plotly_dark"
+        px.defaults.color_discrete_sequence = (
+            px.colors.qualitative.Bold + px.colors.qualitative.Set3 + px.colors.qualitative.Vivid
+        )
         
-        logger.info("Biodiversity plotter initialized")
+        logger.info("Biodiversity plotter initialized (dark theme)")
     
     def plot_sequence_length_distribution(self,
                                         sequence_lengths: List[int],
