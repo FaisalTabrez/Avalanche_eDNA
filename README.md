@@ -2,6 +2,16 @@
 
 An end-to-end system for identifying taxonomic diversity and assessing biological richness in deep-sea environmental DNA (eDNA) datasets using advanced machine learning and bioinformatics techniques.
 
+## Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## 🌊 Overview
 
 This system addresses the challenges of deep-sea eDNA analysis by:
@@ -48,41 +58,45 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 
 > Note: The current pipeline uses placeholder embeddings and a demo ML taxonomy classifier trained on synthetic data. Replace the embedding step with real models and training when src/models is introduced.
 
+## Installation
+
+See [Installation Guide](docs/installation.md) for detailed setup instructions including prerequisites, environment setup, and optional dependencies.
+
 ## 🚀 Quick Start
 
 Note: The default embedding backend uses a pretrained Nucleotide Transformer from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
 
-1. **Setup Environment**
-   ```bash
-   conda create -n edna-biodiversity python=3.9
-   conda activate edna-biodiversity
-   pip install -r requirements.txt
-   ```
+1. **Create Sample Data and Run Analysis**
+    ```bash
+    # Create sample eDNA dataset
+    python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
 
-2. **Create Sample Data and Run Analysis**
-   ```bash
-   # Create sample eDNA dataset
-   python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
-   
-   # Run complete analysis pipeline
-   python scripts/run_pipeline.py --input data/sample/sample_edna_sequences.fasta --output results/demo
-   ```
+    # Run complete analysis pipeline
+    python scripts/run_pipeline.py --input data/sample/sample_edna_sequences.fasta --output results/demo
+    ```
 
-3. **Launch Interactive Dashboard**
-   ```bash
-   python scripts/launch_dashboard.py
-   ```
-   Then open http://localhost:8504 in your browser
+2. **Launch Interactive Dashboard**
+    ```bash
+    python scripts/launch_dashboard.py
+    ```
+    Then open http://localhost:8504 in your browser
 
-4. **View Results**
-   ```bash
-   # Results are saved in results/demo/
-   # - pipeline_results.json: Complete analysis results
-   # - visualizations/: Interactive plots
-   # - clustering/: Clustering analysis
-   # - taxonomy/: Taxonomic assignments
-   # - novelty/: Novel taxa detection
-   ```
+3. **View Results**
+    ```bash
+    # Results are saved in results/demo/
+    # - pipeline_results.json: Complete analysis results
+    # - visualizations/: Interactive plots
+    # - clustering/: Clustering analysis
+    # - taxonomy/: Taxonomic assignments
+    # - novelty/: Novel taxa detection
+    ```
+
+## Documentation
+
+- [User Guide](docs/user_guide.md) - Complete usage instructions and tutorials
+- [API Reference](docs/api_reference.md) - Detailed API documentation
+- [Configuration](docs/configuration.md) - Configuration options and examples
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 📊 Usage
 
@@ -133,56 +147,9 @@ print(f"Found {results['summary']['novel_taxa_candidates']} novel taxa candidate
 6. **Novelty Detection**: Identify potential new species
 7. **Visualization**: Interactive plots and reports
 
-See the [documentation](docs/) for detailed usage instructions and tutorials.
-
 ## 🧬 NCBI SRA Integration
 
-The system now includes comprehensive NCBI SRA (Sequence Read Archive) integration for accessing real-world eDNA datasets:
-
-### SRA Features
-
-- **Automated Study Discovery**: Search NCBI SRA for eDNA-relevant studies using keywords
-- **Direct Data Download**: Download SRA runs using SRA Toolkit or FTP
-- **Format Conversion**: Automatic conversion from SRA to FASTQ format
-- **eDNA-Specific Filtering**: Specialized filtering for environmental DNA sequences
-- **Integrated Processing**: Seamless integration with the main analysis pipeline
-
-### SRA Usage Examples
-
-```bash
-# Search and download eDNA studies
-python scripts/download_sra_data.py --search --max-results 10
-
-# Download specific SRA accession
-python scripts/download_sra_data.py --accession SRP123456
-
-# Download marine sediment eDNA datasets
-python scripts/download_sra_data.py --download-type marine_sediment --max-results 5
-
-# Process SRA data with full pipeline
-python scripts/run_pipeline.py --input data/sra/SRP123456/ --output results/sra_analysis
-
-# Run complete SRA integration demo
-python scripts/sra_integration_example.py
-```
-
-### SRA Configuration
-
-The system is pre-configured with:
-- **eDNA-specific search keywords**: "eDNA", "environmental DNA", "metabarcoding"
-- **Study type categories**: marine_sediment, deep_sea, plankton
-- **Quality thresholds**: Minimum 1M sequence reads per study
-- **Automatic format detection** and conversion
-
-### SRA Data Processing Workflow
-
-1. **Study Discovery**: Search NCBI SRA for relevant eDNA studies
-2. **Data Download**: Download selected SRA runs
-3. **Format Conversion**: Convert SRA files to FASTQ format
-4. **Quality Filtering**: Apply eDNA-specific quality filters
-5. **Marker Gene Detection**: Identify sequences containing eDNA marker genes (18S, 16S, COI, etc.)
-6. **Pipeline Integration**: Process through standard analysis pipeline
-7. **Biodiversity Analysis**: Generate comprehensive biodiversity reports
+The system includes comprehensive NCBI SRA integration for accessing real-world eDNA datasets. See [User Guide](docs/user_guide.md) for SRA usage examples and configuration.
 
 ## 🧪 Testing
 
@@ -190,10 +157,10 @@ The system is pre-configured with:
 pytest tests/
 ```
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.

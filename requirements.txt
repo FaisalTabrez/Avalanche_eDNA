@@ -42,6 +42,10 @@ pyyaml>=6.0
 jsonschema>=4.0.0
 requests>=2.27.0
 
+# Database
+psycopg2-binary>=2.9.0  # For PostgreSQL
+sqlalchemy>=1.4.0       # ORM for database abstraction
+
 # Development
 pytest>=7.0.0
 pytest-cov>=3.0.0
