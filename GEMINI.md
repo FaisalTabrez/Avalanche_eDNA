@@ -1,5 +1,7 @@
 # 🧬 Deep-Sea eDNA Biodiversity Assessment System
 
+> This is an alternative project description. For the main README and detailed documentation, see [README](README.md) and [docs/](docs/).
+
 ## Project Overview
 
 This project is a comprehensive, Python-based system for analyzing deep-sea environmental DNA (eDNA) to assess biodiversity. It combines a powerful bioinformatics pipeline with machine learning techniques to process, classify, and visualize eDNA sequence data. The system is designed to handle large datasets, discover novel taxa, and provide an interactive user experience through a Streamlit web application.

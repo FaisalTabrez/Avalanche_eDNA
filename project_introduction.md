@@ -75,6 +75,68 @@ pytest tests/
 - **Data Storage:** The `config.yaml` defines specific directories (`AvalancheData/datasets` and `AvalancheData/runs`) for storing uploaded datasets and analysis results, keeping generated data separate from the source code.
 - **SRA Integration:** The system is capable of pulling data directly from the NCBI Sequence Read Archive (SRA), with functionality defined in `scripts/download_sra_data.py` and `src/preprocessing/sra_processor.py`.
 
+## ✅ **Fully Implemented Features**
+
+### Preprocessing Pipeline
+- Quality filtering, adapter trimming, chimera detection
+- Multi-format support (FASTA, FASTQ, Swiss-Prot, GenBank, EMBL)
+- NCBI SRA integration with automatic FASTQ conversion
+- eDNA-specific filtering and marker gene detection
+
+### Clustering Algorithms
+- HDBSCAN (primary), K-means, DBSCAN, hierarchical clustering
+- UMAP dimensionality reduction for visualization
+- Silhouette score calculation and cluster statistics
+- Representative sequence selection per cluster
+
+### Taxonomy Assignment
+- Hybrid KNN-LCA + BLAST approach with FAISS indexing
+- NCBI taxdump integration for full lineage resolution
+- Multi-source reference database support (PR2, SILVA, UNITE, GTDB)
+- Conflict resolution and tie-breaker systems
+
+### Novelty Detection
+- Multiple methods: Isolation Forest, One-Class SVM, Local Outlier Factor
+- Ensemble detection combining multiple algorithms
+- Cluster coherence analysis and configurable thresholds
+- Similarity and abundance-based novelty assessment
+
+### Database & Report Management
+- SQLite backend with full relational schema
+- CRUD operations for organism profiles, datasets, reports
+- Similarity matrix storage and cross-analysis queries
+- Automated report generation and cataloguing
+
+### User Interface
+- Complete Streamlit dashboard for analysis workflow
+- Interactive file upload, parameter configuration, progress tracking
+- Results visualization with taxonomy viewers and export options
+- Batch processing support
+
+### Integrations
+- NCBI SRA data download and processing
+- BLAST database support with configurable parameters
+- Hugging Face transformer models for embeddings
+- BioPython for bioinformatics formats
+
+### Scripts & Automation
+- Complete pipeline script (scripts/run_pipeline.py)
+- SRA data download and reference database building
+- Index construction (BLAST, FAISS)
+- Demo data generation and report export
+
+### Analysis & Visualization
+- Biodiversity metrics (Shannon, Simpson, richness)
+- Interactive Plotly visualizations
+- HTML dashboard generation
+- CSV/JSON/PDF export capabilities
+
+### Configuration & Deployment
+- YAML-based configuration system
+- Docker containerization ready
+- GPU acceleration with automatic detection
+- Structured logging and error handling
+
 ---
 ---
 # From: .github/pull_request_template.md
@@ -1931,573 +1993,88 @@ If you use this system in your research, please cite:
 eDNA Biodiversity Assessment System. (2024). 
 Deep-Sea Environmental DNA Analysis Platform.
 ```
-
+```
 ---
 ---
-# From: EDNA_REPORT_MANAGEMENT_SYSTEM_GUIDE.md
+# From: reference/README.md
 ---
 
-# eDNA Report Management System - Complete Implementation Guide
+# Marine Eukaryote Reference Integration
 
-## Overview
+This folder hosts curated marine eukaryote references and derived indices used for taxonomy labeling (while the pipeline remains unsupervised-first for discovery).
 
-The eDNA Report Management System is a comprehensive feature addition to the Avalanche project that provides advanced capabilities for storing, cataloguing, cross-analyzing, and managing eDNA biodiversity assessment reports. This system creates unique organism profiles, performs similarity analysis across reports, and provides interactive dashboards for data exploration.
+Structure
+- pr2/               Place PR2 18S reference FASTA and taxonomy here
+- silva/             Place SILVA SSU (euk subset) FASTA and taxonomy here
+- eukref/            Optional: curated EukRef clades
+- mappings/          Taxonomic mappings (seq_id -> taxid)
+- indices/
+  - 18S/             FAISS and BLAST indices for 18S
+  - COI/             (optional) indices for COI
+- combined/
+  - 18S/             Unified combined FASTA + taxonomy built from sources
 
-## 🎯 Key Features Implemented
+What you need to provide (files you download separately)
+- PR2 (18S):
+  - pr2_18S.fasta(.gz)
+  - taxonomy.tsv (must include scientific name column; common formats: name/taxonomy string)
+- SILVA (SSU euk subset):
+  - silva_18S_euk.fasta(.gz)
+  - taxonomy.tsv or taxonomy embedded in headers
+- Optional EukRef clades (FASTA + clade taxonomy table)
+- NCBI taxdump (names.dmp, nodes.dmp, merged.dmp) to enable name→taxid mapping
 
-### 1. **Database Schema & Storage**
-- **Comprehensive database schema** with 10+ tables for storing reports, organisms, and analysis results
-- **Organism profiles** with unique identification and taxonomic lineage tracking
-- **Analysis reports** with complete metadata and processing information
-- **Cross-analysis similarity matrices** for comparing reports
-- **Environmental context** storage for location, depth, temperature data
+Build steps (PowerShell examples)
+1) Place downloads
+- Put raw FASTAs and taxonomy TSVs under reference/pr2 and reference/silva
+- Put NCBI taxdump under a local directory (e.g., F:\\Dataset\\taxdump)
 
-### 2. **Organism Identification & Profiling**
-- **Unique organism ID generation** based on taxonomic info and sequence signatures
-- **Sequence signature generation** using k-mer analysis for organism fingerprinting
-- **Taxonomic matching** with fuzzy matching capabilities
-- **Novelty assessment** for identifying potential new species
-- **Detection history tracking** across multiple analyses
-
-### 3. **Report Storage & Cataloguing**
-- **Automated report storage** with organized directory structure (year/month/report)
-- **Comprehensive metadata extraction** from analysis results
-- **File compression** for large datasets
-- **Search and filtering** capabilities
-- **Export functionality** in multiple formats (JSON, CSV)
-
-### 4. **Cross-Analysis Similarity Engine**
-- **Multi-dimensional similarity calculation** including:
-  - Organism overlap (Jaccard, Dice coefficients)
-  - Abundance correlation (Cosine, Pearson, Spearman)
-  - Taxonomic composition similarity
-  - Diversity metric differences
-  - Environmental context similarity
-- **Batch comparison** for multiple reports
-- **Similarity trends analysis** over time
-
-### 5. **Interactive Dashboard**
-- **Web-based interface** using Streamlit
-- **Report browser** with advanced filtering
-- **Report comparison** with visual similarity metrics
-- **Organism profile exploration**
-- **Trend analysis** and visualizations
-- **Real-time similarity analysis**
-
-### 6. **REST API**
-- **Complete REST API** with FastAPI
-- **Report management endpoints** (CRUD operations)
-- **Organism profile endpoints**
-- **Similarity analysis endpoints**
-- **Search and filtering capabilities**
-- **File upload and export**
-
-## 🏗️ Architecture
-
+2) Prepare combined references (harmonize names → taxids, deduplicate)
+```powershell
+python scripts\prepare_references.py \
+  --pr2-fasta "reference\pr2\pr2_18S.fasta" \
+  --pr2-taxonomy "reference\pr2\taxonomy.tsv" \
+  --silva-fasta "reference\silva\silva_18S_euk.fasta" \
+  --silva-taxonomy "reference\silva\taxonomy.tsv" \
+  --taxdump-dir "F:\\Dataset\\taxdump" \
+  --marker 18S \
+  --out-dir "reference\combined\18S"
 ```
-src/
-├── database/              # Database schema and management
-│   ├── schema.py         # Complete database schema definition
-│   ├── models.py         # Data models and serialization
-│   ├── manager.py        # Database CRUD operations
-│   └── queries.py        # Advanced query engine
-├── organism_profiling/    # Organism identification system
-│   └── __init__.py       # Organism identification and matching
-├── report_management/     # Report storage and cataloguing
-│   └── catalogue_manager.py  # Report storage and organization
-├── similarity/           # Cross-analysis similarity engine
-│   └── cross_analysis_engine.py  # Similarity calculations
-├── dashboards/           # Interactive web dashboards
-│   └── report_management_dashboard.py  # Streamlit dashboard
-└── api/                  # REST API endpoints
-    └── report_management_api.py  # FastAPI application
+Outputs:
+- reference\combined\18S\references.fasta
+- reference\combined\18S\taxonomy.csv
+- reference\mappings\combined_18S_taxid_map.txt
+
+3) Build BLAST database (requires BLAST+ makeblastdb in PATH)
+```powershell
+python scripts\build_blast_db.py \
+  --fasta "reference\combined\18S\references.fasta" \
+  --taxid-map "reference\mappings\combined_18S_taxid_map.txt" \
+  --db-out "reference\indices\18S\combined_18S"
 ```
+Outputs (prefix): reference\indices\18S\combined_18S.*
 
-## 📊 Database Schema
-
-### Core Tables:
-1. **organism_profiles** - Unique organism identification and metadata
-2. **datasets** - Dataset information and environmental context
-3. **analysis_reports** - Complete analysis results and summaries
-4. **sequences** - Individual sequence data with organism linkage
-5. **taxonomic_assignments** - Detailed taxonomic classification
-6. **clustering_results** - Clustering analysis results
-7. **novelty_detections** - Novel taxa detection results
-8. **similarity_matrices** - Cross-analysis comparison results
-9. **report_comparisons** - Detailed organism-level comparisons
-10. **analysis_metadata** - Analysis parameters and system info
-
-## 🚀 Usage Guide
-
-### 1. **Setting Up the System**
-
-```python
-from src.database.manager import DatabaseManager
-from src.report_management.catalogue_manager import ReportCatalogueManager
-
-# Initialize database (creates schema automatically)
-db_manager = DatabaseManager()
-
-# Initialize report catalogue
-catalogue_manager = ReportCatalogueManager(db_manager=db_manager)
+4) Build KNN embedding index using your pipeline model
+```powershell
+python scripts\build_reference_index.py \
+  --fasta "reference\combined\18S\references.fasta" \
+  --labels-csv "reference\combined\18S\taxonomy.csv" \
+  --output-dir "reference\indices\18S"
 ```
-
-### 2. **Storing Analysis Reports**
-
-```python
-# Store a new analysis report
-report_id, storage_path = catalogue_manager.store_analysis_report(
-    dataset_file_path="path/to/sequences.fasta",
-    analysis_results=analysis_results_dict,
-    report_name="Deep Sea Sample Analysis",
-    environmental_context={
-        'collection_location': 'Mariana Trench',
-        'depth_meters': 8000,
-        'temperature_celsius': 2.1,
-        'collection_date': datetime(2025, 9, 15)
-    }
-)
-
-print(f"Report stored with ID: {report_id}")
-```
-
-### 3. **Organism Identification**
-
-```python
-from src.organism_profiling import OrganismIdentifier
-
-identifier = OrganismIdentifier(db_manager)
-
-# Identify organism from sequences
-organism_profile = identifier.identify_organism(
-    sequences=sequence_records,
-    taxonomic_assignments=taxonomy_results,
-    environmental_context=env_context
-)
-
-# Store organism profile
-db_manager.store_organism_profile(organism_profile)
-```
-
-### 4. **Cross-Analysis Comparison**
-
-```python
-from src.similarity.cross_analysis_engine import CrossAnalysisEngine
-
-engine = CrossAnalysisEngine(db_manager)
-
-# Compare two reports
-similarity_matrix = engine.compare_reports(report_id_1, report_id_2)
-
-print(f"Overall similarity: {similarity_matrix.similarity_score:.3f}")
-print(f"Shared organisms: {similarity_matrix.organism_overlap_count}")
-```
-
-### 5. **Running the Dashboard**
-
-```python
-# Launch interactive dashboard
-from src.dashboards.report_management_dashboard import ReportManagementDashboard
-
-dashboard = ReportManagementDashboard()
-dashboard.run()
-```
-
-### 6. **Using the REST API**
-
-```bash
-# Start the API server
-python -m src.api.report_management_api
-
-# API endpoints available at http://localhost:8000
-# - GET /reports - List all reports
-# - GET /reports/{id} - Get specific report
-# - POST /reports/upload - Upload new dataset
-# - GET /organisms - List organisms
-# - POST /similarity/compare - Compare reports
-```
-
-## 📈 Advanced Features
-
-### 1. **Similarity Metrics**
-
-The system calculates multiple similarity metrics:
-
-- **Organism Overlap**: Jaccard similarity, Overlap coefficient, Dice coefficient
-- **Abundance Similarity**: Cosine similarity, Pearson/Spearman correlation
-- **Taxonomic Similarity**: Multi-level taxonomic comparison with weighted scoring
-- **Diversity Similarity**: Shannon/Simpson diversity differences
-- **Environmental Similarity**: Geographic distance, depth/temperature differences
-
-### 2. **Query Engine**
-
-Advanced querying capabilities:
-
-```python
-from src.database.queries import ReportQueryEngine
-
-query_engine = ReportQueryEngine(db_manager)
-
-# Search organisms
-organisms = query_engine.search_organisms(
-    query="Bacteria",
-    kingdom="Bacteria",
-    is_novel=True,
-    min_confidence=0.8
-)
-
-# Get organism timeline
-timeline = query_engine.get_organism_timeline(organism_id)
-
-# Analyze novelty trends
-trends = query_engine.get_novelty_trends(time_period_days=90)
-```
-
-### 3. **Organism Matching**
-
-Cross-report organism matching:
-
-```python
-from src.organism_profiling import OrganismMatcher
-
-matcher = OrganismMatcher(db_manager)
-
-# Find similar organisms
-similar = matcher.find_similar_organisms(
-    target_organism_id="ORG_ABC123",
-    similarity_threshold=0.8
-)
-
-# Match organisms across reports
-matches = matcher.match_organisms_across_reports(report_1, report_2)
-```
-
-## 🔧 Configuration
-
-### Database Configuration
-- **Default location**: `data/reports.db`
-- **Auto-initialization**: Database and tables created automatically
-- **Migration support**: Schema version tracking for future updates
-
-### Storage Configuration
-- **Default storage**: `data/report_storage/`
-- **Organization**: Automatic year/month/report organization
-- **Compression**: Large files (>10MB) automatically compressed
-- **Cleanup**: Configurable automatic cleanup of old reports
-
-## 🧪 Testing
-
-The system includes comprehensive test coverage:
-
-```python
-# Run tests
-python -m pytest tests/
-
-# Test specific components
-python -m pytest tests/test_database.py
-python -m pytest tests/test_organism_profiling.py
-python -m pytest tests/test_similarity_engine.py
-```
-
-## 🔄 Integration with Existing Avalanche System
-
-### Seamless Integration
-- **Extends existing analysis pipeline** without breaking changes
-- **Leverages existing dataset analyzer** and analysis components
-- **Maintains compatibility** with current data formats and workflows
-- **Adds value** through enhanced storage, organization, and comparison
-
-### Integration Points
-1. **Post-analysis storage**: Automatically store results after analysis
-2. **Organism profiling**: Enhance existing taxonomy assignment
-3. **Cross-analysis**: Compare new results with historical data
-4. **Dashboard integration**: Unified interface for all functionality
-
-## 📚 API Documentation
-
-### Authentication
-Currently uses no authentication. In production, implement:
-- API key authentication
-- JWT tokens for user sessions
-- Role-based access control
-
-### Rate Limiting
-Recommended for production:
-- 100 requests/minute for general endpoints
-- 10 requests/minute for upload endpoints
-- 5 requests/minute for heavy analysis endpoints
-
-### Error Handling
-Standardized error responses:
-```json
-{
-  "error": "Resource not found",
-  "detail": "Report with ID 'RPT_123' not found",
-  "timestamp": "2025-09-23T10:30:00Z"
-}
-```
-
-## 🚀 Deployment
-
-### Local Development
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Initialize database
-python -c "from src.database.manager import DatabaseManager; DatabaseManager()"
-
-# Run dashboard
-python -m streamlit run src/dashboards/report_management_dashboard.py
-
-# Run API
-python -m uvicorn src.api.report_management_api:app --reload
-```
-
-### Production Deployment
-- **Database**: Use PostgreSQL for production instead of SQLite
-- **Storage**: Configure robust file storage (e.g., AWS S3)
-- **API**: Deploy with proper WSGI server (e.g., Gunicorn)
-- **Dashboard**: Deploy with Streamlit Cloud or container
-
-## 🔮 Future Enhancements
-
-### Planned Features
-1. **Machine Learning Integration**: Automated organism classification
-2. **Real-time Analysis**: Live data processing and alerts
-3. **Advanced Visualizations**: 3D similarity networks, phylogenetic trees
-4. **Collaboration Features**: Multi-user access, sharing, comments
-5. **External Integrations**: NCBI, GBIF, other biodiversity databases
-
-### Scalability Improvements
-1. **Database optimization**: Indexing, partitioning for large datasets
-2. **Caching layer**: Redis for frequently accessed data
-3. **Background processing**: Celery for long-running analyses
-4. **Microservices**: Split into specialized services for better scaling
-
-## 🎉 Summary
-
-This comprehensive eDNA Report Management System successfully addresses your requirements for:
-
-✅ **Organism Unique Identity**: Advanced organism profiling with unique ID generation
-✅ **Report Storage & Cataloguing**: Organized storage with comprehensive metadata
-✅ **Cross-Analysis Similarity**: Multi-dimensional similarity comparison engine
-✅ **Interactive Interface**: Web dashboard for data exploration and management
-✅ **API Integration**: REST API for external system integration
-✅ **Trend Analysis**: Time-based analysis of similarities and novelty detection
-
-The system provides a robust foundation for managing and analyzing eDNA biodiversity assessment results, enabling researchers to:
-- Track organism detection across multiple studies
-- Identify patterns and trends in biodiversity data
-- Compare results across different environments and time periods
-- Discover potential novel taxa through advanced similarity analysis
-- Export and share results with the research community
-
-This implementation significantly enhances the Avalanche project's capabilities and provides a scalable platform for future biodiversity research initiatives.
-
----
----
-# From: README.md
----
-
-# Deep-Sea eDNA Biodiversity Assessment System
-
-An end-to-end system for identifying taxonomic diversity and assessing biological richness in deep-sea environmental DNA (eDNA) datasets using advanced machine learning and bioinformatics techniques.
-
-## 🌊 Overview
-
-This system addresses the challenges of deep-sea eDNA analysis by:
-- Processing massive, complex eDNA datasets efficiently
-- Discovering novel taxa without relying solely on existing reference databases
-- Providing scalable, accurate taxonomic classification
-- Offering intuitive visualization and analysis tools
-
-## 🔧 Features
-
-- **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal
-- **Transformer Embeddings**: Nucleotide Transformer (HF) with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
-- **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
-- **Interactive Dashboard**: Web-based visualization and analysis interface
-- **Scalable Architecture**: GPU acceleration and cloud deployment ready
-- **NCBI SRA Integration**: Direct access to 1000+ eDNA studies from NCBI Sequence Read Archive
-- **Multi-Format Support**: Universal support for FASTA, FASTQ, Swiss-Prot, GenBank, EMBL, and SRA formats
-- **Real-time Processing**: Live progress tracking with interactive visualizations
-
-## 📁 Project Structure
-
-```
-├── data/                        # Sample datasets and test data
-├── src/                         # Source code
-│   ├── analysis/                # Dataset analysis utilities
-│   ├── api/                     # Report management API
-│   ├── clustering/              # Clustering algorithms and taxonomy helpers
-│   ├── dashboards/              # Streamlit dashboard modules
-│   ├── database/                # Database models and manager
-│   ├── novelty/                 # Novelty detection logic
-│   ├── organism_profiling/      # Organism profiling modules
-│   ├── preprocessing/           # Data cleaning and preparation
-│   ├── report_management/       # Report/catalogue management
-│   ├── similarity/              # Cross-analysis engine
-│   └── visualization/           # Plotting and dashboard utilities
-├── notebooks/                   # Jupyter notebooks for analysis
-├── tests/                       # Unit and integration tests
-├── docs/                        # Documentation
-├── scripts/                     # Pipeline and automation scripts
-├── streamlit_app.py             # Streamlit UI entrypoint
-└── requirements*.txt            # Python dependencies
-```
-
-> Note: The current pipeline uses placeholder embeddings and a demo ML taxonomy classifier trained on synthetic data. Replace the embedding step with real models and training when src/models is introduced.
-
-## 🚀 Quick Start
-
-Note: The default embedding backend uses a pretrained Nucleotide Transformer from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
-
-1. **Setup Environment**
-   ```bash
-   conda create -n edna-biodiversity python=3.9
-   conda activate edna-biodiversity
-   pip install -r requirements.txt
-   ```
-
-2. **Create Sample Data and Run Analysis**
-   ```bash
-   # Create sample eDNA dataset
-   python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
-   
-   # Run complete analysis pipeline
-   python scripts/run_pipeline.py --input data/sample/sample_edna_sequences.fasta --output results/demo
-   ```
-
-3. **Launch Interactive Dashboard**
-   ```bash
-   python scripts/launch_dashboard.py
-   ```
-   Then open http://localhost:8504 in your browser
-
-4. **View Results**
-   ```bash
-   # Results are saved in results/demo/
-   # - pipeline_results.json: Complete analysis results
-   # - visualizations/: Interactive plots
-   # - clustering/: Clustering analysis
-   # - taxonomy/: Taxonomic assignments
-   # - novelty/: Novel taxa detection
-   ```
-
-## 📊 Usage
-
-### Command Line Interface
-
-```bash
-# Complete end-to-end analysis
-python scripts/run_pipeline.py --input sequences.fasta --output results/
-
-# Skip specific steps
-python scripts/run_pipeline.py --input sequences.fasta --output results/ --skip-preprocessing
-
-# Create sample data for testing
-python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
-```
-
-### Interactive Dashboard
-
-```bash
-# Launch web interface
-python scripts/launch_dashboard.py
-```
-
-### Python API
-
-```python
-from scripts.run_pipeline import eDNABiodiversityPipeline
-
-# Initialize pipeline
-pipeline = eDNABiodiversityPipeline()
-
-# Run analysis
-results = pipeline.run_complete_pipeline(
-    input_data="sequences.fasta",
-    output_dir="results/analysis"
-)
-
-print(f"Found {results['summary']['novel_taxa_candidates']} novel taxa candidates")
-```
-
-### Example Analysis Workflow
-
-1. **Data Upload**: Load FASTQ/FASTA files
-2. **Preprocessing**: Quality filtering, adapter removal, chimera detection
-3. **Embedding Generation**: Deep learning sequence representations
-4. **Clustering**: Group sequences into taxonomic units
-5. **Taxonomy Assignment**: BLAST + ML classification
-6. **Novelty Detection**: Identify potential new species
-7. **Visualization**: Interactive plots and reports
-
-See the [documentation](docs/) for detailed usage instructions and tutorials.
-
-## 🧬 NCBI SRA Integration
-
-The system now includes comprehensive NCBI SRA (Sequence Read Archive) integration for accessing real-world eDNA datasets:
-
-### SRA Features
-
-- **Automated Study Discovery**: Search NCBI SRA for eDNA-relevant studies using keywords
-- **Direct Data Download**: Download SRA runs using SRA Toolkit or FTP
-- **Format Conversion**: Automatic conversion from SRA to FASTQ format
-- **eDNA-Specific Filtering**: Specialized filtering for environmental DNA sequences
-- **Integrated Processing**: Seamless integration with the main analysis pipeline
-
-### SRA Usage Examples
-
-```bash
-# Search and download eDNA studies
-python scripts/download_sra_data.py --search --max-results 10
-
-# Download specific SRA accession
-python scripts/download_sra_data.py --accession SRP123456
-
-# Download marine sediment eDNA datasets
-python scripts/download_sra_data.py --download-type marine_sediment --max-results 5
-
-# Process SRA data with full pipeline
-python scripts/run_pipeline.py --input data/sra/SRP123456/ --output results/sra_analysis
-
-# Run complete SRA integration demo
-python scripts/sra_integration_example.py
-```
-
-### SRA Configuration
-
-The system is pre-configured with:
-- **eDNA-specific search keywords**: "eDNA", "environmental DNA", "metabarcoding"
-- **Study type categories**: marine_sediment, deep_sea, plankton
-- **Quality thresholds**: Minimum 1M sequence reads per study
-- **Automatic format detection** and conversion
-
-### SRA Data Processing Workflow
-
-1. **Study Discovery**: Search NCBI SRA for relevant eDNA studies
-2. **Data Download**: Download selected SRA runs
-3. **Format Conversion**: Convert SRA files to FASTQ format
-4. **Quality Filtering**: Apply eDNA-specific quality filters
-5. **Marker Gene Detection**: Identify sequences containing eDNA marker genes (18S, 16S, COI, etc.)
-6. **Pipeline Integration**: Process through standard analysis pipeline
-7. **Biodiversity Analysis**: Generate comprehensive biodiversity reports
-
-## 🧪 Testing
-
-```bash
-pytest tests/
-```
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🤝 Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+Outputs:
+- reference\indices\18S\reference_embeddings.npy
+- reference\indices\18S\reference_labels.csv
+
+5) Update config/config.yaml
+- taxonomy.knn.embeddings_path → reference\\indices\\18S\\reference_embeddings.npy
+- taxonomy.knn.labels_path → reference\\indices\\18S\\reference_labels.csv
+- taxonomy.blast_fallback.database → reference\\indices\\18S\\combined_18S
+- taxonomy.taxdump_dir → your taxdump path
+
+Notes
+- You can start with either PR2 or SILVA alone; the scripts accept missing sources.
+- For large references, run embedding/index builds on a GPU machine if possible for speed.
+- This setup minimizes reference dependence by using them strictly for labeling and evidence.
 
 ---
 ---
@@ -2578,90 +2155,123 @@ python scripts/analyze_dataset.py data/raw/swissprot.gz results/swissprot_analys
 python scripts/analyze_dataset.py data/sample/sample_edna_sequences.fasta results/edna_analysis.txt --name "eDNA Sample Sequences"
 
 # Results: 0.07 seconds processing time
-# Output: Sequence length distribution, quality metrics, and basic composition
 ```
+
+### Example 3: GenBank Nucleotide Sequences
+```bash
+# Analyze a subset of GenBank sequences
+python scripts/analyze_dataset.py data/raw/genbank_subset.fasta.gz results/genbank_analysis.txt --name "GenBank Nucleotide Subset"
+
+# Results: 1.2 seconds processing time
+```
+
+## 🛠️ Implementation Details
+
+### Input Handling
+- Uses `Bio.SeqIO` for parsing various sequence formats.
+- Handles gzipped files transparently.
+- `format_override` parameter allows manual specification.
+
+### Sequence Statistics
+- Calculates:
+    - Total sequences
+    - Mean, median, min, max sequence length
+    - Standard deviation of lengths
+    - Sequence length distribution (percentiles)
+
+### Composition Analysis
+- Detects sequence type (DNA, RNA, Protein).
+- Calculates GC content for DNA/RNA.
+- Analyzes amino acid composition for proteins.
+- Uses parallel processing for speed.
+
+### Annotation Mining
+- Extracts organism names and descriptions from sequence headers.
+- Provides counts and distributions of common organisms and keywords.
+
+### Quality Assessment (FASTQ)
+- Calculates average Phred quality scores per base.
+- Generates quality score distribution.
+
+### Biodiversity Metrics
+- Computes Shannon diversity index.
+- Computes Simpson diversity index.
+- Calculates Pielou's evenness.
+
+### Output Report
+- Generates a human-readable text file.
+- Includes:
+    - Input file details
+    - Analysis parameters
+    - Timing information for each step
+    - Summary statistics and metrics
 
 ## 💡 Design Principles
 
 ### 1. **Simplicity**
-- **Single script** for all analyses
-- **Clear command-line interface**
-- **Minimal dependencies**
+- **Single script**: Consolidates functionality into one file.
+- **Clear interface**: Easy-to-understand command-line arguments.
 
 ### 2. **Consistency**
-- **Standardized output format**
-- **Uniform analysis metrics** across dataset types
-- **Predictable behavior**
+- **Standardized output**: Reports have a predictable structure.
+- **Unified logic**: Same analysis steps applied regardless of input format.
 
 ### 3. **Performance**
-- **Optimized for speed** on large files
-- **Efficient memory usage**
-- **Parallel processing** where applicable
+- **Optimized calculations**: Leverages NumPy and parallel processing.
+- **Memory efficiency**: Handles large files using streaming.
 
 ### 4. **Extensibility**
-- **Modular design** for adding new analysis types
-- **Easy to integrate** with existing project workflows
+- **Modular design**: Easy to add new analysis modules.
+- **Clear structure**: Facilitates future development.
 
-## 🛠️ Implementation Details
-
-### File Handling
-- Uses `gzip` module for transparent decompression of `.gz` files.
-- Employs `Bio.SeqIO` for parsing various biological sequence formats.
-- Implements streaming for large files to avoid memory exhaustion.
-
-### Analysis Modules
-- **Statistics**: Calculates mean, median, percentiles for sequence lengths.
-- **Composition**: Determines GC content, k-mer frequencies, and sequence type (DNA/RNA/Protein).
-- **Annotations**: Extracts organism names, descriptions, and other metadata.
-- **Quality**: Assesses quality scores for FASTQ files (Phred scores).
-- **Diversity**: Computes Shannon, Simpson, and Pielou's evenness indices.
-
-### Parallel Processing
-- Utilizes `multiprocessing.Pool` for parallelizing k-mer counting and composition analysis.
-- Dynamically adjusts the number of processes based on available CPU cores.
-
-### Output Generation
-- Writes a human-readable text report summarizing all findings.
-- Includes timing information for each analysis step.
-- Logs processing metadata (e.g., input file, parameters used).
-
-## 📈 Benefits
+## 🌟 Benefits
 
 ### 1. **Efficiency**
-- **Reduced development time**: Single codebase to maintain.
-- **Faster analysis**: Optimized algorithms and parallel processing.
+- **Reduced development time**: No need for multiple scripts.
+- **Faster analysis**: Optimized for speed and large datasets.
 
-### 2. **Consistency**
-- **Standardized reports** across all dataset types.
-- **Easier comparison** of results.
+### 2. **Maintainability**
+- **Single codebase**: Easier to update and debug.
+- **Centralized logic**: Ensures consistent analysis across all dataset types.
 
 ### 3. **Usability**
-- **Simplified workflow**: One command for diverse analyses.
-- **Clear output**: Easy-to-understand text reports.
+- **Simple command-line interface**
+- **Auto-format detection** reduces user complexity
+- **Comprehensive help** and examples
 
 ### 4. **Scalability**
-- **Handles large files** effectively.
-- **Extensible** for new analysis modules.
+- **Optimized for large datasets**
+- **Parallel processing** capabilities
+- **Memory-efficient streaming**
 
 ### 5. **Integration**
-- **Seamlessly integrates** with the eDNA Biodiversity Assessment System.
-- **Leverages existing configuration** and conventions.
+- **Fits naturally** into existing eDNA project structure
+- **Uses existing configuration system**
+- **Compatible with project conventions**
 
 ## 🚀 Future Enhancements
 
 ### Planned Features
-- **Database Integration**: Direct connection to sequence databases (e.g., NCBI).
-- **Advanced Visualization**: Generate plots (histograms, bar charts) directly from the analyzer.
-- **Batch Processing**: Analyze multiple files with a single command.
-- **Quality Filtering**: Integrate with the main preprocessing pipeline.
-- **Taxonomy Assignment**: Basic taxonomic assignment using reference databases.
-- **Clustering Analysis**: Preliminary clustering of sequences.
+1. **Database Integration** - Direct connection to sequence databases
+2. **Advanced Visualization** - Plot generation for reports
+3. **Batch Processing** - Analyze multiple files in one command
+4. **Quality Filtering** - Integration with preprocessing pipeline
+5. **Taxonomy Assignment** - Integration with reference databases
+6. **Clustering Analysis** - Integration with existing clustering modules
 
 ### Extension Points
-- **Custom Analysis Modules**: Allow users to add their own analysis functions.
-- **Output Formats**: Support for JSON, CSV, and HTML report generation.
-- **Cloud Integration**: Compatibility with cloud storage (S3, GCS) and distributed computing frameworks.
+- **Custom Analysis Modules** - Plugin architecture for specialized analyses
+- **Output Formats** - JSON, CSV, HTML report generation
+- **Cloud Integration** - Support for cloud storage and processing
 
-## 🌟 Conclusion
+## ✅ Conclusion
 
-The Universal Dataset Analyzer provides a powerful, efficient, and user-friendly solution for analyzing diverse biological sequence datasets. Its unified interface, performance optimizations, and standardized output make it an invaluable tool for the eDNA Biodiversity Assessment project and beyond. By consolidating analysis capabilities into a single script, it significantly streamlines the workflow and ensures consistent, high-quality results across various data types.
+The Universal Dataset Analyzer represents a significant improvement over the previous approach of creating separate analysis scripts for each dataset type. It provides:
+
+- **Unified interface** for all biological sequence formats
+- **Optimized performance** with parallel processing
+- **Comprehensive analysis** with standardized reporting
+- **Easy integration** with the existing eDNA project
+- **Scalable architecture** for future enhancements
+
+This system makes it much easier to analyze biological datasets consistently while maintaining high performance and providing detailed, standardized reports for research and analysis purposes.
