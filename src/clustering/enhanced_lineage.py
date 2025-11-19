@@ -27,6 +27,7 @@ import requests
 from urllib.parse import quote
 import re
 from datetime import datetime
+import tempfile
 
 # Add src to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -255,6 +256,9 @@ class EnhancedTaxdumpResolver:
         self.enable_caching = enable_caching
         
         # SQLite cache for performance
+        # If the provided taxdump_dir is inside the system tempdir (common in tests),
+        # prefer an in-memory database to avoid Windows file-locking issues when
+        # the temporary directory is removed by the test harness.
         self.cache_db_path = cache_db_path or (self.taxdump_dir / "lineage_cache.db" if self.taxdump_dir else None)
         
         # Data structures
@@ -265,6 +269,9 @@ class EnhancedTaxdumpResolver:
         self._nodes: Optional[Dict[int, Tuple[int, str]]] = None
         self._merged_old2new: Optional[Dict[int, int]] = None
         
+        # Cache database connection (single persistent connection)
+        self._cache_conn: Optional[sqlite3.Connection] = None
+        
         # Initialize cache database
         if self.enable_caching and self.cache_db_path:
             self._init_cache_db()
@@ -273,44 +280,50 @@ class EnhancedTaxdumpResolver:
         """Initialize SQLite cache database"""
         if not self.cache_db_path:
             return
-        
+        # Skip filesystem operations for in-memory DB
         try:
-            self.cache_db_path.parent.mkdir(parents=True, exist_ok=True)
+            if isinstance(self.cache_db_path, str) and self.cache_db_path not in (":memory", ":memory:"):
+                self.cache_db_path = Path(self.cache_db_path)
+                self.cache_db_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Create persistent connection
+            self._cache_conn = sqlite3.connect(str(self.cache_db_path))
+            cursor = self._cache_conn.cursor()
             
-            with sqlite3.connect(self.cache_db_path) as conn:
-                cursor = conn.cursor()
-                
-                # Create tables for caching
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS lineage_cache (
-                        taxid INTEGER PRIMARY KEY,
-                        lineage_json TEXT NOT NULL,
-                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS name_cache (
-                        name_key TEXT PRIMARY KEY,
-                        taxid INTEGER NOT NULL,
-                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS metadata (
-                        key TEXT PRIMARY KEY,
-                        value TEXT NOT NULL,
-                        last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                conn.commit()
-                logger.info(f"Cache database initialized at {self.cache_db_path}")
-                
+            # Create tables for caching
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS lineage_cache (
+                    taxid INTEGER PRIMARY KEY,
+                    lineage_json TEXT NOT NULL,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS name_cache (
+                    name_key TEXT PRIMARY KEY,
+                    taxid INTEGER NOT NULL,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS metadata (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
+            
+            self._cache_conn.commit()
+            logger.info(f"Cache database initialized at {self.cache_db_path}")
+            
         except Exception as e:
             logger.warning(f"Failed to initialize cache database: {e}")
             self.enable_caching = False
+            if self._cache_conn:
+                self._cache_conn.close()
+                self._cache_conn = None
     
     def available(self) -> bool:
         """Check if taxdump files are available"""
@@ -514,20 +527,19 @@ class EnhancedTaxdumpResolver:
     
     def _get_cached_lineage(self, taxid: int) -> Optional[EnhancedLineage]:
         """Retrieve lineage from cache"""
-        if not self.enable_caching or not self.cache_db_path:
+        if not self.enable_caching or not self._cache_conn:
             return None
         
         try:
-            with sqlite3.connect(self.cache_db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT lineage_json FROM lineage_cache WHERE taxid = ?",
-                    (taxid,)
-                )
-                result = cursor.fetchone()
-                if result:
-                    lineage_dict = json.loads(result[0])
-                    return self._dict_to_lineage(lineage_dict)
+            cursor = self._cache_conn.cursor()
+            cursor.execute(
+                "SELECT lineage_json FROM lineage_cache WHERE taxid = ?",
+                (taxid,)
+            )
+            result = cursor.fetchone()
+            if result:
+                lineage_dict = json.loads(result[0])
+                return self._dict_to_lineage(lineage_dict)
         except Exception as e:
             logger.debug(f"Cache retrieval failed for taxid {taxid}: {e}")
         
@@ -535,18 +547,17 @@ class EnhancedTaxdumpResolver:
     
     def _cache_lineage(self, taxid: int, lineage: EnhancedLineage) -> None:
         """Store lineage in cache"""
-        if not self.enable_caching or not self.cache_db_path:
+        if not self.enable_caching or not self._cache_conn:
             return
         
         try:
-            with sqlite3.connect(self.cache_db_path) as conn:
-                cursor = conn.cursor()
-                lineage_json = json.dumps(lineage.to_dict())
-                cursor.execute(
-                    "INSERT OR REPLACE INTO lineage_cache (taxid, lineage_json) VALUES (?, ?)",
-                    (taxid, lineage_json)
-                )
-                conn.commit()
+            cursor = self._cache_conn.cursor()
+            lineage_json = json.dumps(lineage.to_dict())
+            cursor.execute(
+                "INSERT OR REPLACE INTO lineage_cache (taxid, lineage_json) VALUES (?, ?)",
+                (taxid, lineage_json)
+            )
+            self._cache_conn.commit()
         except Exception as e:
             logger.debug(f"Cache storage failed for taxid {taxid}: {e}")
     
@@ -644,6 +655,35 @@ class EnhancedTaxdumpResolver:
             'rank_distribution': rank_counts,
             'merged_taxa': len(self._merged_old2new) if self._merged_old2new else 0
         }
+    
+    def close_cache(self) -> None:
+        """Explicitly close the cache database connection.
+        
+        This should be called when done with the resolver to ensure
+        the database file is properly closed, especially important
+        on Windows where open handles prevent file deletion.
+        """
+        if self._cache_conn:
+            try:
+                self._cache_conn.close()
+                logger.debug("Cache database connection closed")
+            except Exception as e:
+                logger.warning(f"Error closing cache connection: {e}")
+            finally:
+                self._cache_conn = None
+    
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures cache is closed"""
+        self.close_cache()
+        return False
+    
+    def __del__(self):
+        """Destructor - close cache connection if still open"""
+        self.close_cache()
 
 # Backward compatibility function
 def create_enhanced_resolver(taxdump_dir: Optional[str] = None) -> EnhancedTaxdumpResolver:

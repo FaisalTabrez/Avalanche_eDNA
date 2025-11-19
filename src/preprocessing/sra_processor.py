@@ -11,6 +11,7 @@ It provides functionality to:
 import logging
 import gzip
 import subprocess
+import json
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import pandas as pd

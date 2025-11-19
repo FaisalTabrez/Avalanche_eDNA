@@ -53,9 +53,9 @@ def test_imports():
         print(f"✅ UMAP-learn")
     except ImportError as e:
         print(f"❌ UMAP-learn: {e}")
-        return False
+        raise
     
-    return True
+    print("✅ All required packages imported successfully")
 
 def test_custom_modules():
     """Test custom eDNA modules"""
@@ -92,9 +92,9 @@ def test_custom_modules():
         print("✅ Visualization works!")
     except Exception as e:
         print(f"❌ Visualization: {e}")
-        return False
+        raise
     
-    return True
+    print("✅ All custom modules imported successfully")
 
 def test_basic_functionality():
     """Test basic end-to-end functionality"""
@@ -134,7 +134,11 @@ def test_basic_functionality():
         novel_count = np.sum(predictions == -1)
         print(f"✅ Novelty detection: {novel_count}/{len(predictions)} novel sequences detected")
         
-        return True
+        assert len(sequences) == 3
+        print("✅ Basic functionality test passed")
+    except Exception as e:
+        print(f"❌ Basic functionality test failed: {e}")
+        raise
         
     except Exception as e:
         print(f"❌ Basic functionality test failed: {e}")
@@ -180,7 +184,7 @@ def main():
     print("   • User Guide: docs/user_guide.md")
     print("   • API Reference: docs/api_reference.md")
     
-    return True
+    print("\n✅ All installation verification tests passed!")
 
 if __name__ == "__main__":
     success = main()

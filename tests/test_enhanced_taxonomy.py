@@ -448,6 +448,9 @@ class TestPerformance:
             except:
                 # Expected to fail without real data
                 pass
+            finally:
+                # Close cache before tempdir cleanup to avoid Windows file lock
+                resolver.close_cache()
 
 if __name__ == "__main__":
     # Run tests with pytest

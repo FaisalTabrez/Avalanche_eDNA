@@ -519,7 +519,9 @@ class DatabaseSchema:
                 f"Migrating database from {current_version} to {self.schema_version}"
             )
             # Future migration logic would go here
-            self._store_schema_version(sqlite3.connect(self.db_path))
+            # Ensure we use a context manager to close the connection
+            with sqlite3.connect(str(self.db_path)) as conn:
+                self._store_schema_version(conn)
         else:
             logger.info("Database schema is up to date")
 
