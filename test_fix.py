@@ -44,7 +44,11 @@ def test_advanced_taxonomic_section():
         print(f"Generated {len(lines)} lines of output")
         for line in lines:
             print(f"  {line}")
-        return True
+        assert len(lines) > 0
+        print("✅ Advanced taxonomic features working correctly")
+    except Exception as e:
+        print(f"Error in advanced taxonomy section: {str(e)}")
+        raise
     except AttributeError as e:
         print(f"❌ Test failed with AttributeError: {e}")
         return False

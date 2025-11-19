@@ -49,13 +49,14 @@ def test_with_mock_data():
             analyzer._add_advanced_taxonomic_section(lines, taxonomic_results)
             
             print("✅ Full pipeline test passed")
-            return True
+            assert taxonomic_results is not None
+            print("✅ Test passed: successfully processed mock eDNA data")
             
     except Exception as e:
         print(f"❌ Test failed with error: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise
 
 if __name__ == "__main__":
     success = test_with_mock_data()
