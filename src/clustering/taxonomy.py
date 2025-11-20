@@ -18,6 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 import re
+from functools import lru_cache
 
 # Add src to path for imports
 sys.path.append(str(Path(__file__).parent.parent))
@@ -27,14 +28,133 @@ from utils.config import config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+class TaxdumpResolver:
+    """Resolve scientific names to full lineage using NCBI taxdump (names.dmp, nodes.dmp).
+
+    Builds:
+      - _name_to_taxid: canonical scientific name (lowercased) -> taxid
+      - _taxid_to_name: taxid -> primary scientific name
+      - _nodes: taxid -> (parent_taxid, rank)
+      - optional _merged_old2new: remapped taxids from merged.dmp
+    """
+    def __init__(self, taxdump_dir: Optional[str]):
+        self.taxdump_dir = Path(taxdump_dir) if taxdump_dir else None
+        self._name_to_taxid: Optional[Dict[str, int]] = None
+        self._taxid_to_name: Optional[Dict[int, str]] = None
+        self._nodes: Optional[Dict[int, Tuple[int, str]]] = None  # taxid -> (parent_taxid, rank)
+        self._merged_old2new: Optional[Dict[int, int]] = None
+
+    def available(self) -> bool:
+        return bool(self.taxdump_dir) \
+            and (self.taxdump_dir / 'names.dmp').exists() \
+            and (self.taxdump_dir / 'nodes.dmp').exists()
+
+    def _load(self) -> None:
+        if self._name_to_taxid is not None and self._nodes is not None and self._taxid_to_name is not None:
+            return
+        name_to_taxid: Dict[str, int] = {}
+        taxid_to_name: Dict[int, str] = {}
+        nodes: Dict[int, Tuple[int, str]] = {}
+        merged: Dict[int, int] = {}
+        names_path = self.taxdump_dir / 'names.dmp'  # type: ignore
+        nodes_path = self.taxdump_dir / 'nodes.dmp'  # type: ignore
+        merged_path = self.taxdump_dir / 'merged.dmp'  # type: ignore
+        # Parse names.dmp: tax_id | name_txt | unique name | name class |
+        with open(names_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                parts = [p.strip() for p in line.split('|')]
+                if len(parts) < 4:
+                    continue
+                taxid_str, name_txt, _unique, name_class = parts[:4]
+                if name_class == 'scientific name':
+                    try:
+                        taxid = int(taxid_str)
+                    except ValueError:
+                        continue
+                    sci_name = name_txt.strip()
+                    key = sci_name.lower()
+                    if key not in name_to_taxid:
+                        name_to_taxid[key] = taxid
+                    # Prefer first scientific name as primary label
+                    if taxid not in taxid_to_name:
+                        taxid_to_name[taxid] = sci_name
+        # Parse nodes.dmp: tax_id | parent_tax_id | rank | ...
+        with open(nodes_path, 'r', encoding='utf-8', errors='ignore') as f:
+            for line in f:
+                parts = [p.strip() for p in line.split('|')]
+                if len(parts) < 3:
+                    continue
+                try:
+                    taxid = int(parts[0])
+                    parent = int(parts[1])
+                except ValueError:
+                    continue
+                rank = parts[2]
+                nodes[taxid] = (parent, rank)
+        # Parse merged.dmp to remap deprecated IDs (optional)
+        if merged_path.exists():
+            with open(merged_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for line in f:
+                    parts = [p.strip() for p in line.split('|')]
+                    if len(parts) < 2:
+                        continue
+                    try:
+                        old = int(parts[0]); new = int(parts[1])
+                    except ValueError:
+                        continue
+                    merged[old] = new
+        self._name_to_taxid = name_to_taxid
+        self._taxid_to_name = taxid_to_name
+        self._nodes = nodes
+        self._merged_old2new = merged if merged else None
+        logger.info("Taxdump loaded: %d names, %d nodes", len(name_to_taxid), len(nodes))
+
+    @lru_cache(maxsize=100000)
+    def lineage_by_name(self, scientific_name: Optional[str]) -> Dict[str, Optional[str]]:
+        if not scientific_name:
+            return {r: None for r in ['kingdom','phylum','class','order','family','genus','species']}
+        self._load()
+        assert self._name_to_taxid is not None
+        taxid = self._name_to_taxid.get(scientific_name.lower())
+        out = self.lineage_by_taxid(taxid) if taxid is not None else {r: None for r in ['kingdom','phylum','class','order','family','genus','species']}
+        if out.get('species') is None:
+            out['species'] = scientific_name
+        return out
+
+    @lru_cache(maxsize=100000)
+    def lineage_by_taxid(self, taxid: Optional[int]) -> Dict[str, Optional[str]]:
+        rank_targets = ['kingdom','phylum','class','order','family','genus','species']
+        out = {r: None for r in rank_targets}
+        if taxid is None or not self.available():
+            return out
+        self._load()
+        assert self._nodes is not None and self._taxid_to_name is not None
+        # Remap merged
+        if self._merged_old2new and taxid in self._merged_old2new:
+            taxid = self._merged_old2new[taxid]
+        seen = set()
+        steps = 0
+        while taxid in self._nodes and taxid not in seen and steps < 100:
+            seen.add(taxid)
+            parent, rank = self._nodes[taxid]
+            rank = rank.lower()
+            if rank in out and out[rank] is None:
+                out[rank] = self._taxid_to_name.get(taxid)
+            if parent == taxid:
+                break
+            taxid = parent
+            steps += 1
+        return out
+
 class BlastTaxonomyAssigner:
-    """BLAST-based taxonomic assignment"""
+    """BLAST-based taxonomic assignment using Windows BLAST runner"""
     
     def __init__(self,
                  blast_db: str,
                  evalue: float = 1e-5,
                  max_targets: int = 10,
-                 identity_threshold: float = 97.0):
+                 identity_threshold: float = 97.0,
+                 blast_config: Optional[Dict[str, Any]] = None):
         """
         Initialize BLAST taxonomy assigner
         
@@ -43,26 +163,28 @@ class BlastTaxonomyAssigner:
             evalue: E-value threshold
             max_targets: Maximum number of target sequences
             identity_threshold: Minimum identity threshold for assignment
+            blast_config: Optional BLAST configuration override
         """
         self.blast_db = blast_db
         self.evalue = evalue
         self.max_targets = max_targets
         self.identity_threshold = identity_threshold
         
-        # Check if BLAST is available
-        self._check_blast_availability()
+        # Import Windows BLAST runner
+        from utils.blast_utils import WindowsBLASTRunner
+        
+        # Create BLAST configuration
+        blast_cfg = blast_config or config.get('taxonomy', {}).get('blast', {})
+        blast_cfg.update({
+            'evalue': self.evalue,
+            'max_targets': self.max_targets,
+            'identity_threshold': self.identity_threshold
+        })
+        
+        # Initialize BLAST runner
+        self.blast_runner = WindowsBLASTRunner(blast_cfg)
         
         logger.info(f"BLAST taxonomy assigner initialized with database: {blast_db}")
-    
-    def _check_blast_availability(self) -> None:
-        """Check if BLAST tools are available"""
-        try:
-            result = subprocess.run(['blastn', '-version'], 
-                                  capture_output=True, text=True)
-            if result.returncode != 0:
-                raise RuntimeError("BLAST tools not found")
-        except FileNotFoundError:
-            raise RuntimeError("BLAST tools not installed or not in PATH")
     
     def assign_taxonomy(self, 
                        sequences: List[str],
@@ -82,24 +204,106 @@ class BlastTaxonomyAssigner:
         
         logger.info(f"Assigning taxonomy to {len(sequences)} sequences using BLAST")
         
-        # Create temporary FASTA file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.fasta', delete=False) as temp_fasta:
-            for seq_id, sequence in zip(sequence_ids, sequences):
-                temp_fasta.write(f">{seq_id}\n{sequence}\n")
-            temp_fasta_path = temp_fasta.name
-        
         try:
-            # Run BLAST
-            blast_results = self._run_blast(temp_fasta_path)
+            # Run BLAST using Windows BLAST runner
+            blast_results = self.blast_runner.run_blastn_search(
+                query_sequences=sequences,
+                database_path=self.blast_db,
+                sequence_ids=sequence_ids
+            )
             
-            # Parse results
-            taxonomy_assignments = self._parse_blast_results(blast_results, sequence_ids)
+            # Convert BLAST results to taxonomy assignments
+            taxonomy_assignments = self._convert_blast_to_taxonomy(blast_results)
             
             return taxonomy_assignments
+            
+        except Exception as e:
+            logger.error(f"Error in BLAST taxonomy assignment: {e}")
+            # Return empty results for all sequences
+            return [{
+                'sequence_id': seq_id,
+                'best_hit': None,
+                'identity': 0.0,
+                'evalue': float('inf'),
+                'coverage': 0.0,
+                'taxonomy': 'Unknown',
+                'taxid': None,
+                'all_hits': []
+            } for seq_id in sequence_ids]
+    
+    def _convert_blast_to_taxonomy(self, blast_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Convert BLAST results to taxonomy assignment format
         
-        finally:
-            # Clean up temporary file
-            os.unlink(temp_fasta_path)
+        Args:
+            blast_results: Results from WindowsBLASTRunner
+            
+        Returns:
+            List of taxonomy assignment results
+        """
+        taxonomy_assignments = []
+        
+        for result in blast_results:
+            # Extract taxonomy from hit title if available
+            taxonomy_info = 'Unknown'
+            taxid = None
+            
+            if result['has_hit'] and result['subject_id']:
+                # Extract taxonomy from subject title
+                taxonomy_dict = self.blast_runner.extract_taxonomy_from_hit(result['subject_id'])
+                taxonomy_info = taxonomy_dict.get('species', 'Unknown')
+                
+                # Try to extract taxid (basic implementation)
+                taxid = self._extract_taxid_from_hit(result['subject_id'])
+            
+            # Calculate coverage (approximation)
+            coverage = (result['alignment_length'] / max(result['query_end'] - result['query_start'], 1)) * 100 if result['has_hit'] else 0.0
+            
+            assignment = {
+                'sequence_id': result['query_id'],
+                'best_hit': result['subject_id'] if result['has_hit'] else None,
+                'identity': result['identity_pct'],
+                'evalue': result['evalue'],
+                'coverage': coverage,
+                'taxonomy': taxonomy_info,
+                'taxid': taxid,
+                'all_hits': [result] if result['has_hit'] else []  # Simplified - could expand to include all hits
+            }
+            
+            taxonomy_assignments.append(assignment)
+        
+        return taxonomy_assignments
+
+    def _apply_cluster_consensus(self, results: List[Dict[str, Any]], cluster_labels: np.ndarray) -> List[Dict[str, Any]]:
+        # Build consensus per cluster at the most specific rank with agreement >= threshold
+        df = pd.DataFrame(results)
+        df['cluster'] = cluster_labels
+        out = results.copy()
+        for cl, grp in df.groupby('cluster'):
+            if cl == -1:
+                continue
+            # Prefer species consensus, else genus, else family
+            for rank in ['species', 'genus', 'family']:
+                labels = grp.loc[grp['assigned_rank'] == rank, 'assigned_label']
+                if labels.empty:
+                    continue
+                value_counts = labels.value_counts()
+                top_label, count = (value_counts.index[0], int(value_counts.iloc[0]))
+                agreement = count / max(len(grp), 1)
+                if agreement >= self.cluster_consensus_threshold:
+                    # Propagate to low-confidence or unknowns
+                    idxs = grp.index.tolist()
+                    for i in idxs:
+                        r = out[i]
+                        if (r['assigned_rank'] is None) or (r['assigned_rank'] == rank and r['confidence'] < agreement):
+                            r.update({
+                                'assigned_rank': rank,
+                                'assigned_label': top_label,
+                                'confidence': max(r.get('confidence', 0.0), float(agreement)),
+                                'source': r.get('source', 'knn') + '+consensus'
+                            })
+                    break  # Use the most specific rank satisfied
+        return out
     
     def _run_blast(self, query_file: str) -> str:
         """Run BLAST search"""
@@ -134,16 +338,12 @@ class BlastTaxonomyAssigner:
     def _parse_blast_results(self, 
                            blast_output: str, 
                            sequence_ids: List[str]) -> List[Dict[str, Any]]:
-        """Parse BLAST XML results"""
+        """Parse BLAST XML results and extract tentative taxids if present"""
         results = []
-        
-        # Parse XML
         from io import StringIO
         blast_records = NCBIXML.parse(StringIO(blast_output))
-        
         for record in blast_records:
             seq_id = record.query
-            
             result_dict = {
                 'sequence_id': seq_id,
                 'best_hit': None,
@@ -151,62 +351,60 @@ class BlastTaxonomyAssigner:
                 'evalue': float('inf'),
                 'coverage': 0.0,
                 'taxonomy': 'Unknown',
+                'taxid': None,
                 'all_hits': []
             }
-            
             if record.alignments:
-                # Process all hits
                 for alignment in record.alignments:
                     hit_def = alignment.hit_def
-                    
                     for hsp in alignment.hsps:
                         identity = (hsp.identities / hsp.align_length) * 100
                         coverage = (hsp.align_length / record.query_length) * 100
-                        
+                        taxid = self._extract_taxid_from_hit(hit_def)
                         hit_info = {
                             'hit_def': hit_def,
                             'identity': identity,
                             'evalue': hsp.expect,
                             'coverage': coverage,
                             'alignment_length': hsp.align_length,
-                            'taxonomy': self._extract_taxonomy_from_hit(hit_def)
+                            'taxonomy': self._extract_taxonomy_from_hit(hit_def),
+                            'taxid': taxid
                         }
-                        
                         result_dict['all_hits'].append(hit_info)
-                        
-                        # Update best hit if this is better
-                        if (identity >= self.identity_threshold and 
-                            identity > result_dict['identity']):
+                        if (identity >= self.identity_threshold and identity > result_dict['identity']):
                             result_dict.update({
                                 'best_hit': hit_def,
                                 'identity': identity,
                                 'evalue': hsp.expect,
                                 'coverage': coverage,
-                                'taxonomy': hit_info['taxonomy']
+                                'taxonomy': hit_info['taxonomy'],
+                                'taxid': taxid
                             })
-            
             results.append(result_dict)
-        
         return results
     
     def _extract_taxonomy_from_hit(self, hit_def: str) -> str:
-        """Extract taxonomy information from BLAST hit definition"""
-        # This is a simplified taxonomy extraction
-        # In practice, you'd want more sophisticated parsing
-        
-        # Try to extract organism name from description
-        # Common patterns in BLAST hit definitions
+        """Extract taxonomy information from BLAST hit definition (best-effort)"""
         patterns = [
-            r'(\w+\s+\w+)',  # Genus species
-            r'\[([^\]]+)\]',  # Text in brackets
+            r'\b([A-Z][a-z]+\s+[a-z][a-z\-]+)\b',  # Genus species
+            r'\[([^\]]+)\]',  # Text in brackets (organism)
         ]
-        
         for pattern in patterns:
             match = re.search(pattern, hit_def)
             if match:
                 return match.group(1)
-        
         return "Unknown"
+
+    def _extract_taxid_from_hit(self, hit_def: str) -> Optional[int]:
+        """Try to extract NCBI taxid from hit definition string"""
+        for pat in [r'taxid\|(\d+)', r'TaxID=(\d+)', r'taxid=(\d+)', r'taxon:(\d+)']:
+            m = re.search(pat, hit_def)
+            if m:
+                try:
+                    return int(m.group(1))
+                except ValueError:
+                    return None
+        return None
 
 class MLTaxonomyClassifier:
     """Machine learning-based taxonomic classifier"""
@@ -371,216 +569,227 @@ class MLTaxonomyClassifier:
         
         logger.info(f"Model loaded from {load_path}")
 
+# Optional FAISS import for KNN search
+try:
+    import faiss  # type: ignore
+    FAISS_AVAILABLE = True
+except Exception:
+    FAISS_AVAILABLE = False
+
+SUPPORTED_RANKS = ["species", "genus", "family", "order", "class", "phylum", "kingdom"]
+
+def _l2_normalize(x: np.ndarray) -> np.ndarray:
+    norms = np.linalg.norm(x, axis=1, keepdims=True)
+    return x / np.maximum(norms, 1e-12)
+
+class TaxonomyIndex:
+    """FAISS-based index over reference embeddings with taxonomy labels."""
+    def __init__(self, ref_embeddings: np.ndarray, labels_df: pd.DataFrame, normalize: bool = True, index_type: str = "flat_ip"):
+        if not FAISS_AVAILABLE:
+            raise ImportError("faiss is not available; install faiss-cpu to use KNN taxonomy")
+        self.labels_df = labels_df.reset_index(drop=True)
+        xb = ref_embeddings.astype(np.float32)
+        self.normalize = normalize
+        if self.normalize:
+            xb = _l2_normalize(xb)
+        d = xb.shape[1]
+        if index_type == "flat_ip":
+            self.index = faiss.IndexFlatIP(d)
+        else:
+            raise ValueError(f"Unsupported index type: {index_type}")
+        self.index.add(xb)
+
+    def search(self, Xq: np.ndarray, k: int) -> tuple[np.ndarray, np.ndarray]:
+        Xq = Xq.astype(np.float32)
+        if self.normalize:
+            Xq = _l2_normalize(Xq)
+        sims, idx = self.index.search(Xq, k)
+        return sims, idx
+
+class KNNLCATaxonomyAssigner:
+    """KNN-based Lowest Common Ancestor (LCA) taxonomy assigner."""
+    def __init__(self,
+                 taxonomy_index: TaxonomyIndex,
+                 ranks: Optional[List[str]] = None,
+                 min_agreement: Optional[Dict[str, float]] = None,
+                 min_similarity: float = 0.6,
+                 distance_margin: float = 0.07,
+                 k: int = 50):
+        self.index = taxonomy_index
+        self.ranks = ranks or SUPPORTED_RANKS
+        self.min_agreement = min_agreement or {"species": 0.8, "genus": 0.7, "family": 0.6}
+        self.min_similarity = min_similarity
+        self.distance_margin = distance_margin
+        self.k = k
+
+    def _neighbor_labels(self, idx_row: np.ndarray) -> Dict[str, List[Optional[str]]]:
+        rows = self.index.labels_df.iloc[idx_row]
+        labels_by_rank: Dict[str, List[Optional[str]]] = {r: [] for r in self.ranks}
+        for _, row in rows.iterrows():
+            for r in self.ranks:
+                if r in row.index and pd.notna(row[r]):
+                    labels_by_rank[r].append(str(row[r]))
+                else:
+                    labels_by_rank[r].append(None)
+        return labels_by_rank
+
+    def _lca_assign(self, neighbor_labels: Dict[str, List[Optional[str]]], neighbor_sims: np.ndarray) -> Dict[str, Any]:
+        sims = neighbor_sims.tolist()
+        for rank in self.ranks:
+            labels = neighbor_labels.get(rank, [])
+            # Filter out missing
+            pairs = [(lab, sim) for lab, sim in zip(labels, sims) if lab is not None and sim >= self.min_similarity]
+            if not pairs:
+                continue
+            votes: Dict[str, float] = {}
+            for lab, w in pairs:
+                votes[lab] = votes.get(lab, 0.0) + float(w)
+            sorted_votes = sorted(votes.items(), key=lambda x: x[1], reverse=True)
+            top_lab, top_w = sorted_votes[0]
+            second_w = sorted_votes[1][1] if len(sorted_votes) > 1 else 0.0
+            total_w = sum(votes.values())
+            agreement = top_w / max(total_w, 1e-12)
+            if agreement >= self.min_agreement.get(rank, 0.6) and (top_w - second_w) >= self.distance_margin:
+                return {"rank": rank, "label": top_lab, "confidence": float(agreement), "top_weight": float(top_w), "second_weight": float(second_w)}
+        return {"rank": None, "label": None, "confidence": 0.0, "top_weight": 0.0, "second_weight": 0.0}
+
+    def assign(self, embeddings: np.ndarray, sequence_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        sims, idxs = self.index.search(embeddings, self.k)
+        results: List[Dict[str, Any]] = []
+        if sequence_ids is None:
+            sequence_ids = [f"seq_{i}" for i in range(len(embeddings))]
+        for i in range(len(embeddings)):
+            neighbor_labels = self._neighbor_labels(idxs[i])
+            lca = self._lca_assign(neighbor_labels, sims[i])
+            lca.update({
+                "sequence_id": sequence_ids[i],
+                "knn_mean_similarity": float(np.mean(sims[i] if sims.shape[1] > 0 else [0.0])),
+                "knn_top_similarity": float(np.max(sims[i] if sims.shape[1] > 0 else [0.0]))
+            })
+            results.append(lca)
+        return results
+
 class HybridTaxonomyAssigner:
-    """Hybrid taxonomy assignment combining BLAST and ML approaches"""
+    """Hybrid taxonomy assignment combining KNN-LCA and BLAST/ML fallbacks."""
     
     def __init__(self,
-                 blast_assigner: BlastTaxonomyAssigner,
+                 blast_assigner: Optional[BlastTaxonomyAssigner] = None,
                  ml_classifier: Optional[MLTaxonomyClassifier] = None,
-                 confidence_threshold: float = 0.8):
-        """
-        Initialize hybrid taxonomy assigner
-        
-        Args:
-            blast_assigner: BLAST-based assigner
-            ml_classifier: Optional ML classifier
-            confidence_threshold: Confidence threshold for ML predictions
-        """
+                 confidence_threshold: float = 0.8,
+                 knn_assigner: Optional[KNNLCATaxonomyAssigner] = None,
+                 cluster_consensus_threshold: float = 0.7):
         self.blast_assigner = blast_assigner
         self.ml_classifier = ml_classifier
+        self.knn_assigner = knn_assigner
         self.confidence_threshold = confidence_threshold
-        
-        logger.info("Hybrid taxonomy assigner initialized")
-    
+        self.cluster_consensus_threshold = cluster_consensus_threshold
+        logger.info("Hybrid taxonomy assigner initialized (KNN + BLAST/ML)")
+
     def assign_taxonomy(self,
                        sequences: List[str],
                        embeddings: Optional[np.ndarray] = None,
-                       sequence_ids: Optional[List[str]] = None) -> List[Dict[str, Any]]:
-        """
-        Assign taxonomy using hybrid approach
-        
-        Args:
-            sequences: List of DNA sequences
-            embeddings: Optional sequence embeddings for ML classification
-            sequence_ids: Optional sequence IDs
-            
-        Returns:
-            List of taxonomy assignments
-        """
+                       sequence_ids: Optional[List[str]] = None,
+                       cluster_labels: Optional[np.ndarray] = None) -> List[Dict[str, Any]]:
         if sequence_ids is None:
             sequence_ids = [f"seq_{i}" for i in range(len(sequences))]
+
+        results: List[Dict[str, Any]] = []
+
+        # KNN-LCA primary
+        knn_results = []
+        if self.knn_assigner is not None and embeddings is not None:
+            try:
+                knn_results = self.knn_assigner.assign(embeddings, sequence_ids=sequence_ids)
+            except Exception as e:
+                logger.warning(f"KNN-LCA assignment failed: {e}")
         
-        logger.info(f"Assigning taxonomy to {len(sequences)} sequences using hybrid approach")
-        
-        # Get BLAST results
-        blast_results = self.blast_assigner.assign_taxonomy(sequences, sequence_ids)
-        
-        # Get ML results if classifier and embeddings are available
-        ml_results = None
-        if self.ml_classifier and self.ml_classifier.is_trained and embeddings is not None:
-            ml_results = self.ml_classifier.predict(embeddings)
-        
-        # Combine results
-        combined_results = []
-        for i, blast_result in enumerate(blast_results):
-            result = {
-                'sequence_id': blast_result['sequence_id'],
-                'blast_taxonomy': blast_result['taxonomy'],
-                'blast_identity': blast_result['identity'],
-                'blast_evalue': blast_result['evalue'],
-                'ml_taxonomy': None,
-                'ml_confidence': None,
-                'final_taxonomy': None,
-                'assignment_method': None,
-                'confidence_score': 0.0
-            }
-            
-            # Add ML results if available
-            if ml_results:
-                ml_result = ml_results[i]
-                result['ml_taxonomy'] = ml_result['predicted_taxonomy']
-                result['ml_confidence'] = ml_result['confidence']
-            
-            # Determine final assignment
-            result.update(self._determine_final_assignment(blast_result, ml_results[i] if ml_results else None))
-            
-            combined_results.append(result)
-        
-        return combined_results
-    
-    def _determine_final_assignment(self,
-                                  blast_result: Dict[str, Any],
-                                  ml_result: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """Determine final taxonomy assignment"""
-        
-        # Priority rules:
-        # 1. High confidence BLAST hit (>97% identity)
-        # 2. High confidence ML prediction
-        # 3. Lower confidence BLAST hit
-        # 4. Lower confidence ML prediction
-        # 5. Unknown
-        
-        assignment = {
-            'final_taxonomy': 'Unknown',
-            'assignment_method': 'none',
-            'confidence_score': 0.0
-        }
-        
-        # Check high-confidence BLAST
-        if (blast_result['identity'] >= self.blast_assigner.identity_threshold and
-            blast_result['taxonomy'] != 'Unknown'):
-            assignment.update({
-                'final_taxonomy': blast_result['taxonomy'],
-                'assignment_method': 'blast_high_confidence',
-                'confidence_score': blast_result['identity'] / 100.0
-            })
-            return assignment
-        
-        # Check high-confidence ML
-        if (ml_result and 
-            ml_result['confidence'] >= self.confidence_threshold):
-            assignment.update({
-                'final_taxonomy': ml_result['predicted_taxonomy'],
-                'assignment_method': 'ml_high_confidence',
-                'confidence_score': ml_result['confidence']
-            })
-            return assignment
-        
-        # Check lower-confidence BLAST
-        if (blast_result['identity'] >= 80.0 and  # Lower threshold
-            blast_result['taxonomy'] != 'Unknown'):
-            assignment.update({
-                'final_taxonomy': blast_result['taxonomy'],
-                'assignment_method': 'blast_low_confidence',
-                'confidence_score': blast_result['identity'] / 100.0
-            })
-            return assignment
-        
-        # Check lower-confidence ML
-        if ml_result and ml_result['confidence'] >= 0.5:
-            assignment.update({
-                'final_taxonomy': ml_result['predicted_taxonomy'],
-                'assignment_method': 'ml_low_confidence',
-                'confidence_score': ml_result['confidence']
-            })
-            return assignment
-        
-        return assignment
-    
-    def generate_assignment_report(self, 
-                                 results: List[Dict[str, Any]],
-                                 save_path: Optional[Path] = None) -> pd.DataFrame:
-        """
-        Generate taxonomy assignment report
-        
-        Args:
-            results: List of assignment results
-            save_path: Optional path to save report
-            
-        Returns:
-            DataFrame with assignment summary
-        """
-        # Create DataFrame
+        if knn_results:
+            for r in knn_results:
+                results.append({
+                    'sequence_id': r['sequence_id'],
+                    'assigned_rank': r.get('rank'),
+                    'assigned_label': r.get('label'),
+                    'confidence': r.get('confidence', 0.0),
+                    'knn_rank': r.get('rank'),
+                    'knn_label': r.get('label'),
+                    'knn_confidence': r.get('confidence', 0.0),
+                    'knn_top_similarity': r.get('knn_top_similarity', 0.0),
+                    'knn_mean_similarity': r.get('knn_mean_similarity', 0.0),
+                    'source': 'knn'
+                })
+        else:
+            results = [{
+                'sequence_id': sid,
+                'assigned_rank': None,
+                'assigned_label': None,
+                'confidence': 0.0,
+                'knn_top_similarity': 0.0,
+                'knn_mean_similarity': 0.0,
+                'source': 'none'
+            } for sid in sequence_ids]
+
+        # Cluster consensus
+        if cluster_labels is not None:
+            try:
+                results = self._apply_cluster_consensus(results, cluster_labels)
+            except Exception as e:
+                logger.warning(f"Cluster consensus step failed: {e}")
+
+        # BLAST fallback
+        if self.blast_assigner is not None:
+            try:
+                to_blast = []
+                seq_map = {sid: seq for sid, seq in zip(sequence_ids, sequences)}
+                for r in results:
+                    if (r['assigned_rank'] is None) or (r['assigned_rank'] == 'species' and r['confidence'] < self.confidence_threshold):
+                        to_blast.append(r['sequence_id'])
+                if to_blast:
+                    logger.info(f"Running BLAST fallback for {len(to_blast)} sequences")
+                    blast_sequences = [seq_map[sid] for sid in to_blast]
+                    blast_assignments = self.blast_assigner.assign_taxonomy(blast_sequences, sequence_ids=to_blast)
+                    blast_by_id = {a['sequence_id']: a for a in blast_assignments}
+                    for r in results:
+                        b = blast_by_id.get(r['sequence_id'])
+                        if not b:
+                            continue
+                        if b.get('taxonomy') and b.get('identity', 0.0) >= self.blast_assigner.identity_threshold:
+                            r.update({
+                                'assigned_rank': 'species',
+                                'assigned_label': b.get('taxonomy'),
+                                'confidence': max(r.get('confidence', 0.0), min(0.99, b.get('identity', 0.0) / 100.0)),
+                                'blast_identity': b.get('identity'),
+                                'blast_taxid': b.get('taxid'),
+                                'blast_label': b.get('taxonomy'),
+                                'source': r.get('source', 'knn') + '+blast'
+                            })
+            except Exception as e:
+                logger.warning(f"BLAST fallback failed or unavailable: {e}")
+
+        return results
+
+    def _apply_cluster_consensus(self, results: List[Dict[str, Any]], cluster_labels: np.ndarray) -> List[Dict[str, Any]]:
         df = pd.DataFrame(results)
-        
-        # Summary statistics
-        method_counts = df['assignment_method'].value_counts()
-        confidence_stats = df.groupby('assignment_method')['confidence_score'].describe()
-        
-        # Print summary
-        logger.info("Taxonomy Assignment Summary:")
-        logger.info(f"Total sequences: {len(results)}")
-        
-        for method, count in method_counts.items():
-            percentage = (count / len(results)) * 100
-            logger.info(f"{method}: {count} ({percentage:.1f}%)")
-        
-        # Save if requested
-        if save_path:
-            df.to_csv(save_path, index=False)
-            logger.info(f"Assignment report saved to {save_path}")
-        
-        return df
-
-def main():
-    """Main function for testing taxonomy assignment"""
-    # Create mock data for testing
-    sequences = [
-        "ATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCG",
-        "GCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTAGCTA",
-        "TTAATTAATTAATTAATTAATTAATTAATTAATTAATTAATTAATTAATTAATTAATTAAT"
-    ]
-    
-    sequence_ids = ["seq1", "seq2", "seq3"]
-    
-    # Create mock embeddings
-    embeddings = np.random.randn(3, 256)
-    
-    # Test ML classifier (if we have training data)
-    logger.info("Testing ML taxonomy classifier...")
-    
-    # Create mock training data
-    train_embeddings = np.random.randn(100, 256)
-    train_labels = np.random.choice(['Bacteria', 'Archaea', 'Eukaryota'], size=100)
-    
-    ml_classifier = MLTaxonomyClassifier()
-    training_results = ml_classifier.train(train_embeddings, train_labels)
-    
-    logger.info(f"Training results: {training_results}")
-    
-    # Test prediction
-    predictions = ml_classifier.predict(embeddings)
-    
-    for i, pred in enumerate(predictions):
-        logger.info(f"Sequence {i+1}: {pred['predicted_taxonomy']} "
-                   f"(confidence: {pred['confidence']:.3f})")
-    
-    # Save model
-    model_save_path = Path("models") / "taxonomy_classifier.pkl"
-    model_save_path.parent.mkdir(parents=True, exist_ok=True)
-    ml_classifier.save_model(model_save_path)
-    
-    logger.info("Taxonomy assignment testing complete!")
-
-if __name__ == "__main__":
-    main()
+        df['cluster'] = cluster_labels
+        out = results.copy()
+        for cl, grp in df.groupby('cluster'):
+            if cl == -1:
+                continue
+            for rank in ['species', 'genus', 'family']:
+                labels = grp.loc[grp['assigned_rank'] == rank, 'assigned_label']
+                if labels.empty:
+                    continue
+                vc = labels.value_counts()
+                top_label, count = (vc.index[0], int(vc.iloc[0]))
+                agreement = count / max(len(grp), 1)
+                if agreement >= self.cluster_consensus_threshold:
+                    for idx in grp.index.tolist():
+                        r = out[idx]
+                        if (r['assigned_rank'] is None) or (r['assigned_rank'] == rank and r['confidence'] < agreement):
+                            r.update({
+                                'assigned_rank': rank,
+                                'assigned_label': top_label,
+                                'confidence': max(r.get('confidence', 0.0), float(agreement)),
+                                'source': r.get('source', 'knn') + '+consensus'
+                            })
+                    break
+        return out

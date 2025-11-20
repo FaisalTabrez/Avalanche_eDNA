@@ -1,0 +1,24 @@
+{
+  "pipeline_config": {
+    "input_data": "C:\\Volume D\\Avalanche\\results\\demo\\input\\SRR35551197.head512.fasta",
+    "output_dir": "F:\\AvalancheData\\runs\\SRR35551197\\head512_bs256",
+    "timestamp": "2025-09-30 13:10:46",
+    "steps_completed": [
+      "embeddings"
+    ]
+  },
+  "preprocessing": {
+    "total_sequences": 512
+  },
+  "embeddings": {
+    "embedding_dim": 256,
+    "model_type": "transformer"
+  },
+  "summary": {
+    "total_sequences_processed": 512,
+    "total_clusters": 0,
+    "total_taxa_identified": 0,
+    "novel_taxa_candidates": 0,
+    "novelty_percentage": 0
+  }
+}

@@ -17,11 +17,8 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from utils.config import config
 from preprocessing.pipeline import PreprocessingPipeline
-from models.tokenizer import DNATokenizer
-from models.embeddings import DNATransformerEmbedder
-from models.trainer import EmbeddingTrainer
 from clustering.algorithms import EmbeddingClusterer
-from clustering.taxonomy import HybridTaxonomyAssigner, BlastTaxonomyAssigner, MLTaxonomyClassifier
+from clustering.taxonomy import HybridTaxonomyAssigner, BlastTaxonomyAssigner, MLTaxonomyClassifier, TaxonomyIndex, KNNLCATaxonomyAssigner
 from novelty.detection import NoveltyAnalyzer
 from visualization.plots import BiodiversityPlotter
 
@@ -186,15 +183,20 @@ class eDNABiodiversityPipeline:
     def _run_preprocessing_step(self, input_data: str, output_dir: Path) -> List[str]:
         """Run preprocessing step"""
         self.preprocessing_pipeline = PreprocessingPipeline()
-        
-        # Process data
-        if Path(input_data).is_dir():
-            results = self.preprocessing_pipeline.process_directory(Path(input_data))
+
+        # Check if input is SRA data
+        input_path = Path(input_data)
+        if self._is_sra_data(input_path):
+            return self._process_sra_data(input_path, output_dir)
+
+        # Process regular data
+        if input_path.is_dir():
+            results = self.preprocessing_pipeline.process_directory(input_path)
         else:
             # Process single file
-            output_prefix = Path(input_data).stem
-            results = [self.preprocessing_pipeline.process_file(Path(input_data), output_prefix)]
-        
+            output_prefix = input_path.stem
+            results = [self.preprocessing_pipeline.process_file(input_path, output_prefix)]
+
         # Load processed sequences
         sequences = []
         for result in results:
@@ -204,51 +206,189 @@ class eDNABiodiversityPipeline:
                     from Bio import SeqIO
                     for record in SeqIO.parse(final_file, 'fasta'):
                         sequences.append(str(record.seq))
-        
+
         # Save processed sequences
         output_file = output_dir / 'preprocessed_sequences.fasta'
         with open(output_file, 'w') as f:
             for i, seq in enumerate(sequences):
                 f.write(f">seq_{i}\n{seq}\n")
-        
+
         logger.info(f"Preprocessing complete: {len(sequences)} sequences")
+        return sequences
+
+    def _is_sra_data(self, input_path: Path) -> bool:
+        """Check if input path contains SRA data"""
+        if input_path.is_dir():
+            # Check if directory contains SRA files
+            sra_files = list(input_path.rglob("*.sra"))
+            fastq_files = list(input_path.rglob("*.fastq*"))
+            return len(sra_files) > 0 or len(fastq_files) > 0
+        else:
+            # Check if file is SRA-related
+            return input_path.suffix.lower() in ['.sra', '.fastq', '.fq']
+
+    def _process_sra_data(self, input_path: Path, output_dir: Path) -> List[str]:
+        """Process SRA data using SRA processor"""
+        try:
+            from preprocessing.sra_processor import SRAProcessor
+        except ImportError as e:
+            raise ImportError("SRA processor not available. Please ensure src/preprocessing/sra_processor.py exists.") from e
+
+        logger.info("Processing SRA data...")
+
+        sra_processor = SRAProcessor()
+
+        # Find SRA files
+        if input_path.is_dir():
+            sra_files = list(input_path.rglob("*.sra"))
+            fastq_files = list(input_path.rglob("*.fastq*"))
+
+            if fastq_files:
+                # Process existing FASTQ files
+                logger.info(f"Found {len(fastq_files)} FASTQ files from SRA")
+                results = sra_processor.integrate_with_pipeline(fastq_files, output_dir)
+                sequences = [str(seq.seq) for seq in results['sequences']]
+            elif sra_files:
+                # Convert SRA files to FASTQ first
+                logger.info(f"Found {len(sra_files)} SRA files, converting to FASTQ...")
+                fastq_files = []
+                for sra_file in sra_files:
+                    # Use the SRA downloader to convert
+                    from download_sra_data import SRADownloader
+                    sra_downloader = SRADownloader()
+                    converted_files = sra_downloader.convert_sra_to_fastq(sra_file)
+                    fastq_files.extend(converted_files)
+
+                if fastq_files:
+                    results = sra_processor.integrate_with_pipeline(fastq_files, output_dir)
+                    sequences = [str(seq.seq) for seq in results['sequences']]
+                else:
+                    raise ValueError("No FASTQ files could be generated from SRA files")
+            else:
+                raise ValueError(f"No SRA or FASTQ files found in {input_path}")
+        else:
+            # Process single SRA/FASTQ file
+            if input_path.suffix.lower() in ['.fastq', '.fq', '.fastq.gz', '.fq.gz']:
+                sequences = sra_processor.process_sra_fastq(input_path, output_dir)
+                sequences = [str(seq.seq) for seq in sequences]
+            else:
+                raise ValueError(f"Unsupported SRA file format: {input_path.suffix}")
+
+        logger.info(f"SRA processing complete: {len(sequences)} sequences")
         return sequences
     
     def _run_embedding_step(self, sequences: List[str], output_dir: Path) -> np.ndarray:
-        """Run embedding generation step"""
-        # Initialize tokenizer
-        self.tokenizer = DNATokenizer(
-            encoding_type="kmer",
-            kmer_size=self.config.get('embedding.kmer_size', 6)
-        )
-        
-        # Create model
-        embedding_config = self.config.get('embedding', {})
-        self.embedding_model = DNATransformerEmbedder(
-            vocab_size=self.tokenizer.vocab_size,
-            d_model=embedding_config.get('embedding_dim', 256),
-            nhead=embedding_config.get('transformer.num_heads', 8),
-            num_layers=embedding_config.get('transformer.num_layers', 6),
-            dropout=embedding_config.get('transformer.dropout', 0.1)
-        )
-        
-        # Initialize trainer
-        self.trainer = EmbeddingTrainer(self.embedding_model, self.tokenizer)
-        
-        # For demonstration, we'll create mock embeddings
-        # In practice, you'd either train a model or load a pre-trained one
-        logger.info("Generating sequence embeddings...")
-        embeddings = np.random.randn(len(sequences), 256)  # Mock embeddings
-        
-        # Save embeddings
+        """Run embedding generation step using Nucleotide Transformer"""
+        try:
+            import torch
+            from transformers import AutoTokenizer, AutoModel
+        except ImportError as e:
+            raise ImportError(
+                "Transformers/PyTorch not installed. Please install requirements (transformers, torch) "
+                "to use Nucleotide Transformer embeddings."
+            ) from e
+
+        embedding_cfg = self.config.get('embedding', {})
+        transformer_cfg = embedding_cfg.get('transformer', {}) or {}
+
+        model_id = transformer_cfg.get('model_id', 'InstaDeepAI/nucleotide-transformer-250m-1000g')
+        max_len = embedding_cfg.get('max_sequence_length', 512)
+        stride = transformer_cfg.get('stride', 128)
+        batch_size = transformer_cfg.get('batch_size', 8)
+
+        # Device selection
+        use_gpu = bool(self.config.get('performance.use_gpu', True))
+        device = 'cuda' if (use_gpu and torch.cuda.is_available()) else 'cpu'
+        logger.info(f"Loading Nucleotide Transformer model: {model_id} on device: {device}")
+
+        # Load model and tokenizer lazily to avoid overhead when skipping step
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+        model = AutoModel.from_pretrained(model_id, trust_remote_code=True)
+        model.to(device)
+        model.eval()
+
+        def chunk_ids(ids: list[int], max_length: int, overlap: int) -> list[list[int]]:
+            chunks = []
+            i = 0
+            while i < len(ids):
+                chunk = ids[i:i+max_length]
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                if i + max_length >= len(ids):
+                    break
+                step = max_length - overlap
+                if step <= 0:
+                    step = max_length
+                i += step
+            return chunks
+
+        all_embeddings: list[np.ndarray] = []
+
+        def process_batch(batch_seqs: list[str]) -> list[np.ndarray]:
+            seq_vecs: list[np.ndarray] = []
+            with torch.no_grad():
+                for seq in batch_seqs:
+                    enc = tokenizer(seq, add_special_tokens=True, return_tensors='pt', truncation=False)
+                    ids = enc['input_ids'][0].tolist()
+                    # Chunk long sequences
+                    id_chunks = chunk_ids(ids, max_len, stride)
+                    chunk_vecs: list[torch.Tensor] = []
+                    for ch in id_chunks:
+                        inputs = {'input_ids': torch.tensor([ch], dtype=torch.long, device=device)}
+                        outputs = model(**inputs)
+                        last_hidden = outputs.last_hidden_state if hasattr(outputs, 'last_hidden_state') else outputs[0]  # [1, L, D]
+                        # Use attention_mask if available to exclude padding and specials
+                        # Here we mean-pool across tokens
+                        vec = last_hidden.mean(dim=1)  # [1, D]
+                        chunk_vecs.append(vec.squeeze(0).detach().cpu())
+                    if chunk_vecs:
+                        seq_vec = torch.stack(chunk_vecs, dim=0).mean(dim=0)
+                        seq_vecs.append(seq_vec.numpy().astype('float32'))
+                    else:
+                        # Fallback zero vector if tokenization failed
+                        hidden = getattr(model.config, 'hidden_size', 256)
+                        seq_vecs.append(np.zeros((hidden,), dtype=np.float32))
+            return seq_vecs
+
+        # Batch processing to control memory footprint
+        for i in range(0, len(sequences), batch_size):
+            batch = sequences[i:i+batch_size]
+            all_embeddings.extend(process_batch(batch))
+            logger.info(f"Embedded {min(i+batch_size, len(sequences))}/{len(sequences)} sequences")
+
+        embeddings = np.stack(all_embeddings, axis=0).astype(np.float32)
+
+        # Optional PCA and L2 normalization
+        post_cfg = embedding_cfg.get('postprocess', {})
+        pca_cfg = (post_cfg.get('pca') or {}) if isinstance(post_cfg, dict) else {}
+
+        # PCA to reduce dimensionality if enabled
+        try:
+            if isinstance(post_cfg, dict) and pca_cfg.get('enabled', True):
+                from sklearn.decomposition import PCA
+                n_components = int(pca_cfg.get('n_components', 256))
+                n_components = max(1, min(n_components, embeddings.shape[1]))
+                logger.info(f"Applying PCA to {n_components} components on embeddings of shape {embeddings.shape}")
+                pca = PCA(n_components=n_components, random_state=int(pca_cfg.get('random_state', 42)), whiten=bool(pca_cfg.get('whiten', False)))
+                embeddings = pca.fit_transform(embeddings).astype(np.float32)
+        except Exception as e:
+            logger.warning(f"PCA post-processing failed ({e}). Continuing without PCA.")
+
+        # L2 normalize row-wise (per-sequence)
+        try:
+            l2_norm = True if not isinstance(post_cfg, dict) else bool(post_cfg.get('l2_normalize', True))
+            if l2_norm:
+                norms = np.linalg.norm(embeddings, axis=1, keepdims=True)
+                embeddings = embeddings / np.maximum(norms, 1e-12)
+                logger.info("Applied L2 normalization to embeddings")
+        except Exception as e:
+            logger.warning(f"L2 normalization failed ({e}). Continuing without normalization.")
+
+        # Persist
         embeddings_file = output_dir / 'sequence_embeddings.npy'
         np.save(embeddings_file, embeddings)
-        
-        # Save tokenizer
-        tokenizer_file = output_dir / 'tokenizer.pkl'
-        self.tokenizer.save(tokenizer_file)
-        
-        logger.info(f"Embeddings generated: {embeddings.shape}")
+        logger.info(f"Embeddings generated via {model_id}: {embeddings.shape}")
         return embeddings
     
     def _run_clustering_step(self, embeddings: np.ndarray, sequences: List[str], output_dir: Path) -> Dict[str, Any]:
@@ -288,53 +428,183 @@ class eDNABiodiversityPipeline:
         return results
     
     def _run_taxonomy_step(self, sequences: List[str], embeddings: np.ndarray, output_dir: Path) -> Dict[str, Any]:
-        """Run taxonomy assignment step"""
-        # Initialize ML classifier with mock training data
-        self.ml_classifier = MLTaxonomyClassifier()
-        
-        # Create mock training data for demonstration
-        train_embeddings = np.random.randn(500, embeddings.shape[1])
-        train_labels = np.random.choice(['Bacteria', 'Archaea', 'Eukaryota', 'Viruses'], size=500)
-        
-        # Train classifier
-        training_results = self.ml_classifier.train(train_embeddings, train_labels)
-        
-        # Predict taxonomy
-        predictions = self.ml_classifier.predict(embeddings)
-        
-        # Create taxonomy summary
-        taxonomy_counts = {}
-        confidence_scores = []
-        
-        for pred in predictions:
-            taxonomy = pred['predicted_taxonomy']
-            confidence = pred['confidence']
-            
-            taxonomy_counts[taxonomy] = taxonomy_counts.get(taxonomy, 0) + 1
-            confidence_scores.append(confidence)
-        
-        # Save results
+        """Run taxonomy assignment step using KNN-LCA with BLAST fallback and cluster consensus"""
+        taxonomy_cfg = self.config.get('taxonomy', {})
+        knn_cfg = taxonomy_cfg.get('knn', {})
+        blast_cfg = taxonomy_cfg.get('blast_fallback', {})
+        consensus_cfg = taxonomy_cfg.get('cluster_consensus', {})
+
         taxonomy_output_dir = output_dir / 'taxonomy'
         taxonomy_output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Save predictions
-        predictions_df = pd.DataFrame(predictions)
-        predictions_df['sequence_id'] = [f"seq_{i}" for i in range(len(sequences))]
-        predictions_df.to_csv(taxonomy_output_dir / 'taxonomy_predictions.csv', index=False)
-        
-        # Save model
-        model_file = taxonomy_output_dir / 'taxonomy_classifier.pkl'
-        self.ml_classifier.save_model(model_file)
-        
+
+        # Attempt to build/load KNN index
+        knn_assigner = None
+        try:
+            import os
+            ref_dir = Path(knn_cfg.get('reference_dir', 'data/reference'))
+            emb_path = Path(knn_cfg.get('embeddings_path', ref_dir / 'reference_embeddings.npy'))
+            labels_path = Path(knn_cfg.get('labels_path', ref_dir / 'reference_labels.csv'))
+            if emb_path.exists() and labels_path.exists():
+                ref_embeddings = np.load(emb_path)
+                labels_df = pd.read_csv(labels_path)
+                index = TaxonomyIndex(ref_embeddings, labels_df, normalize=True, index_type=knn_cfg.get('index', 'flat_ip'))
+                knn_assigner = KNNLCATaxonomyAssigner(
+                    taxonomy_index=index,
+                    k=int(knn_cfg.get('k', 50)),
+                    min_similarity=float(knn_cfg.get('min_similarity', 0.65)),
+                    distance_margin=float(knn_cfg.get('distance_margin', 0.07)),
+                    min_agreement=knn_cfg.get('min_agreement', {"species": 0.8, "genus": 0.7, "family": 0.6})
+                )
+            else:
+                logger.warning(f"Reference files not found for KNN taxonomy: {emb_path} or {labels_path}")
+        except Exception as e:
+            logger.warning(f"Failed to initialize KNN taxonomy index: {e}")
+
+        # Optional BLAST assigner
+        blast_assigner = None
+        if bool(blast_cfg.get('enable', True)):
+            try:
+                blast_assigner = BlastTaxonomyAssigner(
+                    blast_db=str(blast_cfg.get('database', taxonomy_cfg.get('blast', {}).get('database', 'data/reference/nt'))),
+                    evalue=float(taxonomy_cfg.get('blast', {}).get('evalue', 1e-5)),
+                    max_targets=int(taxonomy_cfg.get('blast', {}).get('max_targets', 5)),
+                    identity_threshold=float(blast_cfg.get('min_identity_species', taxonomy_cfg.get('blast', {}).get('identity_threshold', 97.0)))
+                )
+            except Exception as e:
+                logger.warning(f"BLAST assigner unavailable: {e}")
+
+        # Cluster labels (if clustering was run)
+        cluster_labels = None
+        try:
+            cluster_labels = np.array(self.results.get('clustering', {}).get('cluster_labels')) if 'clustering' in self.results else None
+        except Exception:
+            cluster_labels = None
+
+        sequence_ids = [f"seq_{i}" for i in range(len(sequences))]
+
+        # If no KNN index is available but BLAST is, run pure BLAST taxonomy to avoid hybrid path issues
+        if knn_assigner is None and blast_assigner is not None:
+            try:
+                logger.info("Running pure BLAST taxonomy assignment (no KNN index available)...")
+                assignments = blast_assigner.assign_taxonomy(sequences, sequence_ids=sequence_ids)
+                # Normalize fields to match downstream expectations
+                for a in assignments:
+                    a.update({
+                        'assigned_rank': 'species' if a.get('taxonomy') and a.get('identity', 0.0) >= blast_assigner.identity_threshold else None,
+                        'assigned_label': a.get('taxonomy'),
+                        'confidence': min(0.99, a.get('identity', 0.0) / 100.0) if a.get('identity') is not None else 0.0,
+                        'blast_identity': a.get('identity'),
+                        'blast_taxid': a.get('taxid'),
+                        'blast_label': a.get('taxonomy')
+                    })
+            except Exception as e:
+                logger.warning(f"Pure BLAST taxonomy failed: {e}")
+                assignments = []
+        else:
+            # Run hybrid assignment
+            hybrid = HybridTaxonomyAssigner(
+                blast_assigner=blast_assigner,
+                ml_classifier=None,
+                confidence_threshold=float(knn_cfg.get('species_confidence', 0.8)),
+                knn_assigner=knn_assigner,
+                cluster_consensus_threshold=float(consensus_cfg.get('min_cluster_agreement', 0.7))
+            )
+            assignments = hybrid.assign_taxonomy(
+                sequences=sequences,
+                embeddings=embeddings,
+                sequence_ids=sequence_ids,
+                cluster_labels=cluster_labels
+            )
+
+        # Summarize results
+        taxonomy_counts: Dict[str, int] = {}
+        confidence_scores: List[float] = []
+        for a in assignments:
+            label = a.get('assigned_label', 'Unknown') if a.get('assigned_label') else 'Unknown'
+            taxonomy_counts[label] = taxonomy_counts.get(label, 0) + 1
+            confidence_scores.append(float(a.get('confidence', 0.0)))
+
+        # Save predictions (with optional lineage enrichment)
+        predictions_df = pd.DataFrame(assignments)
+
+        # Tie-breaker report: compare KNN species vs BLAST species
+        try:
+            species_conf = float(knn_cfg.get('species_confidence', 0.8))
+            blast_thr = float(taxonomy_cfg.get('blast', {}).get('identity_threshold', 97.0))
+            def decide(row):
+                knn_sp = row.get('knn_label') if row.get('knn_rank') == 'species' else None
+                blast_sp = row.get('blast_label') or row.get('taxonomy')
+                blast_id = row.get('blast_identity')
+                knn_conf = row.get('knn_confidence')
+                conflict = (isinstance(knn_sp, str) and isinstance(blast_sp, str) and knn_sp and blast_sp and (knn_sp.strip() != blast_sp.strip()))
+                if isinstance(blast_id, (int, float)) and blast_id >= blast_thr:
+                    winner = 'blast'
+                    reason = f'blast_identity>={blast_thr}'
+                elif isinstance(knn_conf, (int, float)) and knn_conf >= species_conf:
+                    winner = 'knn'
+                    reason = f'knn_confidence>={species_conf}'
+                else:
+                    # Fallback: prefer BLAST if identity present, else KNN if confidence present, else unknown
+                    if isinstance(blast_id, (int, float)):
+                        winner = 'blast'
+                        reason = 'blast_identity_fallback'
+                    elif isinstance(knn_conf, (int, float)):
+                        winner = 'knn'
+                        reason = 'knn_confidence_fallback'
+                    else:
+                        winner = 'unknown'
+                        reason = 'insufficient_evidence'
+                return pd.Series({'tiebreak_winner': winner, 'tiebreak_reason': reason, 'knn_species': knn_sp, 'blast_species': blast_sp, 'conflict_flag': bool(conflict)})
+            tb = predictions_df.apply(decide, axis=1)
+            predictions_df = pd.concat([predictions_df.reset_index(drop=True), tb.reset_index(drop=True)], axis=1)
+        except Exception as e:
+            logger.warning(f"Tie-breaker report skipped due to error: {e}")
+
+        # Optional lineage enrichment via NCBI taxdump with priority: BLAST taxid -> KNN name
+        taxdump_dir = taxonomy_cfg.get('taxdump_dir')
+        try:
+            if taxdump_dir and Path(taxdump_dir).exists():
+                from clustering.taxonomy import TaxdumpResolver
+                resolver = TaxdumpResolver(taxdump_dir)
+                if resolver.available():
+                    enriched = []
+                    for _, row in predictions_df.iterrows():
+                        taxid = row.get('blast_taxid') or row.get('taxid')
+                        lin = None
+                        if pd.notna(taxid):
+                            try:
+                                lin = resolver.lineage_by_taxid(int(taxid))
+                            except Exception:
+                                lin = None
+                        if not lin:
+                            name = row.get('assigned_label') or row.get('taxonomy')
+                            lin = resolver.lineage_by_name(name if isinstance(name, str) else None)
+                        enriched.append(lin)
+                    lin_df = pd.DataFrame(enriched)
+                    predictions_df = pd.concat([predictions_df.reset_index(drop=True), lin_df.reset_index(drop=True)], axis=1)
+        except Exception as e:
+            logger.warning(f"Lineage enrichment skipped due to error: {e}")
+
+        # Write main predictions
+        predictions_path = taxonomy_output_dir / 'taxonomy_predictions.csv'
+        predictions_df.to_csv(predictions_path, index=False)
+
+        # Write conflict-focused report
+        try:
+            conflict_df = predictions_df[predictions_df['conflict_flag'] == True].copy()
+            conflict_report = taxonomy_output_dir / 'taxonomy_tiebreak_report.csv'
+            conflict_df.to_csv(conflict_report, index=False)
+        except Exception:
+            pass
+
         results = {
             'total_sequences': len(sequences),
             'taxonomy_counts': taxonomy_counts,
             'confidence_scores': confidence_scores,
-            'training_accuracy': training_results['val_accuracy'],
             'output_dir': str(taxonomy_output_dir)
         }
-        
-        logger.info(f"Taxonomy assignment complete: {len(taxonomy_counts)} taxa identified")
+
+        logger.info(f"Taxonomy assignment complete: {len(taxonomy_counts)} unique labels identified")
         return results
     
     def _run_novelty_step(self, embeddings: np.ndarray, sequences: List[str], 

@@ -12,6 +12,8 @@
 7. [Visualization](#visualization)
 8. [Pipeline](#pipeline)
 
+> **Note:** For installation instructions, see [Installation Guide](installation.md). For configuration options, see [Configuration Guide](configuration.md). For troubleshooting, see [Troubleshooting Guide](troubleshooting.md).
+
 ---
 
 ## Overview
