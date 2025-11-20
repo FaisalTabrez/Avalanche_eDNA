@@ -28,7 +28,7 @@ import sys
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from utils.config import config
+from src.utils.config import config
 
 # Setup logging
 logging.basicConfig(

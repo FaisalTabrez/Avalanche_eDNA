@@ -28,9 +28,9 @@ databases:
   sra:
     # SRA Toolkit paths (if installed locally)
     sra_tools:
-      prefetch_path: "prefetch"  # SRA prefetch tool
-      fastq_dump_path: "fastq-dump"  # SRA fastq-dump tool
-      sam_dump_path: "sam-dump"  # SRA sam-dump tool
+      prefetch_path: 'C:\Volume D\Avalanche\tools\sratoolkit.3.0.10-win64\bin\prefetch.exe'  # SRA prefetch tool
+      fastq_dump_path: 'C:\Volume D\Avalanche\tools\sratoolkit.3.0.10-win64\bin\fastq-dump.exe'  # SRA fastq-dump tool
+      sam_dump_path: 'C:\Volume D\Avalanche\tools\sratoolkit.3.0.10-win64\bin\sam-dump.exe'  # SRA sam-dump tool
 
     # Download settings
     download:
