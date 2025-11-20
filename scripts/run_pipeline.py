@@ -236,8 +236,10 @@ class eDNABiodiversityPipeline:
             fastq_files = list(input_path.rglob("*.fastq*"))
             return len(sra_files) > 0 or len(fastq_files) > 0
         else:
-            # Check if file is SRA-related
-            return input_path.suffix.lower() in ['.sra', '.fastq', '.fq']
+            # Check if file is SRA-related (including compressed)
+            name_lower = input_path.name.lower()
+            return (input_path.suffix.lower() in ['.sra', '.fastq', '.fq', '.gz'] or
+                    name_lower.endswith('.fastq.gz') or name_lower.endswith('.fq.gz'))
 
     def _process_sra_data(self, input_path: Path, output_dir: Path) -> List[str]:
         """Process SRA data using SRA processor"""

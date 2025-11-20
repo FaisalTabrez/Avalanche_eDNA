@@ -20,7 +20,7 @@ project_root = Path(__file__).parent.parent
 src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
-from database.config import get_config
+from src.database.config import get_config
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

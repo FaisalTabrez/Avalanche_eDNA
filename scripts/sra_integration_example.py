@@ -15,10 +15,10 @@ import time
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from utils.config import config
-from download_sra_data import SRADownloader
-from preprocessing.sra_processor import SRAProcessor
-from run_pipeline import eDNABiodiversityPipeline
+from src.utils.config import config
+from scripts.download_sra_data import SRADownloader
+from src.preprocessing.sra_processor import SRAProcessor
+from scripts.run_pipeline import eDNABiodiversityPipeline
 
 # Setup logging
 logging.basicConfig(
@@ -70,7 +70,8 @@ def demonstrate_sra_integration():
                 # Process with SRA processor
                 results = sra_processor.integrate_with_pipeline(fastq_files[:2])  # Process first 2 files
 
-                logger.info("✅ SRA processing completed"                logger.info(f"   - Processed {results['results']['total_processed_sequences']} sequences")
+                logger.info("✅ SRA processing completed")
+                logger.info(f"   - Processed {results['results']['total_processed_sequences']} sequences")
                 logger.info(f"   - From {results['results']['total_sra_files']} SRA files")
 
                 # Step 3: Run full biodiversity analysis

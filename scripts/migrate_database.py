@@ -16,8 +16,9 @@ project_root = Path(__file__).parent.parent
 src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
-from database.schema import DatabaseSchema
-from database.manager import DatabaseManager
+import sqlite3
+from src.database.schema import DatabaseSchema
+from src.database.manager import DatabaseManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
