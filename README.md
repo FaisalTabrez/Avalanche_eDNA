@@ -2,6 +2,16 @@
 
 An end-to-end system for identifying taxonomic diversity and assessing biological richness in deep-sea environmental DNA (eDNA) datasets using advanced machine learning and bioinformatics techniques.
 
+## Table of Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
+- [Usage](#usage)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## 🌊 Overview
 
 This system addresses the challenges of deep-sea eDNA analysis by:
@@ -13,61 +23,80 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 ## 🔧 Features
 
 - **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal
-- **Deep Learning Embeddings**: Transformer-based sequence representation learning
+- **Transformer Embeddings**: Nucleotide Transformer (HF) with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
 - **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
 - **Interactive Dashboard**: Web-based visualization and analysis interface
 - **Scalable Architecture**: GPU acceleration and cloud deployment ready
+- **NCBI SRA Integration**: Direct access to 1000+ eDNA studies from NCBI Sequence Read Archive
+- **Multi-Format Support**: Universal support for FASTA, FASTQ, Swiss-Prot, GenBank, EMBL, and SRA formats
+- **Real-time Processing**: Live progress tracking with interactive visualizations
 
 ## 📁 Project Structure
 
 ```
-├── data/                   # Sample datasets and test data
-├── src/                   # Source code
-│   ├── preprocessing/     # Data cleaning and preparation
-│   ├── models/           # Deep learning models
-│   ├── clustering/       # Taxonomic clustering algorithms
-│   ├── visualization/    # Dashboard and plotting utilities
-│   └── utils/           # Shared utilities and helpers
-├── notebooks/            # Jupyter notebooks for analysis
-├── tests/               # Unit and integration tests
-├── docs/                # Documentation
-├── scripts/             # Pipeline and automation scripts
-└── requirements.txt     # Python dependencies
+├── data/                        # Sample datasets and test data
+├── src/                         # Source code
+│   ├── analysis/                # Dataset analysis utilities
+│   ├── api/                     # Report management API
+│   ├── clustering/              # Clustering algorithms and taxonomy helpers
+│   ├── dashboards/              # Streamlit dashboard modules
+│   ├── database/                # Database models and manager
+│   ├── novelty/                 # Novelty detection logic
+│   ├── organism_profiling/      # Organism profiling modules
+│   ├── preprocessing/           # Data cleaning and preparation
+│   ├── report_management/       # Report/catalogue management
+│   ├── similarity/              # Cross-analysis engine
+│   ├── utils/                   # Shared utilities and config
+│   └── visualization/           # Plotting and dashboard utilities
+├── notebooks/                   # Jupyter notebooks for analysis
+├── tests/                       # Unit and integration tests
+├── docs/                        # Documentation
+├── scripts/                     # Pipeline and automation scripts
+├── streamlit_app.py             # Streamlit UI entrypoint
+└── requirements*.txt            # Python dependencies
 ```
+
+> Note: The current pipeline uses placeholder embeddings and a demo ML taxonomy classifier trained on synthetic data. Replace the embedding step with real models and training when src/models is introduced.
+
+## Installation
+
+See [Installation Guide](docs/installation.md) for detailed setup instructions including prerequisites, environment setup, and optional dependencies.
 
 ## 🚀 Quick Start
 
-1. **Setup Environment**
-   ```bash
-   conda create -n edna-biodiversity python=3.9
-   conda activate edna-biodiversity
-   pip install -r requirements.txt
-   ```
+Note: The default embedding backend uses a pretrained Nucleotide Transformer from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
 
-2. **Create Sample Data and Run Analysis**
-   ```bash
-   # Create sample eDNA dataset
-   python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
-   
-   # Run complete analysis pipeline
-   python scripts/run_pipeline.py --input data/sample/sample_edna_sequences.fasta --output results/demo
-   ```
+1. **Create Sample Data and Run Analysis**
+    ```bash
+    # Create sample eDNA dataset
+    python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
 
-3. **Launch Interactive Dashboard**
-   ```bash
-   python scripts/launch_dashboard.py
-   ```
-   Then open http://localhost:8501 in your browser
+    # Run complete analysis pipeline
+    python scripts/run_pipeline.py --input data/sample/sample_edna_sequences.fasta --output results/demo
+    ```
 
-4. **View Results**
-   ```bash
-   # Results are saved in results/demo/
-   # - pipeline_results.json: Complete analysis results
-   # - visualizations/: Interactive plots
-   # - clustering/: Clustering analysis
-   # - taxonomy/: Taxonomic assignments
-   # - novelty/: Novel taxa detection
-   ```
+2. **Launch Interactive Dashboard**
+    ```bash
+    python scripts/launch_dashboard.py
+    ```
+    Then open http://localhost:8504 in your browser
+
+3. **View Results**
+    ```bash
+    # Results are saved in results/demo/
+    # - pipeline_results.json: Complete analysis results
+    # - visualizations/: Interactive plots
+    # - clustering/: Clustering analysis
+    # - taxonomy/: Taxonomic assignments
+    # - novelty/: Novel taxa detection
+    ```
+
+## Documentation
+
+- [User Guide](docs/user_guide.md) - Complete usage instructions and tutorials
+- [API Reference](docs/api_reference.md) - Detailed API documentation
+- [Configuration](docs/configuration.md) - Configuration options and examples
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 📊 Usage
 
@@ -118,7 +147,9 @@ print(f"Found {results['summary']['novel_taxa_candidates']} novel taxa candidate
 6. **Novelty Detection**: Identify potential new species
 7. **Visualization**: Interactive plots and reports
 
-See the [documentation](docs/) for detailed usage instructions and tutorials.
+## 🧬 NCBI SRA Integration
+
+The system includes comprehensive NCBI SRA integration for accessing real-world eDNA datasets. See [User Guide](docs/user_guide.md) for SRA usage examples and configuration.
 
 ## 🧪 Testing
 
@@ -126,10 +157,10 @@ See the [documentation](docs/) for detailed usage instructions and tutorials.
 pytest tests/
 ```
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.

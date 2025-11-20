@@ -7,26 +7,98 @@ data:
   reference_dir: "data/reference"
   output_dir: "data/output"
 
-# Reference databases (NCBI BLAST)
+# Storage roots for datasets and analysis runs
+storage:
+  datasets_dir: "AvalancheData\\datasets"   # where uploaded/managed datasets are stored (relative to project root)
+  runs_dir: "AvalancheData\\runs"                 # where analysis outputs are organized (relative to project root)
+
+# Reference databases (NCBI BLAST + SRA)
 databases:
   ncbi_ftp: "https://ftp.ncbi.nlm.nih.gov/blast/db/"
+  sra_base_url: "https://www.ncbi.nlm.nih.gov/sra"
+  sra_ftp: "https://ftp.ncbi.nlm.nih.gov/sra/"
+
   blast_dbs:
     - "nt"           # Nucleotide collection
     - "16S_ribosomal_RNA"  # 16S rRNA sequences
     - "18S_fungal_sequences"  # 18S fungal sequences
     - "28S_ribosomal_RNA"  # 28S rRNA sequences
-  
+
+  # NCBI SRA Configuration
+  sra:
+    # SRA Toolkit paths (if installed locally)
+    sra_tools:
+      prefetch_path: "prefetch"  # SRA prefetch tool
+      fastq_dump_path: "fastq-dump"  # SRA fastq-dump tool
+      sam_dump_path: "sam-dump"  # SRA sam-dump tool
+
+    # Download settings
+    download:
+      max_retries: 3
+      timeout: 300  # seconds
+      chunk_size: 8192
+
+    # eDNA specific SRA studies
+    edna_studies:
+      marine_sediment:
+        - "SRP123456"  # Example: Marine sediment eDNA studies
+        - "SRP789012"
+      deep_sea:
+        - "SRP345678"  # Example: Deep-sea eDNA projects
+        - "SRP901234"
+      plankton:
+        - "SRP567890"  # Example: Plankton diversity studies
+
+    # SRA search and filter parameters
+    search:
+      edna_keywords: ["eDNA", "environmental DNA", "metabarcoding", "marine sediment", "deep sea"]
+      exclude_keywords: ["amplicon", "mock", "control"]
+      min_spots: 1000000  # Minimum number of sequence reads
+      max_spots: 100000000  # Maximum number of sequence reads
+
   # Other reference databases
   silva:
     url: "https://www.arb-silva.de/fileadmin/silva_databases/release_138_1/Exports/"
     files:
       - "SILVA_138.1_SSURef_NR99_tax_silva.fasta.gz"
       - "SILVA_138.1_LSURef_NR99_tax_silva.fasta.gz"
-  
+
   greengenes:
     url: "http://greengenes.secondgenome.com/downloads/database/13_5/"
     files:
       - "gg_13_5.fasta.gz"
+
+# Marine eukaryote references (for labeling only; discovery remains unsupervised)
+references:
+  enabled: true
+  sources:
+    - name: pr2
+      marker: "18S"
+      fasta: "reference\\pr2\\pr2_18S.fasta"
+      taxonomy: "reference\\pr2\\taxonomy.tsv"
+      weight: 1.0
+    - name: silva
+      marker: "18S"
+      fasta: "reference\\silva\\silva_18S_euk.fasta"
+      taxonomy: "reference\\silva\\taxonomy.tsv"
+      weight: 0.8
+  combined:
+    marker: "18S"
+    fasta: "reference\\combined\\18S\\references.fasta"
+    taxonomy: "reference\\combined\\18S\\taxonomy.csv"
+    blast_db_prefix: "reference\\indices\\18S\\combined_18S"
+    faiss_embeddings: "reference\\indices\\18S\\reference_embeddings.npy"
+    faiss_labels: "reference\\indices\\18S\\reference_labels.csv"
+  thresholds:
+    knn_min_similarity: 0.65
+    knn_distance_margin: 0.07
+    knn_min_agreement:
+      species: 0.8
+      genus: 0.7
+      family: 0.6
+    blast_min_identity: 0.90
+    blast_min_coverage: 0.80
+    lca_conflict_tolerance: "genus"
 
 # Preprocessing parameters
 preprocessing:
@@ -57,6 +129,13 @@ embedding:
   
   # Transformer specific
   transformer:
+    # Hugging Face model id for nucleotide transformer
+    model_id: "zhihan1996/DNABERT-2-117M"
+    # Inference settings
+    stride: 128
+    batch_size: 256
+    
+    # Legacy/local transformer hyperparameters (unused with HF model)
     num_layers: 6
     num_heads: 8
     dropout: 0.1
@@ -67,6 +146,15 @@ embedding:
     learning_rate: 0.0001
     epochs: 100
     validation_split: 0.2
+
+  # Post-processing for embeddings
+  postprocess:
+    l2_normalize: true
+    pca:
+      enabled: true
+      n_components: 256
+      random_state: 42
+      whiten: false
 
 # Clustering parameters
 clustering:
@@ -83,11 +171,80 @@ clustering:
 
 # Taxonomic assignment
 taxonomy:
+  # Primary: KNN + LCA on pretrained embeddings
+  knn:
+    reference_dir: "reference"
+    embeddings_path: "reference\\indices\\18S\\reference_embeddings.npy"
+    labels_path: "reference\\indices\\18S\\reference_labels.csv"
+    index: "flat_ip"
+    k: 50
+    min_similarity: 0.65
+    distance_margin: 0.07
+    min_agreement:
+      species: 0.8
+      genus: 0.7
+      family: 0.6
+    species_confidence: 0.8
+
+  # BLAST settings (used by fallback, and for general blast usage)
   blast:
-    database: "data/reference/nt"
+    # Windows BLAST executable paths
+    blast_bin_dir: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin"
+    blastn_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\blastn.exe"
+    makeblastdb_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\makeblastdb.exe"
+    
+    # Database settings
+    database: "reference\\indices\\18S\\combined_18S"
     evalue: 1e-5
     max_targets: 10
     identity_threshold: 97.0
+    
+    # Output format settings
+    output_format: 5  # XML format
+    num_threads: 4
+
+  # BLAST fallback policy
+  blast_fallback:
+    enable: true
+    blastn_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\blastn.exe"
+    database: "reference\\indices\\18S\\combined_18S"
+    min_identity_species: 97.0
+    evalue: 1e-5
+    max_targets: 5
+
+  # Cluster consensus to smooth assignments
+  cluster_consensus:
+    min_cluster_agreement: 0.7
+
+  # Enhanced taxonomic lineage system
+  taxdump_dir: "F:\\Dataset\\taxdump"
+  taxdump_backup_dir: "F:\\Dataset\\taxdump\\backups"
+  keep_taxdump_backups: 5
+  
+  # Enhanced lineage configuration
+  enhanced_lineage:
+    enable_caching: true
+    cache_db_path: null  # Auto-generate in taxdump_dir if null
+    extended_ranks: true  # Enable extended taxonomic ranks
+    common_names: true   # Extract common names from taxdump
+    synonyms: true       # Extract synonyms from taxdump
+    external_refs: true  # Generate external database references
+  
+  # Multi-source taxonomy integration
+  multi_source:
+    enabled: true
+    silva_file: null     # Path to SILVA taxonomy file
+    pr2_file: null       # Path to PR2 taxonomy file
+    unite_file: null     # Path to UNITE taxonomy file
+    gtdb_file: null      # Path to GTDB taxonomy file
+    custom_file: null    # Path to custom taxonomy file
+  
+  # Automatic taxdump updates
+  auto_update:
+    enabled: false
+    check_interval_days: 7
+    auto_install: false  # Require manual approval
+    backup_before_update: true
   
   # Novelty detection thresholds
   novelty:
@@ -106,6 +263,28 @@ visualization:
     max_points: 10000
     opacity: 0.7
     marker_size: 3
+  
+  # Enhanced lineage visualization
+  lineage_viz:
+    width: 1200
+    height: 800
+    font_size: 12
+    show_confidence: true
+    show_evidence: true
+    interactive: true
+    export_format: "html"
+    
+    # Tree visualization
+    tree:
+      layout: "sunburst"  # sunburst, treemap, or radial
+      color_by: "confidence"  # confidence, rank, or evidence
+      max_depth: 7  # Maximum taxonomic depth to display
+    
+    # Export formats
+    export:
+      formats: ["json", "csv", "xml", "json-ld", "rdf"]
+      include_metadata: true
+      generate_reports: true
 
 # Performance
 performance:

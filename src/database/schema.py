@@ -18,11 +18,11 @@ class DatabaseSchema:
     """
     Manages database schema creation and migration for the report management system.
     """
-    
+
     def __init__(self, db_path: Optional[str] = None):
         """
         Initialize database schema manager.
-        
+
         Args:
             db_path: Path to SQLite database file. If None, uses default location.
         """
@@ -32,20 +32,20 @@ class DatabaseSchema:
         else:
             self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Database schema version for migrations
         self.schema_version = "1.0.0"
-        
+
     def create_database(self) -> None:
         """
         Create complete database schema with all tables and indexes.
         """
         logger.info(f"Creating database schema at: {self.db_path}")
-        
-        with sqlite3.connect(self.db_path) as conn:
+
+        with sqlite3.connect(str(self.db_path)) as conn:
             # Enable foreign keys
             conn.execute("PRAGMA foreign_keys = ON")
-            
+
             # Create all tables
             self._create_organism_profiles_table(conn)
             self._create_datasets_table(conn)
@@ -58,17 +58,17 @@ class DatabaseSchema:
             self._create_report_comparisons_table(conn)
             self._create_analysis_metadata_table(conn)
             self._create_system_metadata_table(conn)
-            
+
             # Create indexes for performance
             self._create_indexes(conn)
-            
+
             # Store schema version
             self._store_schema_version(conn)
-            
+
             conn.commit()
-            
+
         logger.info("Database schema created successfully")
-    
+
     def _create_organism_profiles_table(self, conn: sqlite3.Connection) -> None:
         """Create organism_profiles table for unique organism identification."""
         conn.execute("""
@@ -96,7 +96,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-    
+
     def _create_datasets_table(self, conn: sqlite3.Connection) -> None:
         """Create datasets table for dataset metadata."""
         conn.execute("""
@@ -120,7 +120,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-    
+
     def _create_analysis_reports_table(self, conn: sqlite3.Connection) -> None:
         """Create analysis_reports table for storing complete analysis results."""
         conn.execute("""
@@ -174,7 +174,7 @@ class DatabaseSchema:
                 FOREIGN KEY (dataset_id) REFERENCES datasets (dataset_id)
             )
         """)
-    
+
     def _create_sequences_table(self, conn: sqlite3.Connection) -> None:
         """Create sequences table for individual sequence data."""
         conn.execute("""
@@ -196,7 +196,7 @@ class DatabaseSchema:
                 FOREIGN KEY (organism_id) REFERENCES organism_profiles (organism_id)
             )
         """)
-    
+
     def _create_taxonomic_assignments_table(self, conn: sqlite3.Connection) -> None:
         """Create taxonomic_assignments table for taxonomy data."""
         conn.execute("""
@@ -229,7 +229,7 @@ class DatabaseSchema:
                 FOREIGN KEY (organism_id) REFERENCES organism_profiles (organism_id)
             )
         """)
-    
+
     def _create_clustering_results_table(self, conn: sqlite3.Connection) -> None:
         """Create clustering_results table for cluster assignments."""
         conn.execute("""
@@ -257,7 +257,7 @@ class DatabaseSchema:
                 FOREIGN KEY (report_id) REFERENCES analysis_reports (report_id)
             )
         """)
-    
+
     def _create_novelty_detections_table(self, conn: sqlite3.Connection) -> None:
         """Create novelty_detections table for novel taxa detection results."""
         conn.execute("""
@@ -289,7 +289,7 @@ class DatabaseSchema:
                 FOREIGN KEY (organism_id) REFERENCES organism_profiles (organism_id)
             )
         """)
-    
+
     def _create_similarity_matrices_table(self, conn: sqlite3.Connection) -> None:
         """Create similarity_matrices table for cross-analysis comparisons."""
         conn.execute("""
@@ -330,7 +330,7 @@ class DatabaseSchema:
                 FOREIGN KEY (report_id_2) REFERENCES analysis_reports (report_id)
             )
         """)
-    
+
     def _create_report_comparisons_table(self, conn: sqlite3.Connection) -> None:
         """Create report_comparisons table for detailed comparison analysis."""
         conn.execute("""
@@ -361,7 +361,7 @@ class DatabaseSchema:
                 FOREIGN KEY (organism_id) REFERENCES organism_profiles (organism_id)
             )
         """)
-    
+
     def _create_analysis_metadata_table(self, conn: sqlite3.Connection) -> None:
         """Create analysis_metadata table for storing analysis parameters and settings."""
         conn.execute("""
@@ -393,7 +393,7 @@ class DatabaseSchema:
                 FOREIGN KEY (report_id) REFERENCES analysis_reports (report_id)
             )
         """)
-    
+
     def _create_system_metadata_table(self, conn: sqlite3.Connection) -> None:
         """Create system_metadata table for system-wide settings and metadata."""
         conn.execute("""
@@ -406,7 +406,7 @@ class DatabaseSchema:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-    
+
     def _create_indexes(self, conn: sqlite3.Connection) -> None:
         """Create database indexes for improved query performance."""
         indexes = [
@@ -416,91 +416,86 @@ class DatabaseSchema:
             "CREATE INDEX IF NOT EXISTS idx_organism_kingdom ON organism_profiles (kingdom)",
             "CREATE INDEX IF NOT EXISTS idx_organism_novel ON organism_profiles (is_novel_candidate)",
             "CREATE INDEX IF NOT EXISTS idx_organism_detection_count ON organism_profiles (detection_count)",
-            
             # Datasets indexes
             "CREATE INDEX IF NOT EXISTS idx_dataset_name ON datasets (dataset_name)",
             "CREATE INDEX IF NOT EXISTS idx_dataset_collection_date ON datasets (collection_date)",
             "CREATE INDEX IF NOT EXISTS idx_dataset_location ON datasets (collection_location)",
-            
             # Analysis reports indexes
             "CREATE INDEX IF NOT EXISTS idx_report_dataset ON analysis_reports (dataset_id)",
             "CREATE INDEX IF NOT EXISTS idx_report_type ON analysis_reports (analysis_type)",
             "CREATE INDEX IF NOT EXISTS idx_report_status ON analysis_reports (status)",
             "CREATE INDEX IF NOT EXISTS idx_report_created ON analysis_reports (created_at)",
-            
             # Sequences indexes
             "CREATE INDEX IF NOT EXISTS idx_sequence_dataset ON sequences (dataset_id)",
             "CREATE INDEX IF NOT EXISTS idx_sequence_organism ON sequences (organism_id)",
             "CREATE INDEX IF NOT EXISTS idx_sequence_hash ON sequences (sequence_hash)",
-            
             # Taxonomic assignments indexes
             "CREATE INDEX IF NOT EXISTS idx_taxonomy_sequence ON taxonomic_assignments (sequence_id)",
             "CREATE INDEX IF NOT EXISTS idx_taxonomy_organism ON taxonomic_assignments (organism_id)",
             "CREATE INDEX IF NOT EXISTS idx_taxonomy_genus_species ON taxonomic_assignments (genus, species)",
             "CREATE INDEX IF NOT EXISTS idx_taxonomy_confidence ON taxonomic_assignments (confidence_score)",
-            
             # Clustering results indexes
             "CREATE INDEX IF NOT EXISTS idx_clustering_sequence ON clustering_results (sequence_id)",
             "CREATE INDEX IF NOT EXISTS idx_clustering_cluster ON clustering_results (cluster_id)",
             "CREATE INDEX IF NOT EXISTS idx_clustering_method ON clustering_results (clustering_method)",
-            
             # Novelty detections indexes
             "CREATE INDEX IF NOT EXISTS idx_novelty_sequence ON novelty_detections (sequence_id)",
             "CREATE INDEX IF NOT EXISTS idx_novelty_organism ON novelty_detections (organism_id)",
             "CREATE INDEX IF NOT EXISTS idx_novelty_candidate ON novelty_detections (is_novel_candidate)",
             "CREATE INDEX IF NOT EXISTS idx_novelty_score ON novelty_detections (novelty_score)",
-            
             # Similarity matrices indexes
             "CREATE INDEX IF NOT EXISTS idx_similarity_reports ON similarity_matrices (report_id_1, report_id_2)",
             "CREATE INDEX IF NOT EXISTS idx_similarity_score ON similarity_matrices (similarity_score)",
             "CREATE INDEX IF NOT EXISTS idx_similarity_created ON similarity_matrices (created_at)",
-            
             # Report comparisons indexes
             "CREATE INDEX IF NOT EXISTS idx_comparison_detail ON report_comparisons (comparison_id)",
-            "CREATE INDEX IF NOT EXISTS idx_comparison_organism ON report_comparisons (organism_id)"
+            "CREATE INDEX IF NOT EXISTS idx_comparison_organism ON report_comparisons (organism_id)",
         ]
-        
+
         for index_sql in indexes:
             conn.execute(index_sql)
-    
+
     def _store_schema_version(self, conn: sqlite3.Connection) -> None:
         """Store current schema version in system_metadata table."""
-        conn.execute("""
+        conn.execute(
+            """
             INSERT OR REPLACE INTO system_metadata (key, value, data_type, description)
             VALUES (?, ?, ?, ?)
-        """, (
-            "schema_version", 
-            self.schema_version,
-            "string", 
-            "Database schema version"
-        ))
-    
+        """,
+            (
+                "schema_version",
+                self.schema_version,
+                "string",
+                "Database schema version",
+            ),
+        )
+
     def get_schema_version(self) -> Optional[str]:
         """
         Get current database schema version.
-        
+
         Returns:
             Schema version string or None if not found
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.execute("""
                 SELECT value FROM system_metadata WHERE key = 'schema_version'
             """)
             result = cursor.fetchone()
             return result[0] if result else None
-    
+
     def database_exists(self) -> bool:
         """
         Check if database file exists and has tables.
-        
+
         Returns:
             True if database exists with tables, False otherwise
         """
         if not self.db_path.exists():
             return False
-        
+
         try:
-            with sqlite3.connect(self.db_path) as conn:
+            with sqlite3.connect(str(self.db_path)) as conn:
                 cursor = conn.execute("""
                     SELECT COUNT(*) FROM sqlite_master WHERE type='table'
                 """)
@@ -508,48 +503,50 @@ class DatabaseSchema:
                 return table_count > 0
         except Exception:
             return False
-    
+
     def migrate_database(self) -> None:
         """
         Migrate database to latest schema version.
         Currently a placeholder for future migration needs.
         """
         current_version = self.get_schema_version()
-        
+
         if current_version is None:
             logger.info("No schema version found, creating new database")
             self.create_database()
         elif current_version != self.schema_version:
-            logger.info(f"Migrating database from {current_version} to {self.schema_version}")
+            logger.info(
+                f"Migrating database from {current_version} to {self.schema_version}"
+            )
             # Future migration logic would go here
             self._store_schema_version(sqlite3.connect(self.db_path))
         else:
             logger.info("Database schema is up to date")
-    
+
     def get_table_info(self) -> Dict[str, Any]:
         """
         Get information about all tables in the database.
-        
+
         Returns:
             Dictionary with table information
         """
-        with sqlite3.connect(self.db_path) as conn:
+        with sqlite3.connect(str(self.db_path)) as conn:
             cursor = conn.execute("""
                 SELECT name FROM sqlite_master WHERE type='table' ORDER BY name
             """)
             tables = [row[0] for row in cursor.fetchall()]
-            
+
             table_info = {}
             for table in tables:
                 cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
                 row_count = cursor.fetchone()[0]
-                
+
                 cursor = conn.execute(f"PRAGMA table_info({table})")
                 columns = cursor.fetchall()
-                
+
                 table_info[table] = {
-                    'row_count': row_count,
-                    'columns': [col[1] for col in columns]  # Column names
+                    "row_count": row_count,
+                    "columns": [col[1] for col in columns],  # Column names
                 }
-            
+
             return table_info

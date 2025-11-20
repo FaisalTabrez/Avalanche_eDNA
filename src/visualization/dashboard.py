@@ -438,7 +438,8 @@ class BiodiversityDashboard:
             ]
             
             fig = px.pie(values=values, names=labels, 
-                        title="Known vs Novel Taxa Distribution")
+                        title="Known vs Novel Taxa Distribution",
+                        color_discrete_sequence=['#1f77b4', '#ff7f0e'])
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
