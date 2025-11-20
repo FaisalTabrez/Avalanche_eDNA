@@ -24,6 +24,7 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 
 - **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal
 - **Transformer Embeddings**: Nucleotide Transformer (HF) with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
+- **Custom Model Training**: Train your own DNA embedding models using contrastive learning, transformers, or autoencoders
 - **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
 - **Interactive Dashboard**: Web-based visualization and analysis interface
 - **Scalable Architecture**: GPU acceleration and cloud deployment ready
@@ -66,6 +67,8 @@ See [Installation Guide](docs/installation.md) for detailed setup instructions i
 
 Note: The default embedding backend uses a pretrained Nucleotide Transformer from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
 
+### Basic Analysis
+
 1. **Create Sample Data and Run Analysis**
     ```bash
     # Create sample eDNA dataset
@@ -89,6 +92,59 @@ Note: The default embedding backend uses a pretrained Nucleotide Transformer fro
     # - clustering/: Clustering analysis
     # - taxonomy/: Taxonomic assignments
     # - novelty/: Novel taxa detection
+    ```
+
+### Custom Model Training
+
+Train your own DNA embedding models for improved performance on specific datasets:
+
+1. **Train a Contrastive Learning Model**
+    ```bash
+    # Train on your own sequences
+    python scripts/train_model.py \
+        --input data/training_sequences.fasta \
+        --output models/my_custom_model \
+        --model-type contrastive \
+        --epochs 100 \
+        --batch-size 32
+    
+    # With labeled data for supervised training
+    python scripts/train_model.py \
+        --input data/sequences.fasta \
+        --labels data/taxonomy_labels.csv \
+        --output models/supervised_model \
+        --model-type contrastive \
+        --epochs 50
+    ```
+
+2. **Use Custom Model in Pipeline**
+    ```bash
+    # Use pre-trained custom model
+    python scripts/run_pipeline.py \
+        --input data/sample/sample_edna_sequences.fasta \
+        --output results/custom_model_run \
+        --model-path models/my_custom_model/model
+    
+    # Train model and run analysis in one go
+    python scripts/run_pipeline.py \
+        --input data/sample/sample_edna_sequences.fasta \
+        --output results/trained_run \
+        --train-model
+    ```
+
+3. **Training Configuration**
+    
+    Edit `config/config.yaml` to customize training parameters:
+    ```yaml
+    embedding:
+      training:
+        model_type: "contrastive"  # or "transformer", "autoencoder"
+        projection_dim: 128
+        temperature: 0.1
+        batch_size: 32
+        learning_rate: 0.0001
+        epochs: 100
+        device: "auto"  # auto, cuda, or cpu
     ```
 
 ## Documentation
