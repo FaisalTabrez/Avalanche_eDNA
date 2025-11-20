@@ -66,7 +66,9 @@ class eDNABiodiversityPipeline:
                             run_clustering: bool = True,
                             run_taxonomy: bool = True,
                             run_novelty: bool = True,
-                            run_visualization: bool = True) -> Dict[str, Any]:
+                            run_visualization: bool = True,
+                            train_model: bool = False,
+                            custom_model_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Run the complete eDNA biodiversity assessment pipeline
         
@@ -79,6 +81,8 @@ class eDNABiodiversityPipeline:
             run_taxonomy: Whether to assign taxonomy
             run_novelty: Whether to detect novelty
             run_visualization: Whether to generate visualizations
+            train_model: Whether to train a custom embedding model
+            custom_model_path: Path to pre-trained custom model (overrides training)
             
         Returns:
             Complete pipeline results
@@ -115,10 +119,18 @@ class eDNABiodiversityPipeline:
                 sequences = self._load_preprocessed_data(input_data)
                 self.results['preprocessing'] = {'total_sequences': len(sequences)}
             
+            # Step 1.5: Train custom model if requested
+            if train_model and not custom_model_path:
+                logger.info("Step 1.5: Training custom embedding model...")
+                model_results = self._run_training_step(sequences, output_dir)
+                custom_model_path = model_results['model_path']
+                self.results['model_training'] = model_results
+                self.results['pipeline_config']['steps_completed'].append('model_training')
+            
             # Step 2: Generate sequence embeddings
             if run_embedding:
                 logger.info("Step 2: Generating sequence embeddings...")
-                embeddings = self._run_embedding_step(sequences, output_dir)
+                embeddings = self._run_embedding_step(sequences, output_dir, custom_model_path)
                 self.results['embeddings'] = {
                     'embedding_dim': embeddings.shape[1],
                     'model_type': 'transformer'
@@ -277,8 +289,15 @@ class eDNABiodiversityPipeline:
         logger.info(f"SRA processing complete: {len(sequences)} sequences")
         return sequences
     
-    def _run_embedding_step(self, sequences: List[str], output_dir: Path) -> np.ndarray:
-        """Run embedding generation step using Nucleotide Transformer"""
+    def _run_embedding_step(self, sequences: List[str], output_dir: Path, custom_model_path: Optional[str] = None) -> np.ndarray:
+        """Run embedding generation step using Nucleotide Transformer or custom model"""
+        
+        # Use custom trained model if provided
+        if custom_model_path:
+            logger.info(f"Using custom trained model from: {custom_model_path}")
+            return self._extract_custom_embeddings(sequences, custom_model_path, output_dir)
+        
+        # Otherwise use Hugging Face Nucleotide Transformer
         try:
             import torch
             from transformers import AutoTokenizer, AutoModel
@@ -714,6 +733,148 @@ class eDNABiodiversityPipeline:
             return np.load(embeddings_file)
         else:
             raise FileNotFoundError(f"Embeddings file not found: {embeddings_file}")
+    
+    def _run_training_step(self, sequences: List[str], output_dir: Path) -> Dict[str, Any]:
+        """Train a custom embedding model on the dataset"""
+        try:
+            from src.models.tokenizer import DNATokenizer
+            from src.models.embeddings import DNATransformerEmbedder, DNAContrastiveModel, ModelFactory
+            from src.models.trainer import EmbeddingTrainer
+        except ImportError as e:
+            raise ImportError(
+                "Model training modules not available. Please ensure src/models is properly set up."
+            ) from e
+        
+        training_config = self.config.get('embedding', {}).get('training', {})
+        
+        model_type = training_config.get('model_type', 'contrastive')
+        kmer_size = self.config.get('embedding', {}).get('kmer_size', 6)
+        batch_size = training_config.get('batch_size', 32)
+        epochs = training_config.get('epochs', 100)
+        learning_rate = training_config.get('learning_rate', 1e-4)
+        device = training_config.get('device', 'auto')
+        
+        logger.info(f"Training {model_type} model with {len(sequences)} sequences")
+        
+        # Create tokenizer
+        self.tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=kmer_size)
+        
+        # Create model
+        d_model = self.config.get('embedding', {}).get('embedding_dim', 256)
+        num_layers = self.config.get('embedding', {}).get('transformer', {}).get('num_layers', 6)
+        num_heads = self.config.get('embedding', {}).get('transformer', {}).get('num_heads', 8)
+        
+        if model_type == 'contrastive':
+            backbone = DNATransformerEmbedder(
+                vocab_size=self.tokenizer.vocab_size,
+                d_model=d_model,
+                nhead=num_heads,
+                num_layers=num_layers
+            )
+            projection_dim = training_config.get('projection_dim', 128)
+            temperature = training_config.get('temperature', 0.1)
+            
+            self.embedding_model = DNAContrastiveModel(
+                backbone_model=backbone,
+                projection_dim=projection_dim,
+                temperature=temperature
+            )
+        else:
+            self.embedding_model = DNATransformerEmbedder(
+                vocab_size=self.tokenizer.vocab_size,
+                d_model=d_model,
+                nhead=num_heads,
+                num_layers=num_layers
+            )
+        
+        # Create trainer
+        self.trainer = EmbeddingTrainer(self.embedding_model, self.tokenizer, device=device)
+        
+        # Prepare data
+        train_loader, val_loader = self.trainer.prepare_data(
+            sequences=sequences,
+            labels=None,  # Unsupervised for now
+            validation_split=training_config.get('validation_split', 0.2),
+            batch_size=batch_size
+        )
+        
+        # Train model
+        if model_type in ['contrastive', 'transformer']:
+            history = self.trainer.train_contrastive(
+                train_loader=train_loader,
+                val_loader=val_loader,
+                epochs=epochs,
+                learning_rate=learning_rate
+            )
+        else:
+            history = self.trainer.train_autoencoder(
+                train_loader=train_loader,
+                val_loader=val_loader,
+                epochs=epochs,
+                learning_rate=learning_rate
+            )
+        
+        # Save trained model
+        model_dir = output_dir / 'trained_model'
+        self.trainer.save_model(str(model_dir / 'model'), include_tokenizer=True)
+        
+        results = {
+            'model_type': model_type,
+            'model_path': str(model_dir / 'model'),
+            'num_sequences': len(sequences),
+            'epochs': epochs,
+            'final_train_loss': history['train_loss'][-1],
+            'final_val_loss': history['val_loss'][-1]
+        }
+        
+        logger.info(f"Model training complete: {results}")
+        return results
+    
+    def _extract_custom_embeddings(self, sequences: List[str], model_path: str, output_dir: Path) -> np.ndarray:
+        """Extract embeddings using a custom trained model"""
+        try:
+            from src.models.tokenizer import DNATokenizer
+            from src.models.embeddings import DNATransformerEmbedder, DNAContrastiveModel
+            from src.models.trainer import EmbeddingTrainer
+        except ImportError as e:
+            raise ImportError(
+                "Model training modules not available. Please ensure src/models is properly set up."
+            ) from e
+        
+        logger.info(f"Loading custom model from {model_path}")
+        
+        # Load tokenizer
+        import pickle
+        tokenizer_path = Path(model_path).parent / 'tokenizer.pkl'
+        with open(tokenizer_path, 'rb') as f:
+            self.tokenizer = pickle.load(f)
+        
+        # Create model (will be loaded with weights)
+        # For now, create a default model - the load will override weights
+        backbone = DNATransformerEmbedder(
+            vocab_size=self.tokenizer.vocab_size,
+            d_model=256,
+            num_layers=6
+        )
+        self.embedding_model = DNAContrastiveModel(
+            backbone_model=backbone,
+            projection_dim=128
+        )
+        
+        # Create trainer and load model
+        self.trainer = EmbeddingTrainer(self.embedding_model, self.tokenizer, device='auto')
+        self.trainer.load_model(model_path)
+        
+        # Extract embeddings
+        logger.info(f"Extracting embeddings for {len(sequences)} sequences")
+        embeddings = self.trainer.extract_embeddings(sequences, batch_size=32)
+        
+        # Save embeddings
+        embeddings_file = output_dir / 'sequence_embeddings.npy'
+        np.save(embeddings_file, embeddings)
+        logger.info(f"Custom model embeddings saved: {embeddings.shape}")
+        
+        return embeddings
 
 def create_sample_data(output_dir: Path, n_sequences: int = 1000) -> None:
     """Create sample eDNA data for testing"""
@@ -747,6 +908,10 @@ def main():
                        help="Configuration file path")
     parser.add_argument('--create-sample', action='store_true',
                        help="Create sample data for testing")
+    parser.add_argument('--train-model', action='store_true',
+                       help="Train custom embedding model before analysis")
+    parser.add_argument('--model-path', type=str,
+                       help="Path to trained model to use for embeddings (instead of Hugging Face)")
     parser.add_argument('--skip-preprocessing', action='store_true',
                        help="Skip preprocessing step")
     parser.add_argument('--skip-embedding', action='store_true',
@@ -784,7 +949,9 @@ def main():
             run_clustering=not args.skip_clustering,
             run_taxonomy=not args.skip_taxonomy,
             run_novelty=not args.skip_novelty,
-            run_visualization=not args.skip_visualization
+            run_visualization=not args.skip_visualization,
+            train_model=args.train_model,
+            custom_model_path=args.model_path
         )
         
         # Print summary

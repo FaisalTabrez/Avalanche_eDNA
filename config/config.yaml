@@ -140,12 +140,44 @@ embedding:
     num_heads: 8
     dropout: 0.1
     
-  # Training parameters
+  # Training parameters (for custom model training)
   training:
+    # Model architecture
+    model_type: "contrastive"  # contrastive, transformer, or autoencoder
+    projection_dim: 128  # Projection dimension for contrastive learning
+    temperature: 0.1     # Temperature parameter for contrastive loss
+    
+    # Training hyperparameters
     batch_size: 32
     learning_rate: 0.0001
     epochs: 100
     validation_split: 0.2
+    
+    # Device configuration
+    device: "auto"  # auto, cuda, or cpu
+    
+    # Data augmentation (for contrastive learning)
+    augmentation:
+      enabled: true
+      reverse_complement: true
+      random_masking: false
+      masking_prob: 0.15
+    
+    # Checkpointing
+    checkpoint:
+      enabled: true
+      save_frequency: 10  # Save every N epochs
+      keep_best_only: true
+      monitor: "val_loss"
+    
+    # Early stopping
+    early_stopping:
+      enabled: true
+      patience: 10
+      min_delta: 0.0001
+    
+    # Model save path (relative to project root)
+    save_dir: "models/trained"
 
   # Post-processing for embeddings
   postprocess:

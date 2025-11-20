@@ -26,6 +26,14 @@ from src.utils.config import config as app_config
 import sys
 sys.path.append(str(Path(__file__).parent))
 
+# ML Training imports
+try:
+    from src.models.tokenizer import DNATokenizer
+    from src.models.embeddings import DNAContrastiveModel, DNATransformerEmbedder, DNAAutoencoder
+    from src.models.trainer import EmbeddingTrainer
+except ImportError:
+    pass  # Will be handled in the training page if needed
+
 try:
     from src.analysis.dataset_analyzer import DatasetAnalyzer
 except ImportError as e:
@@ -49,67 +57,185 @@ px.defaults.color_discrete_sequence = (
     px.colors.qualitative.Bold + px.colors.qualitative.Set3 + px.colors.qualitative.Vivid
 )
 
-# Custom CSS for dark UI styling and better contrast
+# Custom CSS for "Deep Ocean" UI styling
 st.markdown("""
 <style>
-    /* App background and global text color */
-    [data-testid=\"stAppViewContainer\"] {
-        background-color: #000000 !important;
-        color: #EEEEEE !important;
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+    /* Global Font Settings */
+    html, body, [class*="css"] {
+        font-family: 'Montserrat', sans-serif;
     }
-    [data-testid=\"stHeader\"] { background: #000000 !important; }
-    [data-testid=\"stSidebar\"] { background-color: #111111 !important; }
+    
+    /* App background - Deep Ocean Gradient */
+    [data-testid="stAppViewContainer"] {
+        background: linear-gradient(135deg, #050A14 0%, #0A192F 50%, #020C1B 100%);
+        color: #E6F1FF !important;
+    }
+    
+    /* Header - Transparent */
+    [data-testid="stHeader"] {
+        background: rgba(5, 10, 20, 0.8) !important;
+        backdrop-filter: blur(10px);
+    }
+    
+    /* Sidebar - Glassmorphism */
+    [data-testid="stSidebar"] {
+        background-color: rgba(10, 25, 47, 0.95) !important;
+        border-right: 1px solid rgba(100, 255, 218, 0.1);
+    }
 
     /* Headings */
+    h1, h2, h3 {
+        color: #64FFDA !important; /* Neon Teal */
+        font-weight: 700 !important;
+        letter-spacing: -0.5px;
+    }
+    
     .main-header {
-        font-size: 2.5rem;
-        color: #00E5FF; /* cyan accent */
+        font-family: 'Montserrat', sans-serif;
+        font-size: 3rem;
+        background: linear-gradient(90deg, #64FFDA, #00B4D8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-align: center;
         margin-bottom: 2rem;
+        font-weight: 800;
+        text-shadow: 0 0 20px rgba(100, 255, 218, 0.3);
     }
 
-    /* Buttons */
+    /* Buttons - Neon Glow */
     .stButton>button {
-        background-color: #00E5FF !important;
-        color: #000000 !important;
-        border: 1px solid #00E5FF !important;
-        border-radius: 6px !important;
+        background: rgba(100, 255, 218, 0.1) !important;
+        color: #64FFDA !important;
+        border: 1px solid #64FFDA !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.9rem !important;
     }
     .stButton>button:hover {
-        background-color: #33F0FF !important;
-        border-color: #33F0FF !important;
-        color: #000000 !important;
+        background: rgba(100, 255, 218, 0.2) !important;
+        box-shadow: 0 0 15px rgba(100, 255, 218, 0.4) !important;
+        transform: translateY(-2px);
+    }
+    
+    /* Primary Button */
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(45deg, #64FFDA, #00B4D8) !important;
+        color: #020C1B !important;
+        border: none !important;
+    }
+    .stButton>button[kind="primary"]:hover {
+        box-shadow: 0 0 20px rgba(100, 255, 218, 0.6) !important;
     }
 
-    /* Inputs & selects */
+    /* Inputs & Selects */
     .stSelectbox, .stTextInput, .stNumberInput, .stTextArea {
-        color: #EEEEEE !important;
+        color: #E6F1FF !important;
+    }
+    div[data-baseweb="select"] > div {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(100, 255, 218, 0.2) !important;
+        color: #E6F1FF !important;
+    }
+    div[data-baseweb="input"] > div {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        border-color: rgba(100, 255, 218, 0.2) !important;
+        color: #E6F1FF !important;
     }
 
-    /* Info boxes with dark theme variants */
+    /* Cards/Containers */
+    div[data-testid="stExpander"] {
+        background-color: rgba(17, 34, 64, 0.6) !important;
+        border: 1px solid rgba(100, 255, 218, 0.1) !important;
+        border-radius: 10px !important;
+    }
+
+    /* Info boxes with glassmorphism */
     .success-box {
-        background-color: rgba(27, 94, 32, 0.35);
-        border: 1px solid #2E7D32;
-        border-radius: 0.375rem;
+        background: rgba(27, 94, 32, 0.2);
+        backdrop-filter: blur(5px);
+        border-left: 4px solid #64FFDA;
+        border-radius: 4px;
         padding: 1rem;
         margin: 1rem 0;
-        color: #E8F5E9;
+        color: #E6F1FF;
     }
     .info-box {
-        background-color: rgba(1, 87, 155, 0.35);
-        border: 1px solid #0288D1;
-        border-radius: 0.375rem;
+        background: rgba(1, 87, 155, 0.2);
+        backdrop-filter: blur(5px);
+        border-left: 4px solid #00B4D8;
+        border-radius: 4px;
         padding: 1rem;
         margin: 1rem 0;
-        color: #E1F5FE;
+        color: #E6F1FF;
     }
-    .warning-box {
-        background-color: rgba(255, 160, 0, 0.25);
-        border: 1px solid #FFB300;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        margin: 1rem 0;
-        color: #FFF3E0;
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        color: #64FFDA !important;
+        font-family: 'Roboto Mono', monospace;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background-color: rgba(255,255,255,0.05);
+        border-radius: 4px 4px 0 0;
+        color: #8892b0;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(100, 255, 218, 0.1) !important;
+        color: #64FFDA !important;
+        border-bottom: 2px solid #64FFDA !important;
+    }
+
+    /* Sidebar Navigation Styling */
+    section[data-testid="stSidebar"] .stRadio {
+        background-color: transparent !important;
+    }
+    
+    section[data-testid="stSidebar"] .stRadio > div[role="radiogroup"] {
+        gap: 10px;
+    }
+
+    section[data-testid="stSidebar"] .stRadio label {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(100, 255, 218, 0.1);
+        border-radius: 8px;
+        padding: 12px 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #8892b0 !important;
+        font-family: 'Montserrat', sans-serif;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+
+    section[data-testid="stSidebar"] .stRadio label:hover {
+        background-color: rgba(100, 255, 218, 0.1);
+        border-color: #64FFDA;
+        color: #64FFDA !important;
+        transform: translateX(5px);
+    }
+
+    /* Selected State */
+    section[data-testid="stSidebar"] .stRadio label[data-checked="true"] {
+        background: linear-gradient(90deg, rgba(100, 255, 218, 0.2), transparent);
+        border-left: 4px solid #64FFDA;
+        border-color: rgba(100, 255, 218, 0.2);
+        color: #64FFDA !important;
+    }
+    
+    /* Hide the actual radio circle */
+    section[data-testid="stSidebar"] .stRadio div[role="radio"] div:first-child {
+        display: none;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -122,15 +248,16 @@ def main():
         st.session_state.current_page_key = 'home'
 
     # Header
-    st.markdown('<h1 class="main-header">🧬 eDNA Biodiversity Assessment System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">eDNA Biodiversity Assessment System</h1>', unsafe_allow_html=True)
     st.markdown("---")
 
     # Sidebar navigation
-    st.sidebar.title("Navigation")
+    st.sidebar.markdown("### Navigation")
 
     PAGES = [
         {"key": "home", "label": "Home"},
         {"key": "analysis", "label": "Dataset Analysis"},
+        {"key": "training", "label": "Model Training"},
         {"key": "batch", "label": "Batch Analysis"},
         {"key": "results", "label": "Results Viewer"},
         {"key": "runs", "label": "Run Browser"},
@@ -142,12 +269,13 @@ def main():
     key_to_index = {p["key"]: i for i, p in enumerate(PAGES)}
     current_index = key_to_index.get(st.session_state.current_page_key, 0)
 
-    selection = st.sidebar.selectbox(
-        "Choose Analysis Type",
+    selection = st.sidebar.radio(
+        "Navigation",
         PAGES,
         index=current_index,
         format_func=lambda p: p["label"],
-        key="page_selector"
+        key="page_selector",
+        label_visibility="collapsed"
     )
 
     # Update session state when selection changes
@@ -161,6 +289,8 @@ def main():
         show_home_page()
     elif page_key == "analysis":
         show_analysis_page()
+    elif page_key == "training":
+        show_training_page()
     elif page_key == "batch":
         show_batch_analysis_page()
     elif page_key == "results":
@@ -176,50 +306,71 @@ def show_home_page():
     """Display the home page with navigation and quick links"""
     from pathlib import Path
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.image(
-            "https://via.placeholder.com/400x200/1f77b4/ffffff?text=eDNA+Analysis",
-            caption="Environmental DNA Biodiversity Assessment"
-        )
-    
+    # Hero Section
     st.markdown("""
-    ## Welcome to the eDNA Biodiversity Assessment System
+    <div style="text-align: center; padding: 2rem 0;">
+        <h2 style="color: #64FFDA; font-size: 2rem; margin-bottom: 1rem;">
+            Deep Sea Environmental DNA Analysis
+        </h2>
+        <p style="font-size: 1.2rem; color: #8892b0; max-width: 800px; margin: 0 auto;">
+            Advanced biodiversity assessment using next-generation sequencing and machine learning.
+            Uncover the secrets of the deep ocean with precision and speed.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    This platform provides advanced analysis of environmental DNA (eDNA) datasets using
-    machine learning and bioinformatics techniques.
-    """)
-    
-    # Navigation tiles
     st.markdown("---")
-    st.markdown("## 🧭 Navigate")
-    nav_col1, nav_col2, nav_col3 = st.columns(3)
-    with nav_col1:
-        if st.button("📁 Dataset Analysis", use_container_width=True):
-            st.session_state.current_page_key = "analysis"
-            st.rerun()
-        if st.button("🧬 Taxonomy Viewer", use_container_width=True):
-            st.session_state.current_page_key = "taxonomy"
-            st.rerun()
-    with nav_col2:
-        if st.button("📈 Results Viewer", use_container_width=True):
-            st.session_state.current_page_key = "results"
-            st.rerun()
-        if st.button("🗂️ Run Browser", use_container_width=True):
-            st.session_state.current_page_key = "runs"
-            st.rerun()
-        if st.button("ℹ️ About", use_container_width=True):
-            st.session_state.current_page_key = "about"
-            st.rerun()
-    with nav_col3:
-        st.markdown("### Quick Actions")
-        if st.button("🚀 Start New Analysis", type="primary", use_container_width=True):
-            st.session_state.current_page_key = "analysis"
-            st.rerun()
+    
+    # Navigation Cards
+    st.markdown("### Core Modules")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        with st.container():
+            st.markdown("#### Analysis")
+            st.info("Process raw sequencing data, perform quality control, and generate taxonomic profiles.")
+            if st.button("Launch Analysis", use_container_width=True, key="btn_analysis"):
+                st.session_state.current_page_key = "analysis"
+                st.rerun()
+            
+            st.markdown("#### Taxonomy")
+            st.info("Explore taxonomic classifications, visualize diversity, and resolve conflicts.")
+            if st.button("View Taxonomy", use_container_width=True, key="btn_taxonomy"):
+                st.session_state.current_page_key = "taxonomy"
+                st.rerun()
+
+    with col2:
+        with st.container():
+            st.markdown("#### Model Training")
+            st.info("Train custom DNA embedding models using Contrastive Learning or Autoencoders.")
+            if st.button("Train Models", use_container_width=True, key="btn_training"):
+                st.session_state.current_page_key = "training"
+                st.rerun()
+
+            st.markdown("#### Results")
+            st.info("Interactive visualization of analysis results, abundance plots, and diversity metrics.")
+            if st.button("View Results", use_container_width=True, key="btn_results"):
+                st.session_state.current_page_key = "results"
+                st.rerun()
+
+    with col3:
+        with st.container():
+            st.markdown("#### Quick Actions")
+            st.success("Ready to start? Begin a new analysis workflow immediately.")
+            if st.button("Start New Run", type="primary", use_container_width=True, key="btn_start"):
+                st.session_state.current_page_key = "analysis"
+                st.rerun()
+            
+            st.markdown("#### History")
+            st.info("Browse past analysis runs, logs, and archived reports.")
+            if st.button("Browse Runs", use_container_width=True, key="btn_runs"):
+                st.session_state.current_page_key = "runs"
+                st.rerun()
     
     # Recent runs quick links (from configured storage.runs_dir)
     st.markdown("---")
-    st.markdown("## 🗂️ Recent Runs")
+    st.markdown("### Recent Activity")
     runs_root = Path(app_config.get('storage.runs_dir', 'runs'))
     try:
         if runs_root.exists():
@@ -241,7 +392,7 @@ def show_home_page():
                 for idx, (_, ds_name, run_path) in enumerate(top):
                     with cols[idx % 3]:
                         label = f"{ds_name} / {run_path.name}"
-                        if st.button(f"📦 {label}", key=f"recent_{idx}", use_container_width=True):
+                        if st.button(f"{label}", key=f"recent_{idx}", use_container_width=True):
                             st.session_state.prefill_results_dir = str(run_path.resolve())
                             st.session_state.current_page_key = "results"
                             st.rerun()
@@ -254,11 +405,11 @@ def show_home_page():
     
     # Feature overview
     st.markdown("---")
-    st.markdown("## ✨ Features")
+    st.markdown("## Features")
     col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("""
-        ### 🧬 Sequence Analysis
+        ### Sequence Analysis
         - Multi-format support (FASTA, FASTQ, Swiss-Prot)
         - Automatic format detection
         - Quality assessment
@@ -266,14 +417,14 @@ def show_home_page():
         """)
     with col2:
         st.markdown("""
-        ### 📊 Biodiversity Metrics
+        ### Biodiversity Metrics
         - Shannon and Simpson indices
         - Species richness
         - Evenness measures
         """)
     with col3:
         st.markdown("""
-        ### 🎯 Advanced Features
+        ### Advanced Features
         - Interactive visualizations
         - Batch analysis (planned)
         - Export capabilities
@@ -283,7 +434,7 @@ def show_analysis_page():
     """Display the main analysis page"""
     
     try:
-        st.title("📁 Dataset Analysis")
+        st.title("Dataset Analysis")
         
         # Resolve storage directories from config
         datasets_dir = Path(app_config.get('storage.datasets_dir', 'data/datasets'))
@@ -295,7 +446,7 @@ def show_analysis_page():
         st.markdown("## 1. Upload Your Dataset")
     
         # Add info about potential upload issues
-        with st.expander("📝 Troubleshooting Upload Issues"):
+        with st.expander("Troubleshooting Upload Issues"):
             st.markdown("""
             **If you encounter upload errors:**
             - **AxiosError or Request Failed**: Usually indicates a network timeout for large files
@@ -326,15 +477,15 @@ def show_analysis_page():
                 file_size_gb = file_size_mb / 1024
                 
                 if file_size_gb >= 1:
-                    st.info(f"📁 File size: {file_size_gb:.2f} GB ({file_size_mb:.0f} MB)")
+                    st.info(f"File size: {file_size_gb:.2f} GB ({file_size_mb:.0f} MB)")
                 else:
-                    st.info(f"📁 File size: {file_size_mb:.2f} MB")
+                    st.info(f"File size: {file_size_mb:.2f} MB")
                 
                 if file_size_mb > 10240:  # 10GB limit
-                    st.error("⚠️ File size exceeds 10GB limit. Please use a smaller file or contact support for processing very large datasets.")
+                    st.error("File size exceeds 10GB limit. Please use a smaller file or contact support for processing very large datasets.")
                     file_valid = False
                 elif file_size_mb > 1024:  # Warn for files over 1GB
-                    st.warning(f"⚠️ Large file detected ({file_size_mb:.0f} MB). Upload may take longer than usual. Please be patient.")
+                    st.warning(f"Large file detected ({file_size_mb:.0f} MB). Upload may take longer than usual. Please be patient.")
                     
             except Exception as e:
                 st.error(f"Error reading file: {str(e)}")
@@ -376,7 +527,7 @@ def show_analysis_page():
             )
         
         # Advanced options
-        with st.expander("🔧 Advanced Options"):
+        with st.expander("Advanced Options"):
             col1, col2 = st.columns(2)
             
             with col1:
@@ -391,22 +542,22 @@ def show_analysis_page():
         
         # Show fast mode info
         if fast_mode:
-            st.info("⚡ Fast Mode enabled: Analysis will use intelligent sampling for datasets >10K sequences, reducing time by 60-80%")
+            st.info("Fast Mode enabled: Analysis will use intelligent sampling for datasets >10K sequences, reducing time by 60-80%")
         
         # Analysis execution
         st.markdown("## 3. Run Analysis")
         
         if uploaded_file is not None and file_valid:
-            if st.button("🚀 Start Analysis", type="primary", use_container_width=True):
+            if st.button("Start Analysis", type="primary", use_container_width=True):
                 run_analysis(uploaded_file, dataset_name, max_sequences, format_override, 
                             analysis_level, enable_quality, enable_diversity, enable_visualization, fast_mode)
         elif uploaded_file is not None and not file_valid:
-            st.warning("⚠️ Cannot proceed with analysis due to file size restriction.")
+            st.warning("Cannot proceed with analysis due to file size restriction.")
         else:
             st.info("Please upload a file to start analysis")
         
     except Exception as e:
-        st.error(f"🚨 Error in analysis page: {str(e)}")
+        st.error(f"Error in analysis page: {str(e)}")
         import traceback
         with st.expander("Show Error Details"):
             st.code(traceback.format_exc())
@@ -452,7 +603,7 @@ def run_analysis(uploaded_file, dataset_name, max_sequences, format_override,
         status_text.text("Initializing analyzer...")
         analyzer = DatasetAnalyzer(fast_mode=fast_mode)
         if fast_mode:
-            st.info("⚡ Fast mode enabled - using optimized processing for large datasets")
+            st.info("Fast mode enabled - using optimized processing for large datasets")
         progress_bar.progress(10)
         
         # Prepare parameters
@@ -465,9 +616,9 @@ def run_analysis(uploaded_file, dataset_name, max_sequences, format_override,
         
         # Add warning for large files
         if uploaded_file and len(uploaded_file.getvalue()) > 100 * 1024 * 1024:  # > 100MB
-            st.warning("⏳ Large file detected. Analysis may take several minutes. Please be patient...")
+            st.warning("Large file detected. Analysis may take several minutes. Please be patient...")
             if len(uploaded_file.getvalue()) > 200 * 1024 * 1024:  # > 200MB
-                st.warning("📊 For files > 200MB, consider using a smaller subset or the command-line tool for better performance.")
+                st.warning("For files > 200MB, consider using a smaller subset or the command-line tool for better performance.")
         
         start_time = time.time()
         
@@ -493,12 +644,12 @@ def run_analysis(uploaded_file, dataset_name, max_sequences, format_override,
         status_text.text("Analysis complete!")
         
         elapsed_time = time.time() - start_time
-        st.success(f"✅ Analysis completed in {elapsed_time:.2f} seconds!")
+        st.success(f"Analysis completed in {elapsed_time:.2f} seconds!")
         st.info(f"Inputs saved to: {dataset_path}")
         st.info(f"Run outputs: {run_dir}")
         
     except Exception as e:
-        st.error(f"✂ Analysis failed: {str(e)}")
+        st.error(f"Analysis failed: {str(e)}")
         import traceback
         st.error(f"Error details: {traceback.format_exc()}")
 
@@ -506,7 +657,7 @@ def display_results(results, output_path, enable_visualization):
     """Display analysis results with visualizations"""
     
     st.markdown("---")
-    st.markdown("## 📊 Analysis Results")
+    st.markdown("## Analysis Results")
     
     # Summary metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -542,8 +693,8 @@ def display_results(results, output_path, enable_visualization):
     
     # Detailed results tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📈 Statistics", "🧬 Composition", "📝 Annotations", 
-        "🌿 Biodiversity", "📄 Report"
+        "Statistics", "Composition", "Annotations", 
+        "Biodiversity", "Report"
     ])
     
     with tab1:
@@ -569,7 +720,7 @@ def show_statistics_tab(results, enable_visualization):
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("### 📊 Length Statistics")
+        st.markdown("### Length Statistics")
         
         stats_df = pd.DataFrame({
             'Metric': ['Total Sequences', 'Minimum Length', 'Maximum Length', 
@@ -588,7 +739,7 @@ def show_statistics_tab(results, enable_visualization):
     
     with col2:
         if enable_visualization and stats:
-            st.markdown("### 📈 Length Distribution")
+            st.markdown("### Length Distribution")
             
             # Create synthetic data for demonstration
             # In real implementation, you'd pass the actual sequence lengths
@@ -617,7 +768,7 @@ def show_composition_tab(results, enable_visualization):
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown(f"### 🧬 {comp.get('sequence_type', 'Unknown').upper()} Composition")
+            st.markdown(f"### {comp.get('sequence_type', 'Unknown').upper()} Composition")
             
             # Create composition dataframe
             comp_data = []
@@ -633,7 +784,7 @@ def show_composition_tab(results, enable_visualization):
         
         with col2:
             if enable_visualization:
-                st.markdown("### 📊 Composition Chart")
+                st.markdown("### Composition Chart")
                 
                 # Create pie chart for top characters
                 top_chars = list(comp['composition'].items())[:10]
@@ -652,7 +803,7 @@ def show_annotations_tab(results):
     
     ann = results.get('annotations', {})
     
-    st.markdown("### 📝 Annotation Summary")
+    st.markdown("### Annotation Summary")
     
     col1, col2, col3 = st.columns(3)
     
@@ -676,7 +827,7 @@ def show_annotations_tab(results):
     
     # Organism distribution
     if ann.get('organism_distribution'):
-        st.markdown("### 🌍 Top Organisms")
+        st.markdown("### Top Organisms")
         
         org_data = []
         for org, count in ann['organism_distribution'].items():
@@ -706,7 +857,7 @@ def show_biodiversity_tab(results):
     div = results.get('diversity', {})
     
     if div:
-        st.markdown("### 🌿 Biodiversity Metrics")
+        st.markdown("### Biodiversity Metrics")
         
         col1, col2 = st.columns(2)
         
@@ -753,7 +904,7 @@ def show_biodiversity_tab(results):
 def show_report_tab(output_path):
     """Display report tab with download option"""
     
-    st.markdown("### 📄 Analysis Report")
+    st.markdown("### Analysis Report")
     
     try:
         # Read the report file
@@ -770,7 +921,7 @@ def show_report_tab(output_path):
         
         # Download button
         st.download_button(
-            label="📥 Download Report",
+            label="Download Report",
             data=report_content,
             file_name=f"analysis_report_{int(time.time())}.txt",
             mime="text/plain",
@@ -784,8 +935,8 @@ def show_report_tab(output_path):
 def show_batch_analysis_page():
     """Display batch analysis page"""
     
-    st.title("📊 Batch Analysis")
-    st.info("🚧 Batch analysis feature coming soon! This will allow you to analyze multiple datasets simultaneously.")
+    st.title("Batch Analysis")
+    st.info("Batch analysis feature coming soon! This will allow you to analyze multiple datasets simultaneously.")
     
     # Placeholder for batch analysis interface
     st.markdown("""
@@ -798,7 +949,7 @@ def show_batch_analysis_page():
 
 def show_results_viewer():
     """Display results viewer page"""
-    st.title("📈 Results Viewer")
+    st.title("Results Viewer")
 
     # Choose results directory (support prefill from homepage)
     default_dir = str(Path(app_config.get('storage.runs_dir', 'runs')).resolve())
@@ -957,8 +1108,8 @@ def show_results_viewer():
     else:
         st.info("No analysis_dashboard.html found")
     
-    st.title("📈 Results Viewer")
-    st.info("🚧 Results viewer coming soon! This will allow you to browse and compare previous analyses.")
+    st.title("Results Viewer")
+    st.info("Results viewer coming soon! This will allow you to browse and compare previous analyses.")
     
     # Placeholder for results viewer
     st.markdown("""
@@ -972,7 +1123,7 @@ def show_results_viewer():
 def show_run_browser():
     """Browse and open runs stored under the configured runs directory"""
     import time as _time
-    st.title("🗂️ Run Browser")
+    st.title("Run Browser")
 
     # Base directory input
     default_root = str(Path(app_config.get('storage.runs_dir', 'runs')).resolve())
@@ -1054,8 +1205,8 @@ def show_run_browser():
             c1, c2, c3, c4, c5 = st.columns([3, 2, 1, 1, 1])
             c1.markdown(f"**{r['dataset']} / {r['run']}**\n\n``{r['path']}``")
             c2.text(r['modified'])
-            c3.markdown("✅ results" if r['has_pipeline'] else "—")
-            c4.markdown("🧬 taxonomy" if r['has_taxonomy'] else "—")
+            c3.markdown("results" if r['has_pipeline'] else "—")
+            c4.markdown("taxonomy" if r['has_taxonomy'] else "—")
             if c5.button("Open", key=f"open_run_{i}"):
                 st.session_state.prefill_results_dir = r['path']
                 st.session_state.current_page_key = "results"
@@ -1148,16 +1299,16 @@ def show_taxonomy_viewer():
 def show_about_page():
     """Display about page"""
     
-    st.title("ℹ️ About eDNA Biodiversity Assessment System")
+    st.title("About eDNA Biodiversity Assessment System")
     
     st.markdown("""
-    ## 🧬 Project Overview
+    ## Project Overview
     
     The eDNA Biodiversity Assessment System is an end-to-end platform for identifying 
     taxonomic diversity and assessing biological richness in deep-sea environmental DNA 
     (eDNA) datasets using advanced machine learning and bioinformatics techniques.
     
-    ## 🎯 Key Features
+    ## Key Features
     
     - **Universal Format Support**: FASTA, FASTQ, Swiss-Prot, GenBank, EMBL
     - **Large File Processing**: Supports datasets up to 2GB in size
@@ -1166,7 +1317,7 @@ def show_about_page():
     - **Interactive Visualizations**: Real-time charts and plots
     - **Comprehensive Reports**: Detailed analysis summaries
     
-    ## 🛠️ Technology Stack
+    ## Technology Stack
     
     - **Python 3.13** - Core programming language
     - **BioPython** - Biological sequence analysis
@@ -1175,10 +1326,259 @@ def show_about_page():
     - **NumPy & Pandas** - Data processing
     - **PyTorch** - Deep learning capabilities
     
-    ## 📞 Support
+    ## Support
     
     For questions, issues, or feature requests, please contact the development team.
     """)
+
+def show_training_page():
+    """Display model training page"""
+    st.title("Model Training")
+    st.markdown("""
+    Train custom DNA embedding models using your own data. 
+    Choose between **Contrastive Learning** (recommended for best performance), 
+    **Autoencoders**, or standard **Transformers**.
+    """)
+    
+    tab1, tab2 = st.tabs(["Train New Model", "Manage Models"])
+    
+    # --- Tab 1: Train New Model ---
+    with tab1:
+        st.markdown("### 1. Data Selection")
+        
+        data_source = st.radio("Data Source", ["Upload New File", "Select Existing Dataset"])
+        
+        sequences_path = None
+        
+        if data_source == "Upload New File":
+            uploaded_file = st.file_uploader("Upload FASTA File", type=['fasta', 'fa'])
+            if uploaded_file:
+                # Save to temp location
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as tmp:
+                    tmp.write(uploaded_file.getvalue())
+                    sequences_path = tmp.name
+        else:
+            # List files in datasets dir
+            datasets_dir = Path(app_config.get('storage.datasets_dir', 'data/datasets'))
+            if datasets_dir.exists():
+                files = list(datasets_dir.glob("*.fasta")) + list(datasets_dir.glob("*.fa"))
+                if files:
+                    selected_file = st.selectbox("Select Dataset", files, format_func=lambda x: x.name)
+                    sequences_path = str(selected_file)
+                else:
+                    st.warning("No datasets found in storage.")
+            else:
+                st.warning("Datasets directory not found.")
+        
+        # Labels (Optional)
+        st.markdown("#### Labels (Optional)")
+        st.markdown("Upload a CSV/TXT file with labels corresponding to sequences for supervised training.")
+        labels_file = st.file_uploader("Upload Labels", type=['csv', 'txt'])
+        labels_path = None
+        if labels_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(labels_file.name).suffix) as tmp:
+                tmp.write(labels_file.getvalue())
+                labels_path = tmp.name
+        
+        st.markdown("---")
+        st.markdown("### 2. Configuration")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            model_type = st.selectbox(
+                "Model Architecture", 
+                ["Contrastive Learning", "Transformer", "Autoencoder"],
+                help="Contrastive Learning is recommended for embedding generation."
+            )
+            
+            epochs = st.number_input("Epochs", min_value=1, value=50)
+            batch_size = st.number_input("Batch Size", min_value=2, value=32)
+            learning_rate = st.number_input("Learning Rate", min_value=1e-6, value=1e-4, format="%.6f")
+            
+        with col2:
+            embedding_dim = st.number_input("Embedding Dimension", min_value=32, value=256)
+            
+            if model_type == "Contrastive Learning":
+                projection_dim = st.number_input("Projection Dimension", min_value=32, value=128)
+                temperature = st.number_input("Temperature", min_value=0.01, value=0.1)
+            
+            device = st.selectbox("Device", ["auto", "cpu", "cuda"])
+            
+        model_name = st.text_input("Model Name", value=f"model_{int(time.time())}")
+        
+        st.markdown("---")
+        
+        if st.button("Start Training", type="primary"):
+            if not sequences_path:
+                st.error("Please select a sequence file.")
+            else:
+                train_model_ui(
+                    sequences_path, labels_path, model_type, model_name,
+                    epochs, batch_size, learning_rate, embedding_dim,
+                    projection_dim if model_type == "Contrastive Learning" else None,
+                    temperature if model_type == "Contrastive Learning" else None,
+                    device
+                )
+
+    # --- Tab 2: Manage Models ---
+    with tab2:
+        show_model_management()
+
+def train_model_ui(sequences_path, labels_path, model_type_ui, model_name,
+                  epochs, batch_size, learning_rate, embedding_dim,
+                  projection_dim, temperature, device):
+    """Execute training from UI"""
+    
+    # Map UI model type to internal name
+    type_map = {
+        "Contrastive Learning": "contrastive",
+        "Transformer": "transformer",
+        "Autoencoder": "autoencoder"
+    }
+    model_type = type_map[model_type_ui]
+    
+    # Output directory
+    models_dir = Path("models")
+    output_dir = models_dir / model_name
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    status_container = st.empty()
+    progress_bar = st.progress(0)
+    metrics_col1, metrics_col2 = st.columns(2)
+    chart_placeholder = st.empty()
+    
+    try:
+        status_container.info("Initializing training...")
+        
+        # Load data
+        from scripts.train_model import load_sequences, load_labels, create_model
+        
+        sequences = load_sequences(sequences_path)
+        labels = load_labels(labels_path, sequences) if labels_path else None
+        
+        # Create tokenizer
+        tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=6)
+        
+        # Create model
+        config_dict = {
+            'embedding': {'embedding_dim': embedding_dim},
+            'training': {
+                'projection_dim': projection_dim,
+                'temperature': temperature
+            }
+        }
+        
+        model, _ = create_model(model_type, tokenizer.vocab_size, config_dict)
+        trainer = EmbeddingTrainer(model, tokenizer, device=device)
+        
+        # Prepare data
+        train_loader, val_loader = trainer.prepare_data(
+            sequences=sequences,
+            labels=labels,
+            validation_split=0.2,
+            batch_size=batch_size
+        )
+        
+        # Training loop
+        status_container.info(f"Training {model_type_ui} model for {epochs} epochs...")
+        
+        history = {'train_loss': [], 'val_loss': []}
+        
+        for epoch in range(epochs):
+            # Train one epoch
+            if model_type == 'autoencoder':
+                # Custom single epoch training logic would be needed here to update UI per epoch
+                # For now, we'll use the trainer's method but it runs all epochs
+                # To support UI updates, we'd need to modify trainer or implement loop here
+                # Let's implement a simple loop here using trainer's internal methods if possible
+                # Or just run the whole thing and show final result (less ideal)
+                
+                # Better approach: Use the trainer's methods but for 1 epoch at a time
+                epoch_history = trainer.train_autoencoder(train_loader, val_loader, epochs=1, learning_rate=learning_rate)
+            else:
+                epoch_history = trainer.train_contrastive(train_loader, val_loader, epochs=1, learning_rate=learning_rate)
+            
+            # Update history
+            train_loss = epoch_history['train_loss'][0]
+            val_loss = epoch_history['val_loss'][0]
+            history['train_loss'].append(train_loss)
+            history['val_loss'].append(val_loss)
+            
+            # Update UI
+            progress = (epoch + 1) / epochs
+            progress_bar.progress(progress)
+            
+            with metrics_col1:
+                st.metric("Epoch", f"{epoch+1}/{epochs}")
+            with metrics_col2:
+                st.metric("Train Loss", f"{train_loss:.4f}", delta=None)
+                
+            # Update chart
+            chart_data = pd.DataFrame({
+                'Epoch': range(1, len(history['train_loss']) + 1),
+                'Train Loss': history['train_loss'],
+                'Val Loss': history['val_loss']
+            })
+            
+            fig = px.line(chart_data, x='Epoch', y=['Train Loss', 'Val Loss'], title='Training Progress')
+            chart_placeholder.plotly_chart(fig, use_container_width=True)
+            
+        # Save model
+        status_container.info("Saving model...")
+        trainer.save_model(str(output_dir / "model"), include_tokenizer=True)
+        
+        # Save metadata
+        metadata = {
+            'model_type': model_type,
+            'epochs': epochs,
+            'final_loss': history['train_loss'][-1],
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        with open(output_dir / "metadata.json", 'w') as f:
+            json.dump(metadata, f)
+            
+        status_container.success(f"Training complete! Model saved to {output_dir}")
+        st.balloons()
+        
+    except Exception as e:
+        status_container.error(f"Training failed: {str(e)}")
+        st.exception(e)
+
+def show_model_management():
+    """Display model management interface"""
+    models_dir = Path("models")
+    if not models_dir.exists():
+        st.info("No models found.")
+        return
+        
+    models = [d for d in models_dir.iterdir() if d.is_dir()]
+    
+    if not models:
+        st.info("No trained models found.")
+        return
+        
+    st.markdown("### Trained Models")
+    
+    for model_dir in models:
+        with st.expander(f"{model_dir.name}"):
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                # Load metadata if exists
+                meta_path = model_dir / "metadata.json"
+                if meta_path.exists():
+                    with open(meta_path, 'r') as f:
+                        meta = json.load(f)
+                    st.json(meta)
+                else:
+                    st.text("No metadata available")
+                    
+            with col2:
+                if st.button("Delete", key=f"del_{model_dir.name}"):
+                    import shutil
+                    shutil.rmtree(model_dir)
+                    st.rerun()
 
 if __name__ == "__main__":
     main()
