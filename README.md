@@ -28,7 +28,11 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 - **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
 - **Interactive Dashboard**: Web-based visualization and analysis interface
 - **Scalable Architecture**: GPU acceleration and cloud deployment ready
-- **NCBI SRA Integration**: Direct access to 1000+ eDNA studies from NCBI Sequence Read Archive
+- **NCBI SRA Integration**: Search, browse, and download from 1000+ eDNA studies in NCBI Sequence Read Archive
+  - Direct dataset download with SRA Toolkit
+  - Batch processing for multiple datasets
+  - Integrated search with custom filters
+  - Automatic format conversion (SRA → FASTQ)
 - **Multi-Format Support**: Universal support for FASTA, FASTQ, Swiss-Prot, GenBank, EMBL, and SRA formats
 - **Real-time Processing**: Live progress tracking with interactive visualizations
 
@@ -152,6 +156,7 @@ Train your own DNA embedding models for improved performance on specific dataset
 - [User Guide](docs/user_guide.md) - Complete usage instructions and tutorials
 - [API Reference](docs/api_reference.md) - Detailed API documentation
 - [Configuration](docs/configuration.md) - Configuration options and examples
+- [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md) - NCBI SRA integration and usage
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 📊 Usage
@@ -205,7 +210,51 @@ print(f"Found {results['summary']['novel_taxa_candidates']} novel taxa candidate
 
 ## 🧬 NCBI SRA Integration
 
-The system includes comprehensive NCBI SRA integration for accessing real-world eDNA datasets. See [User Guide](docs/user_guide.md) for SRA usage examples and configuration.
+The system includes comprehensive NCBI SRA (Sequence Read Archive) integration for accessing thousands of publicly available eDNA datasets:
+
+### Features
+- **Search & Browse**: Search NCBI SRA with custom keywords and filters
+- **Direct Download**: Download datasets using integrated SRA Toolkit
+- **Batch Processing**: Queue and download multiple datasets efficiently
+- **Auto-conversion**: Automatic SRA → FASTQ conversion
+- **Web Interface**: Full integration in Streamlit dashboard
+- **API Access**: Programmatic access via Python API
+
+### Quick Start with SRA
+
+1. **Using the Web Interface**
+   ```bash
+   # Launch dashboard
+   streamlit run streamlit_app.py
+   
+   # Navigate to "SRA Browser" page
+   # Search for datasets, download, and analyze
+   ```
+
+2. **Command Line**
+   ```bash
+   # Download a specific dataset
+   python scripts/download_sra_data.py --accession SRR12345678 --output data/sra
+   
+   # Search and download
+   python scripts/download_sra_data.py --search "marine eDNA" --max-results 10
+   ```
+
+3. **Python API**
+   ```python
+   from src.utils.sra_integration import SRAIntegrationUI
+   
+   # Initialize
+   sra = SRAIntegrationUI()
+   
+   # Search datasets
+   results = sra.search_sra_datasets(["eDNA", "18S rRNA"], max_results=50)
+   
+   # Download
+   success, file_path = sra.download_sra_dataset("SRR12345678", output_dir)
+   ```
+
+For complete SRA integration documentation, see [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md).
 
 ## 🧪 Testing
 
