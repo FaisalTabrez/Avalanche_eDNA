@@ -39,7 +39,7 @@ def main():
             sys.executable, "-m", "streamlit", "run", 
             str(dashboard_script),
             "--server.port=8501",
-            "--server.address=0.0.0.0"
+            "--server.address=localhost"
         ], check=True)
     
     except KeyboardInterrupt:
