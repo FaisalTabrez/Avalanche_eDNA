@@ -152,6 +152,38 @@ Train your own DNA embedding models for improved performance on specific dataset
     ```
 
 ## Documentation
+## 🖥️ Running the Report System
+
+You can start the API and dashboard using the included Windows helper or start the services manually.
+
+Option 1 — Windows helper (convenience)
+
+```bat
+start_report_system.bat
+```
+
+This launches two separate command windows:
+- FastAPI server on `http://127.0.0.1:8000`
+- Streamlit dashboard on `http://localhost:8504`
+
+Option 2 — Manual (cross-platform)
+
+Run the FastAPI server:
+
+```bash
+python -m uvicorn src.api.report_management_api:app --host 127.0.0.1 --port 8000
+```
+
+Run the Streamlit dashboard:
+
+```bash
+streamlit run streamlit_app.py --server.port=8504 --server.address=localhost
+```
+
+Notes:
+- The batch helper is a convenience for Windows users; prefer the manual commands for cross-platform workflows.
+- If you changed the `.streamlit/config.toml` server address or port, update the commands or the batch file accordingly.
+
 
 - [User Guide](docs/user_guide.md) - Complete usage instructions and tutorials
 - [API Reference](docs/api_reference.md) - Detailed API documentation
