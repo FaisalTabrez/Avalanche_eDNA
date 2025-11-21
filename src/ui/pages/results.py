@@ -7,35 +7,29 @@ import plotly.express as px
 import json
 from pathlib import Path
 import streamlit.components.v1 as components
-from src.utils.config import config as app_config
+from src.ui.data_manager import get_data_manager
+from src.ui.components.run_selector import current_run_header
 
 def render():
     """Display results viewer page"""
     st.title("Results Viewer")
 
-    # Choose results directory (support prefill from homepage)
-    default_dir = str(Path(app_config.get('storage.runs_dir', 'runs')).resolve())
-    prefill = st.session_state.get('prefill_results_dir')
-    if prefill and Path(prefill).exists():
-        default_dir = prefill
+    # Use centralized data manager and run selector
+    dm = get_data_manager()
+    run = current_run_header(show_clear=True)
     
-    results_dir = st.text_input(
-        "Results directory",
-        value=default_dir,
-        help="Folder containing pipeline_results.json and subfolders: clustering, taxonomy, novelty, visualizations",
-        key="results_dir_input"
-    )
-    # Persist last used results dir for quick navigation
-    if results_dir:
-        st.session_state.prefill_results_dir = results_dir
-
-    if not results_dir:
-        return
-    base = Path(results_dir)
-    if not base.exists():
-        st.warning(f"Directory not found: {base}")
-        return
-
+    if not run:
+        st.markdown("---")
+        st.info("Select a run from the **Run Browser** page or use the quick selector below.")
+        from src.ui.components.run_selector import quick_run_picker
+        run = quick_run_picker(key_prefix="results_quick_picker", label="Quick Select Run")
+        if not run:
+            return
+    
+    # Get run path and files
+    base = run.path
+    files = dm.get_run_files(base)
+    
     # Helper to check files
     def p(*parts):
         return base.joinpath(*parts)
