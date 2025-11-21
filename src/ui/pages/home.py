@@ -70,38 +70,26 @@ def render():
                 st.session_state.current_page_key = "runs"
                 st.rerun()
     
-    # Recent runs quick links (from configured storage.runs_dir)
+    # Recent runs quick links using centralized data manager
     st.markdown("---")
     st.markdown("### Recent Activity")
-    runs_root = Path(app_config.get('storage.runs_dir', 'runs'))
+    
+    from src.ui.data_manager import get_data_manager
+    dm = get_data_manager()
+    
     try:
-        if runs_root.exists():
-            # Find run folders two levels deep: runs_root/dataset_name/timestamp
-            candidates = []
-            for dataset_dir in runs_root.iterdir():
-                if dataset_dir.is_dir():
-                    for run_dir in dataset_dir.iterdir():
-                        if run_dir.is_dir():
-                            try:
-                                mtime = run_dir.stat().st_mtime
-                            except Exception:
-                                mtime = 0
-                            candidates.append((mtime, dataset_dir.name, run_dir))
-            candidates.sort(reverse=True)
-            top = candidates[:6]
-            if top:
-                cols = st.columns(3)
-                for idx, (_, ds_name, run_path) in enumerate(top):
-                    with cols[idx % 3]:
-                        label = f"{ds_name} / {run_path.name}"
-                        if st.button(f"{label}", key=f"recent_{idx}", use_container_width=True):
-                            st.session_state.prefill_results_dir = str(run_path.resolve())
-                            st.session_state.current_page_key = "results"
-                            st.rerun()
-            else:
-                st.info(f"No runs found in {runs_root}")
+        recent_runs = dm.get_recent_runs(limit=6)
+        if recent_runs:
+            cols = st.columns(3)
+            for idx, run in enumerate(recent_runs):
+                with cols[idx % 3]:
+                    label = f"{run.dataset} / {run.run_id}"
+                    if st.button(f"{label}", key=f"recent_{idx}", use_container_width=True):
+                        dm.set_current_run(run.path)
+                        st.session_state.current_page_key = "results"
+                        st.rerun()
         else:
-            st.info(f"Runs directory not found: {runs_root}")
+            st.info("No runs found. Run an analysis to get started!")
     except Exception as e:
         st.warning(f"Could not list recent runs: {e}")
     
