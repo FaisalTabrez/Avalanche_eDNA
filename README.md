@@ -294,6 +294,17 @@ For complete SRA integration documentation, see [SRA Integration Guide](docs/SRA
 pytest tests/
 ```
 
+## Examples & Archived Tools
+
+- Examples for common workflows are in the `examples/` folder. Notable examples:
+    - `examples/ml_training_example.py` — a training example demonstrating model training steps.
+    - `examples/sra_integration_example.py` — an example showing SRA integration usage.
+
+- Archived one-off or legacy scripts have been moved to `archive/removed_misc/`. If you need to restore a file, copy it back from that directory.
+
+- The Windows helper `start_report_system.bat` is located at `scripts/windows/start_report_system.bat`.
+
+
 ## 🤝 Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
