@@ -9,7 +9,7 @@ enableXsrfProtection = false
 
 # Other server configurations
 port = 8504
-address = "0.0.0.0"
+address = "localhost"
 
 [theme]
 # Dark theme configuration
