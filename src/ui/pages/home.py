@@ -1,0 +1,133 @@
+"""
+Home Page
+"""
+import streamlit as st
+from pathlib import Path
+from src.utils.config import config as app_config
+
+def render():
+    """Display the home page with navigation and quick links"""
+    
+    # Hero Section
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem 0;">
+        <h2 style="color: #64FFDA; font-size: 2rem; margin-bottom: 1rem;">
+            Deep Sea Environmental DNA Analysis
+        </h2>
+        <p style="font-size: 1.2rem; color: #8892b0; max-width: 800px; margin: 0 auto;">
+            Advanced biodiversity assessment using next-generation sequencing and machine learning.
+            Uncover the secrets of the deep ocean with precision and speed.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # Navigation Cards
+    st.markdown("### Core Modules")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        with st.container():
+            st.markdown("#### Analysis")
+            st.info("Process raw sequencing data, perform quality control, and generate taxonomic profiles.")
+            if st.button("Launch Analysis", use_container_width=True, key="btn_analysis"):
+                st.session_state.current_page_key = "analysis"
+                st.rerun()
+            
+            st.markdown("#### Taxonomy")
+            st.info("Explore taxonomic classifications, visualize diversity, and resolve conflicts.")
+            if st.button("View Taxonomy", use_container_width=True, key="btn_taxonomy"):
+                st.session_state.current_page_key = "taxonomy"
+                st.rerun()
+
+    with col2:
+        with st.container():
+            st.markdown("#### Model Training")
+            st.info("Train custom DNA embedding models using Contrastive Learning or Autoencoders.")
+            if st.button("Train Models", use_container_width=True, key="btn_training"):
+                st.session_state.current_page_key = "training"
+                st.rerun()
+
+            st.markdown("#### Results")
+            st.info("Interactive visualization of analysis results, abundance plots, and diversity metrics.")
+            if st.button("View Results", use_container_width=True, key="btn_results"):
+                st.session_state.current_page_key = "results"
+                st.rerun()
+
+    with col3:
+        with st.container():
+            st.markdown("#### Quick Actions")
+            st.success("Ready to start? Begin a new analysis workflow immediately.")
+            if st.button("Start New Run", type="primary", use_container_width=True, key="btn_start"):
+                st.session_state.current_page_key = "analysis"
+                st.rerun()
+            
+            st.markdown("#### History")
+            st.info("Browse past analysis runs, logs, and archived reports.")
+            if st.button("Browse Runs", use_container_width=True, key="btn_runs"):
+                st.session_state.current_page_key = "runs"
+                st.rerun()
+    
+    # Recent runs quick links (from configured storage.runs_dir)
+    st.markdown("---")
+    st.markdown("### Recent Activity")
+    runs_root = Path(app_config.get('storage.runs_dir', 'runs'))
+    try:
+        if runs_root.exists():
+            # Find run folders two levels deep: runs_root/dataset_name/timestamp
+            candidates = []
+            for dataset_dir in runs_root.iterdir():
+                if dataset_dir.is_dir():
+                    for run_dir in dataset_dir.iterdir():
+                        if run_dir.is_dir():
+                            try:
+                                mtime = run_dir.stat().st_mtime
+                            except Exception:
+                                mtime = 0
+                            candidates.append((mtime, dataset_dir.name, run_dir))
+            candidates.sort(reverse=True)
+            top = candidates[:6]
+            if top:
+                cols = st.columns(3)
+                for idx, (_, ds_name, run_path) in enumerate(top):
+                    with cols[idx % 3]:
+                        label = f"{ds_name} / {run_path.name}"
+                        if st.button(f"{label}", key=f"recent_{idx}", use_container_width=True):
+                            st.session_state.prefill_results_dir = str(run_path.resolve())
+                            st.session_state.current_page_key = "results"
+                            st.rerun()
+            else:
+                st.info(f"No runs found in {runs_root}")
+        else:
+            st.info(f"Runs directory not found: {runs_root}")
+    except Exception as e:
+        st.warning(f"Could not list recent runs: {e}")
+    
+    # Feature overview
+    st.markdown("---")
+    st.markdown("## Features")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""
+        ### Sequence Analysis
+        - Multi-format support (FASTA, FASTQ, Swiss-Prot)
+        - Automatic format detection
+        - Quality assessment
+        - Composition analysis
+        """)
+    with col2:
+        st.markdown("""
+        ### Biodiversity Metrics
+        - Shannon and Simpson indices
+        - Species richness
+        - Evenness measures
+        """)
+    with col3:
+        st.markdown("""
+        ### Advanced Features
+        - Interactive visualizations
+        - Batch analysis (planned)
+        - Export capabilities
+        """)
