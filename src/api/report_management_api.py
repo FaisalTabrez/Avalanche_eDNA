@@ -5,7 +5,7 @@ This module provides REST API endpoints for integrating the report management
 system with external applications and automation workflows.
 """
 
-from fastapi import FastAPI, HTTPException, Depends, Query, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, Depends, Query, File, UploadFile, Form, Request
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
@@ -22,11 +22,30 @@ from src.similarity.cross_analysis_engine import CrossAnalysisEngine
 from src.organism_profiling import OrganismIdentifier
 from src.analysis.dataset_analyzer import DatasetAnalyzer
 
+# Performance optimizations
+from src.utils.fastapi_integration import (
+    init_fastapi_optimizations,
+    fastapi_cached,
+    fastapi_rate_limit
+)
+
 # Initialize FastAPI app
 app = FastAPI(
     title="eDNA Report Management API",
     description="API for managing eDNA analysis reports and organism profiles",
     version="1.0.0"
+)
+
+# Initialize performance optimizations
+redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
+init_fastapi_optimizations(
+    app,
+    enable_cache=True,
+    enable_rate_limit=True,
+    cache_ttl=600,  # 10 minutes default cache
+    rate_limit=100,  # 100 requests per minute default
+    rate_window=60,
+    redis_url=redis_url
 )
 
 # Initialize managers
@@ -118,7 +137,10 @@ async def health_check():
 # Report Management Endpoints
 
 @app.get("/reports", response_model=List[ReportSummary])
+@fastapi_cached(ttl=300, key_prefix='list_reports')  # Cache for 5 minutes
+@fastapi_rate_limit(limit=50, window=60)  # 50 requests per minute
 async def list_reports(
+    request: Request,
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     analysis_type: Optional[str] = Query(None),
@@ -144,7 +166,9 @@ async def list_reports(
 
 
 @app.get("/reports/{report_id}", response_model=Dict[str, Any])
-async def get_report(report_id: str):
+@fastapi_cached(ttl=600, key_prefix='get_report')  # Cache for 10 minutes
+@fastapi_rate_limit(limit=100, window=60)  # 100 requests per minute
+async def get_report(request: Request, report_id: str):
     """Get detailed information about a specific report."""
     try:
         report = catalogue_manager.retrieve_analysis_report(report_id)
@@ -161,7 +185,8 @@ async def get_report(report_id: str):
 
 
 @app.post("/reports/search", response_model=List[ReportSummary])
-async def search_reports(search_request: SearchRequest):
+@fastapi_rate_limit(limit=30, window=60)  # 30 searches per minute
+async def search_reports(request: Request, search_request: SearchRequest):
     """Search reports by text query."""
     try:
         results = catalogue_manager.search_reports(
@@ -177,7 +202,9 @@ async def search_reports(search_request: SearchRequest):
 
 
 @app.post("/reports/upload", response_model=Dict[str, str])
+@fastapi_rate_limit(limit=10, window=3600)  # 10 uploads per hour
 async def upload_dataset(
+    request: Request,
     file: UploadFile = File(...),
     analysis_request: str = Form(..., description="JSON string of AnalysisRequest")
 ):
@@ -250,7 +277,10 @@ async def export_report(report_id: str, format: str = Query("json", regex="^(jso
 # Organism Profile Endpoints
 
 @app.get("/organisms", response_model=List[OrganismSummary])
+@fastapi_cached(ttl=300, key_prefix='list_organisms')  # Cache for 5 minutes
+@fastapi_rate_limit(limit=50, window=60)  # 50 requests per minute
 async def list_organisms(
+    request: Request,
     limit: int = Query(100, ge=1, le=1000),
     query: Optional[str] = Query(None),
     kingdom: Optional[str] = Query(None),
@@ -288,7 +318,9 @@ async def list_organisms(
 
 
 @app.get("/organisms/{organism_id}", response_model=Dict[str, Any])
-async def get_organism(organism_id: str):
+@fastapi_cached(ttl=600, key_prefix='get_organism')  # Cache for 10 minutes
+@fastapi_rate_limit(limit=100, window=60)  # 100 requests per minute
+async def get_organism(request: Request, organism_id: str):
     """Get detailed information about a specific organism."""
     try:
         organism = db_manager.get_organism_profile(organism_id)
