@@ -265,7 +265,32 @@ Notes:
 - [Configuration](docs/configuration.md) - Configuration options and examples
 - [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md) - NCBI SRA integration and usage
 - [Monitoring Guide](docs/MONITORING.md) - Prometheus, Grafana, and observability setup
+- [Testing Guide](docs/TESTING.md) - Testing infrastructure and best practices
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+
+## 📈 Production Features
+
+### Phase 2.3: Monitoring & Observability
+- **Prometheus**: 40+ custom metrics across 7 categories
+- **Grafana**: Auto-provisioned dashboards for system, application, and Celery monitoring
+- **Alertmanager**: 30+ alert rules with multi-channel notifications
+- **Exporters**: PostgreSQL, Redis, and Node exporters for infrastructure metrics
+- See [PHASE_2.3_SUMMARY.md](PHASE_2.3_SUMMARY.md) for details
+
+### Phase 2.4: Testing Infrastructure
+- **pytest**: 110+ comprehensive tests (unit, integration, e2e)
+- **Coverage**: 80% minimum threshold with HTML/XML reports
+- **Fixtures**: 20+ reusable fixtures for database, API, and Celery testing
+- **CI/CD**: GitHub Actions integration for automated testing
+- See [PHASE_2.4_SUMMARY.md](PHASE_2.4_SUMMARY.md) for details
+
+### Phase 3: Production Hardening
+- **Caching**: Redis-based caching with decorators and connection pooling
+- **Rate Limiting**: Token bucket and sliding window algorithms for API protection
+- **Database Optimization**: 20+ indexes, connection pooling, batch operations
+- **Application Server**: Gunicorn configuration with Nginx reverse proxy templates
+- **Load Testing**: Locust-based load testing with multiple user behavior patterns
+- See [PHASE_3_SUMMARY.md](PHASE_3_SUMMARY.md) for details
 
 ## 📊 Usage
 
