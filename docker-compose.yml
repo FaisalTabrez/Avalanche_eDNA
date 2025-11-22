@@ -102,6 +102,96 @@ services:
     profiles:
       - dev-tools
 
+  # Celery Worker for background tasks
+  celery-worker:
+    build:
+      context: .
+      target: development
+    container_name: avalanche-celery-worker
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - PYTHONPATH=/app
+      - DB_TYPE=postgresql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=avalanche_edna
+      - DB_USER=avalanche
+      - DB_PASSWORD=avalanche_dev_password
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+    volumes:
+      - .:/app
+      - data-raw:/app/data/raw
+      - data-processed:/app/data/processed
+      - data-reference:/app/data/reference
+      - data-reports:/app/data/report_storage
+      - analysis-outputs:/app/analysis_outputs
+      - reference-indices:/app/reference/indices
+      - logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+
+  # Celery Beat for scheduled tasks
+  celery-beat:
+    build:
+      context: .
+      target: development
+    container_name: avalanche-celery-beat
+    command: celery -A src.tasks.celery_app beat --loglevel=info
+    environment:
+      - PYTHONPATH=/app
+      - DB_TYPE=postgresql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=avalanche_edna
+      - DB_USER=avalanche
+      - DB_PASSWORD=avalanche_dev_password
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - LOG_LEVEL=INFO
+    volumes:
+      - .:/app
+      - logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+
+  # Flower for Celery monitoring
+  flower:
+    build:
+      context: .
+      target: development
+    container_name: avalanche-flower
+    command: celery -A src.tasks.celery_app flower --port=5555
+    environment:
+      - PYTHONPATH=/app
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - FLOWER_BASIC_AUTH=admin:admin
+      - ENVIRONMENT=development
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery-worker
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+    profiles:
+      - dev-tools
+
 # Named volumes for data persistence
 volumes:
   postgres-data:
