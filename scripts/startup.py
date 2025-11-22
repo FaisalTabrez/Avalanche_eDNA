@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils.logger import get_logger
 from src.utils.cache import cache as redis_cache
-from src.utils.rate_limiting import get_rate_limiter
+from src.utils.fastapi_integration import get_rate_limiter
 
 logger = get_logger(__name__)
 
