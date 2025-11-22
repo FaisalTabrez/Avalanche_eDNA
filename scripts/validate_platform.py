@@ -61,9 +61,9 @@ def main():
         conn = psycopg2.connect(
             host='localhost',
             port=5432,
-            database='avalanche',
+            database='avalanche_edna',
             user='avalanche',
-            password='avalanche_pass'
+            password='avalanche_dev_password'
         )
         conn.close()
         test_passed("PostgreSQL connection")
