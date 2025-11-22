@@ -14,7 +14,7 @@ The Avalanche eDNA system generates vector embeddings for sequences, which are u
 ## Storage Structure
 
 ```
-AvalancheData/runs/
+analysis_outputs/runs/
 ├── Dataset_A/
 │   ├── 2024-11-20_10-30-00/
 │   │   ├── embeddings.npy          # Original embeddings (large)
@@ -36,10 +36,10 @@ data/reference/
 ### 1. Run Analysis → Generate Embeddings
 When you run analysis, embeddings are automatically saved:
 ```bash
-python scripts/run_pipeline.py --input sequences.fasta --output AvalancheData/runs/My_Dataset/2024-11-22
+python scripts/run_pipeline.py --input sequences.fasta --output analysis_outputs/runs/My_Dataset/2024-11-22
 ```
 
-This creates `AvalancheData/runs/My_Dataset/2024-11-22/embeddings.npy`
+This creates `analysis_outputs/runs/My_Dataset/2024-11-22/embeddings.npy`
 
 ### 2. Build Consolidated Reference
 Periodically merge all run embeddings into a single reference database:
@@ -145,7 +145,7 @@ if 'embeddings' in files:
 
 # Search across all runs
 results = dm.search_across_embeddings(
-    query_run=Path("AvalancheData/runs/My_Dataset/2024-11-22"),
+    query_run=Path("analysis_outputs/runs/My_Dataset/2024-11-22"),
     query_seq_idx=42,
     top_k=10
 )
@@ -154,7 +154,7 @@ results = dm.search_across_embeddings(
 ## Troubleshooting
 
 ### "No embeddings found"
-- Check `AvalancheData/runs/` structure
+- Check `analysis_outputs/runs/` structure
 - Verify analysis completed successfully
 - Look for both `.npy` and `.npz` files
 

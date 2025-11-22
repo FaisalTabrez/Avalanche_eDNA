@@ -9,8 +9,8 @@ data:
 
 # Storage roots for datasets and analysis runs
 storage:
-  datasets_dir: "AvalancheData\\datasets"   # where uploaded/managed datasets are stored (relative to project root)
-  runs_dir: "AvalancheData\\runs"                 # where analysis outputs are organized (relative to project root)
+  datasets_dir: "analysis_outputs\\datasets"   # where uploaded/managed datasets are stored (relative to project root)
+  runs_dir: "analysis_outputs\\runs"                 # where analysis outputs are organized (relative to project root)
 
 # Reference databases (NCBI BLAST + SRA)
 databases:
