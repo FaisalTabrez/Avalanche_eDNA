@@ -20,7 +20,7 @@ from prometheus_client import (
     CONTENT_TYPE_LATEST,
 )
 
-from src.database.database import DatabaseManager
+from src.database.manager import DatabaseManager
 
 
 # Create custom registry

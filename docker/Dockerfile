@@ -2,7 +2,7 @@
 # Optimized for production deployment with security best practices
 
 # Stage 1: Base image with system dependencies
-FROM python:3.10-slim AS base
+FROM python:3.11-slim AS base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -39,12 +39,13 @@ WORKDIR /app
 FROM base AS dependencies
 
 # Copy requirements files
-COPY requirements.txt requirements_core.txt ./
+COPY requirements.txt ./
+COPY requirements/requirements_core.txt ./requirements/
 
 # Install Python dependencies
 RUN pip install --upgrade pip setuptools wheel && \
     pip install -r requirements.txt && \
-    pip install -r requirements_core.txt
+    pip install -r requirements/requirements_core.txt
 
 # Stage 3: Application
 FROM dependencies AS application

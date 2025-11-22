@@ -17,6 +17,19 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 import subprocess
 
+# Optional cloud dependencies
+try:
+    import boto3
+    BOTO3_AVAILABLE = True
+except ImportError:
+    BOTO3_AVAILABLE = False
+
+try:
+    from azure.storage.blob import BlobServiceClient
+    AZURE_AVAILABLE = True
+except ImportError:
+    AZURE_AVAILABLE = False
+
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
@@ -609,9 +622,11 @@ class BackupManager:
         Returns:
             Success status
         """
-        try:
-            import boto3
+        if not BOTO3_AVAILABLE:
+            self.logger.error("boto3 not installed. Install with: pip install boto3")
+            return False
             
+        try:
             s3_client = boto3.client('s3')
             bucket = config.get('backup.cloud.s3.bucket')
             prefix = config.get('backup.cloud.s3.prefix', 'backups/')
@@ -632,9 +647,6 @@ class BackupManager:
             self.logger.info("Cloud upload successful")
             return True
             
-        except ImportError:
-            self.logger.error("boto3 not installed. Install with: pip install boto3")
-            return False
         except Exception as e:
             self.logger.error(f"S3 upload failed: {e}")
             return False
@@ -648,9 +660,11 @@ class BackupManager:
         Returns:
             Success status
         """
-        try:
-            from azure.storage.blob import BlobServiceClient
+        if not AZURE_AVAILABLE:
+            self.logger.error("azure-storage-blob not installed. Install with: pip install azure-storage-blob")
+            return False
             
+        try:
             connection_string = config.get('backup.cloud.azure.connection_string')
             container = config.get('backup.cloud.azure.container')
             prefix = config.get('backup.cloud.azure.prefix', 'backups/')
@@ -673,9 +687,6 @@ class BackupManager:
             self.logger.info("Azure upload successful")
             return True
             
-        except ImportError:
-            self.logger.error("azure-storage-blob not installed. Install with: pip install azure-storage-blob")
-            return False
         except Exception as e:
             self.logger.error(f"Azure upload failed: {e}")
             return False

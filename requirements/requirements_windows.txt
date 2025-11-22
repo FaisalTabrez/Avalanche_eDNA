@@ -33,6 +33,10 @@ click>=8.0.0
 pyyaml>=6.0
 requests>=2.27.0
 
+# Security (Windows-specific)
+python-magic>=0.4.27        # MIME type detection
+python-magic-bin>=0.4.14    # Windows libmagic binaries
+
 # Development
 pytest>=7.0.0
 

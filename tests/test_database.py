@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 
-from src.database.database import DatabaseManager
+from src.database.manager import DatabaseManager
 
 
 class TestDatabaseManager:

@@ -12,8 +12,8 @@ from typing import Dict, Any
 from celery import shared_task
 from datetime import datetime, timedelta
 
-from src.database.database import DatabaseManager
-from src.database.backup_manager import BackupManager
+from src.database.manager import DatabaseManager
+from scripts.backup.backup_manager import BackupManager
 
 
 logger = logging.getLogger(__name__)
