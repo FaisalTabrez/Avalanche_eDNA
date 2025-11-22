@@ -7,7 +7,7 @@ from src.ui.pages import (
     analysis,
     training,
     sra_browser,
-    analysis_outputs,
+    biodiversity_results,
     taxonomy,
     about
 )
@@ -23,8 +23,8 @@ def render_page(page_key):
         training.render()
     elif page_key == "sra_browser":
         sra_browser.render()
-    elif page_key == "analysis_outputs":
-        analysis_outputs.render()
+    elif page_key == "biodiversity_results":
+        biodiversity_results.render()
     elif page_key == "taxonomy":
         taxonomy.render()
     elif page_key == "about":
@@ -39,7 +39,7 @@ def get_pages_config():
         {"key": "analysis", "label": "Dataset Analysis"},
         {"key": "training", "label": "Model Training"},
         {"key": "sra_browser", "label": "SRA Browser"},
-        {"key": "analysis_outputs", "label": "Analysis Outputs"},
+        {"key": "biodiversity_results", "label": "Biodiversity Results"},
         {"key": "taxonomy", "label": "Taxonomy Viewer"},
         {"key": "about", "label": "About"},
     ]

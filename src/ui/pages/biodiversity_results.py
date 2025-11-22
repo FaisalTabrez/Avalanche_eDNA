@@ -1,5 +1,5 @@
 """
-Analysis Outputs Page - Unified view for all analysis runs and results
+Biodiversity Results Page - Unified view for all analysis runs and results
 """
 import streamlit as st
 import pandas as pd
@@ -16,8 +16,8 @@ from src.ui.components.run_selector import current_run_header
 
 
 def render():
-    """Display unified analysis outputs page"""
-    st.title("📊 Analysis Outputs")
+    """Display unified biodiversity results page"""
+    st.title("🧬 Biodiversity Results")
     
     st.markdown("""
     Browse all stored analysis runs, upload external runs, and view detailed results in one place.

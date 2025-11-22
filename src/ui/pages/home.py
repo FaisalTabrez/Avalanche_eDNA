@@ -50,10 +50,10 @@ def render():
                 st.session_state.current_page_key = "training"
                 st.rerun()
 
-            st.markdown("#### Analysis Outputs")
+            st.markdown("#### Biodiversity Results")
             st.info("Browse all stored analysis runs, view results, and upload external datasets.")
-            if st.button("View Outputs", use_container_width=True, key="btn_outputs"):
-                st.session_state.current_page_key = "analysis_outputs"
+            if st.button("View Results", use_container_width=True, key="btn_outputs"):
+                st.session_state.current_page_key = "biodiversity_results"
                 st.rerun()
 
     with col3:
@@ -86,7 +86,7 @@ def render():
                     label = f"{run.dataset} / {run.run_id}"
                     if st.button(f"{label}", key=f"recent_{idx}", use_container_width=True):
                         dm.set_current_run(run.path)
-                        st.session_state.current_page_key = "analysis_outputs"
+                        st.session_state.current_page_key = "biodiversity_results"
                         st.rerun()
         else:
             st.info("No runs found. Run an analysis to get started!")
