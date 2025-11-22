@@ -60,6 +60,11 @@ celery>=5.3.4           # Distributed task queue
 redis>=5.0.0            # Message broker for Celery
 flower>=2.0.1           # Celery monitoring tool
 
+# Monitoring & Observability
+prometheus-client>=0.19.0  # Prometheus metrics exporter
+psutil>=5.9.0           # System metrics
+celery-exporter>=1.6.0  # Celery metrics for Prometheus
+
 # Development
 pytest>=7.0.0
 pytest-cov>=3.0.0

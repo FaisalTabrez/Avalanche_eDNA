@@ -1,0 +1,80 @@
+# Prometheus Configuration for Avalanche eDNA Platform
+
+global:
+  scrape_interval: 15s  # Scrape targets every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  external_labels:
+    cluster: 'avalanche-edna'
+    environment: 'development'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load alerting rules
+rule_files:
+  - 'alerts/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'system'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'database'
+          database: 'postgresql'
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'cache'
+          database: 'redis'
+
+  # Streamlit Application (custom metrics)
+  - job_name: 'streamlit'
+    static_configs:
+      - targets: ['streamlit:8000']
+        labels:
+          service: 'application'
+          app: 'streamlit'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # Celery Worker metrics
+  - job_name: 'celery'
+    static_configs:
+      - targets: ['celery-worker:9808']
+        labels:
+          service: 'task-queue'
+          component: 'worker'
+    metrics_path: '/metrics'
+
+  # Flower monitoring
+  - job_name: 'flower'
+    static_configs:
+      - targets: ['flower:5555']
+        labels:
+          service: 'task-queue'
+          component: 'monitoring'
+    metrics_path: '/metrics'
+    scrape_interval: 30s

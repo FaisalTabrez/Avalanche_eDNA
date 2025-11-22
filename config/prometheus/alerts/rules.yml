@@ -1,0 +1,284 @@
+# Alert Rules for Avalanche eDNA Platform
+
+groups:
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "High CPU usage detected on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}% (threshold: 90%)"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}% (threshold: 90%)"
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          category: system
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Available disk space is {{ $value }}% (threshold: 10%)"
+
+      # System load
+      - alert: HighSystemLoad
+        expr: node_load5 / count(node_cpu_seconds_total{mode="idle"}) without(cpu, mode) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          category: system
+        annotations:
+          summary: "High system load on {{ $labels.instance }}"
+          description: "System load is {{ $value }} (threshold: 0.8)"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # PostgreSQL down
+      - alert: PostgreSQLDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute"
+
+      # Too many connections
+      - alert: PostgreSQLTooManyConnections
+        expr: sum(pg_stat_activity_count) > 80
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "PostgreSQL has too many connections"
+          description: "Current connections: {{ $value }} (threshold: 80)"
+
+      # High transaction rate
+      - alert: PostgreSQLHighTransactionRate
+        expr: rate(pg_stat_database_xact_commit[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "High PostgreSQL transaction rate"
+          description: "Transaction rate is {{ $value }} per second"
+
+      # Replication lag
+      - alert: PostgreSQLReplicationLag
+        expr: pg_replication_lag > 30
+        for: 5m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "PostgreSQL replication lag detected"
+          description: "Replication lag is {{ $value }} seconds (threshold: 30s)"
+
+      # Database size growing too fast
+      - alert: PostgreSQLDatabaseSizeGrowth
+        expr: rate(pg_database_size_bytes[1h]) > 1000000000  # 1GB per hour
+        for: 2h
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "PostgreSQL database growing rapidly"
+          description: "Database growing at {{ $value }} bytes/hour"
+
+  - name: redis_alerts
+    interval: 30s
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+
+      # High memory usage
+      - alert: RedisHighMemoryUsage
+        expr: (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Memory usage is {{ $value }}% (threshold: 90%)"
+
+      # Too many connections
+      - alert: RedisTooManyConnections
+        expr: redis_connected_clients > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Redis has too many connections"
+          description: "Current connections: {{ $value }} (threshold: 100)"
+
+      # Evicted keys
+      - alert: RedisEvictingKeys
+        expr: rate(redis_evicted_keys_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: cache
+        annotations:
+          summary: "Redis is evicting keys"
+          description: "Eviction rate is {{ $value }} keys/second"
+
+  - name: celery_alerts
+    interval: 30s
+    rules:
+      # Celery worker down
+      - alert: CeleryWorkerDown
+        expr: up{job="celery"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: task-queue
+        annotations:
+          summary: "Celery worker is down"
+          description: "Celery worker has been down for more than 2 minutes"
+
+      # High task failure rate
+      - alert: HighTaskFailureRate
+        expr: rate(celery_task_failed_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          category: task-queue
+        annotations:
+          summary: "High Celery task failure rate"
+          description: "Task failure rate is {{ $value }} per second"
+
+      # Task queue backup
+      - alert: TaskQueueBackup
+        expr: celery_queue_length > 100
+        for: 15m
+        labels:
+          severity: warning
+          category: task-queue
+        annotations:
+          summary: "Celery task queue is backing up"
+          description: "Queue length is {{ $value }} (threshold: 100)"
+
+      # Long running tasks
+      - alert: LongRunningTasks
+        expr: celery_task_runtime_seconds > 3600
+        for: 5m
+        labels:
+          severity: warning
+          category: task-queue
+        annotations:
+          summary: "Long running Celery tasks detected"
+          description: "Task has been running for {{ $value }} seconds"
+
+      # No workers available
+      - alert: NoWorkersAvailable
+        expr: celery_workers == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: task-queue
+        annotations:
+          summary: "No Celery workers available"
+          description: "All Celery workers are offline"
+
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # Application down
+      - alert: ApplicationDown
+        expr: up{job="streamlit"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "Application is down"
+          description: "Streamlit application has been down for more than 2 minutes"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "High HTTP error rate"
+          description: "Error rate is {{ $value }} requests/second"
+
+      # Slow response time
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          category: application
+        annotations:
+          summary: "Slow application response time"
+          description: "95th percentile response time is {{ $value }} seconds"
+
+      # High request rate
+      - alert: HighRequestRate
+        expr: rate(http_requests_total[5m]) > 100
+        for: 10m
+        labels:
+          severity: info
+          category: application
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is {{ $value }} requests/second"
+
+  - name: backup_alerts
+    interval: 1h
+    rules:
+      # Backup failed
+      - alert: BackupFailed
+        expr: backup_success == 0
+        for: 1h
+        labels:
+          severity: critical
+          category: backup
+        annotations:
+          summary: "Backup job failed"
+          description: "Last backup attempt failed"
+
+      # No recent backup
+      - alert: NoRecentBackup
+        expr: (time() - backup_last_success_timestamp) > 86400  # 24 hours
+        for: 1h
+        labels:
+          severity: warning
+          category: backup
+        annotations:
+          summary: "No recent successful backup"
+          description: "Last successful backup was {{ $value }} seconds ago (threshold: 24h)"

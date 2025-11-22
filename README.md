@@ -264,6 +264,7 @@ Notes:
 - [API Reference](docs/api_reference.md) - Detailed API documentation
 - [Configuration](docs/configuration.md) - Configuration options and examples
 - [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md) - NCBI SRA integration and usage
+- [Monitoring Guide](docs/MONITORING.md) - Prometheus, Grafana, and observability setup
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
 ## 📊 Usage
