@@ -292,8 +292,8 @@ def main():
     parser.add_argument(
         '--runs-root',
         type=Path,
-        default=Path('consolidated_data/runs'),
-        help='Root directory containing runs (default: consolidated_data/runs)'
+        default=Path('analysis_outputs/runs'),
+        help='Root directory containing runs (default: analysis_outputs/runs)'
     )
     parser.add_argument(
         '--output',

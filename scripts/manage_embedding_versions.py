@@ -90,7 +90,7 @@ def tag_run(run_path: str, version: str):
         return False
     
     # Check if run exists
-    full_path = Path('consolidated_data/runs') / run_path
+    full_path = Path('analysis_outputs/runs') / run_path
     if not full_path.exists():
         print(f"ERROR: Run not found: {run_path}")
         return False
@@ -176,7 +176,7 @@ def compare_versions(v1: str, v2: str):
     print("=" * 80)
 
 
-def auto_tag_runs(version: str, runs_root: Path = Path('consolidated_data/runs')):
+def auto_tag_runs(version: str, runs_root: Path = Path('analysis_outputs/runs')):
     """Automatically tag all untagged runs with a version"""
     data = load_versions()
     
