@@ -46,7 +46,7 @@ requests>=2.27.0
 
 # Security
 python-magic>=0.4.27    # MIME type detection
-python-magic-bin>=0.4.14  # Windows libmagic binaries
+# python-magic-bin>=0.4.14  # Windows-only - not needed in Docker (Linux has system libmagic)
 
 # Database
 psycopg2-binary>=2.9.0  # For PostgreSQL
