@@ -4,9 +4,14 @@ Home Page
 import streamlit as st
 from pathlib import Path
 from src.utils.config import config as app_config
+from src.auth import get_auth_manager
 
 def render():
     """Display the home page with navigation and quick links"""
+    
+    # Authentication check
+    auth = get_auth_manager()
+    user = auth.get_current_user()
     
     # Hero Section
     st.markdown("""
@@ -20,6 +25,17 @@ def render():
         </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Authentication status banner
+    if user:
+        st.success(f"Welcome back, **{user['username']}**! You are logged in as **{user['role']}**.")
+    else:
+        st.warning("⚠️ You are browsing as a guest. Please [log in](/login) to access analysis features.")
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            if st.button("Login", use_container_width=True):
+                st.session_state.current_page_key = "login"
+                st.rerun()
     
     st.markdown("---")
     
