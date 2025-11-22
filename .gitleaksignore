@@ -1,0 +1,18 @@
+# .gitleaksignore
+# Ignore false positives for Gitleaks secret scanning
+
+# Test files with fake credentials
+tests/**
+test_*.py
+*_test.py
+
+# Example/template files
+.env.example
+*.example
+*.template
+
+# Documentation
+docs/**
+*.md
+CHANGELOG.md
+README.md

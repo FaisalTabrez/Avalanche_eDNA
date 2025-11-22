@@ -37,6 +37,16 @@ class NoveltyValidationStatus(Enum):
     REJECTED = "rejected"
 
 
+class TaskStatus(Enum):
+    """Enumeration of Celery task statuses."""
+    PENDING = "pending"
+    STARTED = "started"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    REVOKED = "revoked"
+
+
 @dataclass
 class OrganismProfile:
     """
@@ -459,3 +469,55 @@ def deserialize_from_json(json_str: str, target_class: type) -> Any:
         data['sequence_type'] = SequenceType(data['sequence_type'])
     
     return target_class(**data)
+
+@dataclass
+class AnalysisRun:
+    """Model for tracking analysis runs"""
+    id: Optional[int] = None
+    name: str = ""
+    dataset_path: Optional[str] = None
+    analysis_type: str = "taxonomic"
+    status: str = "pending"
+    parameters: Dict[str, Any] = field(default_factory=dict)
+    results: Optional[Dict[str, Any]] = None
+    output_path: Optional[str] = None
+    celery_task_id: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: datetime = field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+    updated_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class TrainingRun:
+    """Model for tracking model training runs"""
+    id: Optional[int] = None
+    name: str = ""
+    model_type: str = "transformer"
+    training_data_path: Optional[str] = None
+    status: str = "pending"
+    hyperparameters: Dict[str, Any] = field(default_factory=dict)
+    metrics: Optional[Dict[str, Any]] = None
+    model_path: Optional[str] = None
+    celery_task_id: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: datetime = field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+    updated_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class DownloadJob:
+    """Model for tracking download jobs"""
+    id: Optional[int] = None
+    accession: str = ""
+    source: str = "SRA"
+    status: str = "pending"
+    output_path: Optional[str] = None
+    file_size: int = 0
+    metadata: Optional[Dict[str, Any]] = None
+    celery_task_id: Optional[str] = None
+    error_message: Optional[str] = None
+    created_at: datetime = field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
+    updated_at: datetime = field(default_factory=datetime.now)

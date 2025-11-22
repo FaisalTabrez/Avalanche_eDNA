@@ -1,0 +1,173 @@
+# Alertmanager Configuration for Avalanche eDNA Platform
+
+global:
+  # Global SMTP configuration for email alerts
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@avalanche-edna.com'
+  smtp_auth_username: 'alerts@avalanche-edna.com'
+  smtp_auth_password: 'your-smtp-password'
+  smtp_require_tls: true
+
+# Templates for alert notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alert distribution
+route:
+  # Default receiver for all alerts
+  receiver: 'default'
+  
+  # Group alerts by these labels
+  group_by: ['alertname', 'category', 'severity']
+  
+  # Wait time before sending first notification
+  group_wait: 30s
+  
+  # Wait time before sending notification about new alerts in group
+  group_interval: 5m
+  
+  # Wait time before resending notification
+  repeat_interval: 4h
+
+  # Child routes for specific alert routing
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      group_interval: 1m
+      repeat_interval: 30m
+      continue: true
+
+    # System alerts
+    - match:
+        category: system
+      receiver: 'system-alerts'
+      group_wait: 1m
+      group_interval: 5m
+
+    # Database alerts
+    - match:
+        category: database
+      receiver: 'database-alerts'
+      group_wait: 30s
+      group_interval: 2m
+
+    # Task queue alerts
+    - match:
+        category: task-queue
+      receiver: 'task-queue-alerts'
+      group_wait: 1m
+      group_interval: 5m
+
+    # Backup alerts
+    - match:
+        category: backup
+      receiver: 'backup-alerts'
+      group_wait: 5m
+      group_interval: 1h
+
+# Inhibition rules (suppress certain alerts when others are firing)
+inhibit_rules:
+  # Inhibit warning if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+  # Inhibit database alerts if database is down
+  - source_match:
+      alertname: 'PostgreSQLDown'
+    target_match_re:
+      alertname: 'PostgreSQL.*'
+    equal: ['instance']
+
+  # Inhibit celery task alerts if worker is down
+  - source_match:
+      alertname: 'CeleryWorkerDown'
+    target_match_re:
+      alertname: '.*Task.*'
+    equal: ['instance']
+
+# Receivers configuration
+receivers:
+  # Default receiver (logs only)
+  - name: 'default'
+    webhook_configs:
+      - url: 'http://localhost:9093/webhook/default'
+        send_resolved: true
+
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@avalanche-edna.com'
+        headers:
+          Subject: '[CRITICAL] Avalanche eDNA Alert: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.default.html" . }}'
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-critical'
+        title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+    
+    webhook_configs:
+      - url: 'http://localhost:9093/webhook/critical'
+        send_resolved: true
+
+  # System alerts
+  - name: 'system-alerts'
+    email_configs:
+      - to: 'ops@avalanche-edna.com'
+        headers:
+          Subject: '[System] Avalanche eDNA: {{ .GroupLabels.alertname }}'
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-system'
+        send_resolved: true
+
+  # Database alerts
+  - name: 'database-alerts'
+    email_configs:
+      - to: 'dba@avalanche-edna.com'
+        headers:
+          Subject: '[Database] Avalanche eDNA: {{ .GroupLabels.alertname }}'
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-database'
+        send_resolved: true
+
+  # Task queue alerts
+  - name: 'task-queue-alerts'
+    email_configs:
+      - to: 'ops@avalanche-edna.com'
+        headers:
+          Subject: '[Task Queue] Avalanche eDNA: {{ .GroupLabels.alertname }}'
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-tasks'
+        send_resolved: true
+
+  # Backup alerts
+  - name: 'backup-alerts'
+    email_configs:
+      - to: 'ops@avalanche-edna.com'
+        headers:
+          Subject: '[Backup] Avalanche eDNA: {{ .GroupLabels.alertname }}'
+        send_resolved: true
+    
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts-backup'
+        send_resolved: true

@@ -9,6 +9,12 @@ import json
 import tempfile
 from pathlib import Path
 from src.utils.config import config as app_config
+from src.security import (
+    FileValidator,
+    InputSanitizer,
+    get_rate_limiter,
+    log_security_event
+)
 
 try:
     from src.models.tokenizer import DNATokenizer
@@ -55,10 +61,33 @@ def render():
             if data_source == "Upload New File":
                 uploaded_file = st.file_uploader("Upload FASTA File", type=['fasta', 'fa'])
                 if uploaded_file:
-                    # Save to temp location
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as tmp:
-                        tmp.write(uploaded_file.getvalue())
-                        sequences_path = tmp.name
+                    # Validate filename
+                    valid, error = FileValidator.validate_filename(uploaded_file.name)
+                    if not valid:
+                        st.error(f"❌ Invalid filename: {error}")
+                        log_security_event('invalid_training_filename', {
+                            'filename': uploaded_file.name,
+                            'error': error
+                        })
+                    else:
+                        # Validate file size
+                        file_size = uploaded_file.size
+                        valid, error = FileValidator.validate_file_size(file_size)
+                        if not valid:
+                            st.error(f"❌ {error}")
+                            log_security_event('training_file_too_large', {
+                                'filename': uploaded_file.name,
+                                'size_bytes': file_size
+                            })
+                        else:
+                            # Save to temp location
+                            with tempfile.NamedTemporaryFile(delete=False, suffix=".fasta") as tmp:
+                                tmp.write(uploaded_file.getvalue())
+                                sequences_path = tmp.name
+                                log_security_event('training_file_uploaded', {
+                                    'filename': uploaded_file.name,
+                                    'size_bytes': file_size
+                                })
             else:
                 # List files in datasets dir
                 datasets_dir = Path(app_config.get('storage.datasets_dir', 'data/datasets'))
@@ -78,9 +107,32 @@ def render():
         labels_file = st.file_uploader("Upload Labels", type=['csv', 'txt'])
         labels_path = None
         if labels_file:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=Path(labels_file.name).suffix) as tmp:
-                tmp.write(labels_file.getvalue())
-                labels_path = tmp.name
+            # Validate filename
+            valid, error = FileValidator.validate_filename(labels_file.name)
+            if not valid:
+                st.error(f"❌ Invalid labels filename: {error}")
+                log_security_event('invalid_labels_filename', {
+                    'filename': labels_file.name,
+                    'error': error
+                })
+            else:
+                # Validate file size
+                file_size = labels_file.size
+                valid, error = FileValidator.validate_file_size(file_size)
+                if not valid:
+                    st.error(f"❌ {error}")
+                    log_security_event('labels_file_too_large', {
+                        'filename': labels_file.name,
+                        'size_bytes': file_size
+                    })
+                else:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=Path(labels_file.name).suffix) as tmp:
+                        tmp.write(labels_file.getvalue())
+                        labels_path = tmp.name
+                        log_security_event('labels_file_uploaded', {
+                            'filename': labels_file.name,
+                            'size_bytes': file_size
+                        })
         
         st.markdown("---")
         st.markdown("### 2. Configuration")

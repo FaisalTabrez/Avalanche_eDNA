@@ -4,9 +4,14 @@ Home Page
 import streamlit as st
 from pathlib import Path
 from src.utils.config import config as app_config
+from src.auth import get_auth_manager
 
 def render():
     """Display the home page with navigation and quick links"""
+    
+    # Authentication check
+    auth = get_auth_manager()
+    user = auth.get_current_user()
     
     # Hero Section
     st.markdown("""
@@ -20,6 +25,17 @@ def render():
         </p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Authentication status banner
+    if user:
+        st.success(f"Welcome back, **{user['username']}**! You are logged in as **{user['role']}**.")
+    else:
+        st.warning("⚠️ You are browsing as a guest. Please [log in](/login) to access analysis features.")
+        col1, col2, col3 = st.columns([1, 1, 2])
+        with col1:
+            if st.button("Login", use_container_width=True):
+                st.session_state.current_page_key = "login"
+                st.rerun()
     
     st.markdown("---")
     
@@ -50,10 +66,10 @@ def render():
                 st.session_state.current_page_key = "training"
                 st.rerun()
 
-            st.markdown("#### Results")
-            st.info("Interactive visualization of analysis results, abundance plots, and diversity metrics.")
-            if st.button("View Results", use_container_width=True, key="btn_results"):
-                st.session_state.current_page_key = "results"
+            st.markdown("#### Biodiversity Results")
+            st.info("Browse all stored analysis runs, view results, and upload external datasets.")
+            if st.button("View Results", use_container_width=True, key="btn_outputs"):
+                st.session_state.current_page_key = "biodiversity_results"
                 st.rerun()
 
     with col3:
@@ -64,10 +80,10 @@ def render():
                 st.session_state.current_page_key = "analysis"
                 st.rerun()
             
-            st.markdown("#### History")
-            st.info("Browse past analysis runs, logs, and archived reports.")
-            if st.button("Browse Runs", use_container_width=True, key="btn_runs"):
-                st.session_state.current_page_key = "runs"
+            st.markdown("#### SRA Browser")
+            st.info("Search and download sequences from the NCBI Sequence Read Archive.")
+            if st.button("Browse SRA", use_container_width=True, key="btn_sra"):
+                st.session_state.current_page_key = "sra_browser"
                 st.rerun()
     
     # Recent runs quick links using centralized data manager
@@ -86,7 +102,7 @@ def render():
                     label = f"{run.dataset} / {run.run_id}"
                     if st.button(f"{label}", key=f"recent_{idx}", use_container_width=True):
                         dm.set_current_run(run.path)
-                        st.session_state.current_page_key = "results"
+                        st.session_state.current_page_key = "biodiversity_results"
                         st.rerun()
         else:
             st.info("No runs found. Run an analysis to get started!")

@@ -65,6 +65,81 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 
 ## Installation
 
+### Option 1: Docker (Recommended for Production)
+
+**Prerequisites:**
+- Docker 20.10+
+- Docker Compose 2.0+
+
+**Quick Start:**
+```bash
+# Clone the repository
+git clone https://github.com/FaisalTabrez/Avalanche_eDNA.git
+cd Avalanche_eDNA
+
+# Copy environment template and configure
+cp .env.example .env
+# Edit .env with your settings (database passwords, etc.)
+
+# Start all services (Streamlit, PostgreSQL, Redis)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f streamlit
+
+# Access the application
+# Navigate to http://localhost:8501
+```
+
+**Production Deployment:**
+```bash
+# Copy production environment template
+cp .env.example .env
+# Edit .env with production credentials and settings
+
+# Build and start production services
+docker-compose -f docker-compose.prod.yml up -d
+
+# Scale application instances
+docker-compose -f docker-compose.prod.yml up -d --scale streamlit=3
+
+# View status
+docker-compose -f docker-compose.prod.yml ps
+
+# Access the application
+# Navigate to http://localhost:8501 (or your configured domain)
+```
+
+**Useful Docker Commands:**
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (deletes data!)
+docker-compose down -v
+
+# Rebuild after code changes
+docker-compose build
+docker-compose up -d
+
+# View application logs
+docker-compose logs -f streamlit
+
+# Access shell in running container
+docker-compose exec streamlit bash
+
+# Run database migrations
+docker-compose exec streamlit python scripts/migrate_database.py
+
+# Backup database
+docker-compose exec postgres pg_dump -U avalanche avalanche_edna > backup.sql
+
+# Restore database
+docker-compose exec -T postgres psql -U avalanche avalanche_edna < backup.sql
+```
+
+### Option 2: Local Installation
+
 See [Installation Guide](docs/installation.md) for detailed setup instructions including prerequisites, environment setup, and optional dependencies.
 
 ## 🚀 Quick Start
@@ -189,7 +264,33 @@ Notes:
 - [API Reference](docs/api_reference.md) - Detailed API documentation
 - [Configuration](docs/configuration.md) - Configuration options and examples
 - [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md) - NCBI SRA integration and usage
+- [Monitoring Guide](docs/MONITORING.md) - Prometheus, Grafana, and observability setup
+- [Testing Guide](docs/TESTING.md) - Testing infrastructure and best practices
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+
+## 📈 Production Features
+
+### Phase 2.3: Monitoring & Observability
+- **Prometheus**: 40+ custom metrics across 7 categories
+- **Grafana**: Auto-provisioned dashboards for system, application, and Celery monitoring
+- **Alertmanager**: 30+ alert rules with multi-channel notifications
+- **Exporters**: PostgreSQL, Redis, and Node exporters for infrastructure metrics
+- See [PHASE_2.3_SUMMARY.md](PHASE_2.3_SUMMARY.md) for details
+
+### Phase 2.4: Testing Infrastructure
+- **pytest**: 110+ comprehensive tests (unit, integration, e2e)
+- **Coverage**: 80% minimum threshold with HTML/XML reports
+- **Fixtures**: 20+ reusable fixtures for database, API, and Celery testing
+- **CI/CD**: GitHub Actions integration for automated testing
+- See [PHASE_2.4_SUMMARY.md](PHASE_2.4_SUMMARY.md) for details
+
+### Phase 3: Production Hardening
+- **Caching**: Redis-based caching with decorators and connection pooling
+- **Rate Limiting**: Token bucket and sliding window algorithms for API protection
+- **Database Optimization**: 20+ indexes, connection pooling, batch operations
+- **Application Server**: Gunicorn configuration with Nginx reverse proxy templates
+- **Load Testing**: Locust-based load testing with multiple user behavior patterns
+- See [PHASE_3_SUMMARY.md](PHASE_3_SUMMARY.md) for details
 
 ## 📊 Usage
 

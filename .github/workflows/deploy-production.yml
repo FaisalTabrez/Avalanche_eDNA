@@ -1,0 +1,173 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://avalanche-edna.example.com
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Create deployment
+      uses: chrnorm/deployment-action@v2
+      id: deployment
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        environment: production
+        description: 'Deploying ${{ steps.version.outputs.VERSION }}'
+    
+    - name: Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.PRODUCTION_SSH_KEY }}" > ~/.ssh/prod_key
+        chmod 600 ~/.ssh/prod_key
+        ssh-keyscan -H ${{ secrets.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Pre-deployment backup
+      env:
+        PROD_HOST: ${{ secrets.PRODUCTION_HOST }}
+        PROD_USER: ${{ secrets.PRODUCTION_USER }}
+      run: |
+        ssh -i ~/.ssh/prod_key $PROD_USER@$PROD_HOST << 'EOF'
+          cd /opt/avalanche
+          
+          # Full backup before deployment
+          ./scripts/backup/full_backup.sh
+          
+          # Verify backup
+          LATEST_BACKUP=$(ls -t data/backups/database/*_metadata.json 2>/dev/null | head -1 | xargs basename | sed 's/_metadata.json//')
+          python3 scripts/backup/backup_manager.py verify --backup-id "$LATEST_BACKUP"
+        EOF
+    
+    - name: Deploy to production
+      env:
+        PROD_HOST: ${{ secrets.PRODUCTION_HOST }}
+        PROD_USER: ${{ secrets.PRODUCTION_USER }}
+        VERSION: ${{ steps.version.outputs.VERSION }}
+      run: |
+        ssh -i ~/.ssh/prod_key $PROD_USER@$PROD_HOST << EOF
+          cd /opt/avalanche
+          
+          # Pull specific version
+          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION
+          
+          # Tag as latest
+          docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$VERSION ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          
+          # Update docker-compose
+          docker-compose -f docker-compose.prod.yml pull
+          
+          # Rolling update (blue-green deployment)
+          docker-compose -f docker-compose.prod.yml up -d --no-deps --scale app=2 app
+          
+          # Wait for new container to be healthy
+          sleep 30
+          
+          # Scale down old container
+          docker-compose -f docker-compose.prod.yml up -d --no-deps --scale app=1 app
+          
+          # Cleanup old containers
+          docker system prune -f
+          
+          # Show running containers
+          docker-compose -f docker-compose.prod.yml ps
+        EOF
+    
+    - name: Run smoke tests
+      run: |
+        # Wait for deployment to stabilize
+        sleep 10
+        
+        # Health check
+        curl -f https://avalanche-edna.example.com/health || exit 1
+        
+        # API check
+        curl -f https://avalanche-edna.example.com/api/status || exit 1
+    
+    - name: Update deployment status (success)
+      if: success()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+        state: 'success'
+        environment-url: https://avalanche-edna.example.com
+    
+    - name: Update deployment status (failure)
+      if: failure()
+      uses: chrnorm/deployment-status@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+        state: 'failure'
+    
+    - name: Rollback on failure
+      if: failure()
+      env:
+        PROD_HOST: ${{ secrets.PRODUCTION_HOST }}
+        PROD_USER: ${{ secrets.PRODUCTION_USER }}
+      run: |
+        ssh -i ~/.ssh/prod_key $PROD_USER@$PROD_HOST << 'EOF'
+          cd /opt/avalanche
+          
+          # Restore from backup
+          LATEST_BACKUP=$(ls -t data/backups/database/*_metadata.json 2>/dev/null | head -1 | xargs basename | sed 's/_metadata.json//')
+          python3 scripts/backup/restore_manager.py database --backup-id "$LATEST_BACKUP" --force
+          
+          # Restart with previous version
+          docker-compose -f docker-compose.prod.yml up -d --force-recreate app
+        EOF
+    
+    - name: Notify deployment
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        text: 'Production deployment ${{ steps.version.outputs.VERSION }}: ${{ job.status }}'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+    
+    - name: Create GitHub Release
+      if: success() && github.event_name == 'push'
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.VERSION }}
+        release_name: Release ${{ steps.version.outputs.VERSION }}
+        body: |
+          ## Changes in this Release
+          - See commit history for details
+          
+          ## Deployment
+          - Deployed to production: https://avalanche-edna.example.com
+          - Docker image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+        draft: false
+        prerelease: false
