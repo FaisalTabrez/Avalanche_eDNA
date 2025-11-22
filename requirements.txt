@@ -65,11 +65,19 @@ prometheus-client>=0.19.0  # Prometheus metrics exporter
 psutil>=5.9.0           # System metrics
 celery-exporter>=1.6.0  # Celery metrics for Prometheus
 
-# Development
+# Development & Testing
 pytest>=7.0.0
 pytest-cov>=3.0.0
 pytest-asyncio>=0.21.0
 pytest-mock>=3.10.0
+pytest-xdist>=3.3.0       # Parallel test execution
+pytest-timeout>=2.1.0     # Test timeout handling
+pytest-benchmark>=4.0.0   # Performance benchmarking
+faker>=20.0.0             # Fake data generation
+factory-boy>=3.3.0        # Test fixture factories
+hypothesis>=6.88.0        # Property-based testing
+freezegun>=1.2.0          # Time mocking
+responses>=0.23.0         # HTTP mocking
 black>=22.0.0
 flake8>=4.0.0
 mypy>=0.931
