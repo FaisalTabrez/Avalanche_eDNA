@@ -7,8 +7,8 @@ from pathlib import Path
 import tempfile
 import time
 
-from src.database.backup_manager import BackupManager
-from src.database.restore_manager import RestoreManager
+from scripts.backup.backup_manager import BackupManager
+from scripts.backup.restore_manager import RestoreManager
 
 
 class TestBackupManager:

@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import time
 
-from src.utils.security import FileValidator, InputSanitizer, RateLimiter
+from src.security.validators import FileValidator, InputSanitizer, RateLimiter
 
 
 class TestFileValidator:
