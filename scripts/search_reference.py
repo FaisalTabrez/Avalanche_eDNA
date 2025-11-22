@@ -205,7 +205,7 @@ def main():
     print("\nPreparing query...")
     
     if args.run:
-        run_path = Path('consolidated_data/runs') / args.run
+        run_path = Path('analysis_outputs/runs') / args.run
         query_emb = get_query_embedding(run_path=run_path, seq_idx=args.seq_idx)
         print(f"  Query: {args.run} sequence #{args.seq_idx}")
     else:
