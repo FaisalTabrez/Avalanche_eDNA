@@ -34,32 +34,15 @@ ENV/
 *.ipynb
 
 # Data files (don't copy large data into image)
-data/raw/*
-data/processed/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-analysis_outputs/runs/*
-analysis_outputs/datasets/*
-analysis_outputs/results/*
-!analysis_outputs/runs/.gitkeep
-!analysis_outputs/datasets/.gitkeep
-!analysis_outputs/results/.gitkeep
+data/
+analysis_outputs/
+dAvalanchedataraw/
+!data/sample/
+!data/.gitkeep
 
 # Reference databases (too large for image)
-reference/silva/*
-reference/pr2/*
-reference/eukref/*
-reference/combined/*
-reference/indices/*.n*
-*.ndb
-*.nhr
-*.nin
-*.nog
-*.nos
-*.not
-*.nsq
-*.ntf
-*.nto
+reference/
+!reference/README.md
 
 # Logs
 logs/
