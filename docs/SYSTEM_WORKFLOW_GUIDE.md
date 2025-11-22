@@ -75,7 +75,7 @@ Avalanche uses a centralized system to manage the lifecycle of data, ensuring sc
 
 ### Directory Structure
 ```
-AvalancheData/
+analysis_outputs/
 ├── runs/                       # All analysis runs
 │   └── Dataset_Name/
 │       └── YYYY-MM-DD_HH-MM-SS/
@@ -143,7 +143,7 @@ The Streamlit dashboard provides four main views:
 2.  **Run Pipeline**:
     ```bash
     # Basic run
-    python scripts/run_pipeline.py --input data/raw/mysample.fasta --output AvalancheData/runs/MyProject/Run1
+    python scripts/run_pipeline.py --input data/raw/mysample.fasta --output analysis_outputs/runs/MyProject/Run1
 
     # Run with custom model training
     python scripts/run_pipeline.py --input data/raw/mysample.fasta --output ... --train-model
