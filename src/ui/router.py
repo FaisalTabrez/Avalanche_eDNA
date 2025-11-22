@@ -7,8 +7,7 @@ from src.ui.pages import (
     analysis,
     training,
     sra_browser,
-    results,
-    runs,
+    analysis_outputs,
     taxonomy,
     about
 )
@@ -24,10 +23,8 @@ def render_page(page_key):
         training.render()
     elif page_key == "sra_browser":
         sra_browser.render()
-    elif page_key == "results":
-        results.render()
-    elif page_key == "runs":
-        runs.render()
+    elif page_key == "analysis_outputs":
+        analysis_outputs.render()
     elif page_key == "taxonomy":
         taxonomy.render()
     elif page_key == "about":
@@ -42,8 +39,7 @@ def get_pages_config():
         {"key": "analysis", "label": "Dataset Analysis"},
         {"key": "training", "label": "Model Training"},
         {"key": "sra_browser", "label": "SRA Browser"},
-        {"key": "results", "label": "Results Viewer"},
-        {"key": "runs", "label": "Run Browser"},
+        {"key": "analysis_outputs", "label": "Analysis Outputs"},
         {"key": "taxonomy", "label": "Taxonomy Viewer"},
         {"key": "about", "label": "About"},
     ]
