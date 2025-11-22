@@ -4,7 +4,7 @@ Database connection factory supporting both SQLite and PostgreSQL
 import os
 import sqlite3
 import logging
-from typing import Optional, Any, Union
+from typing import Optional, Any, Union, Dict
 from contextlib import contextmanager
 from pathlib import Path
 
