@@ -21,6 +21,9 @@ from src.ui import router, state
 # Authentication
 from src.auth import get_auth_manager
 
+# Security
+from src.security import initialize_session_security
+
 # Page configuration
 st.set_page_config(
     page_title="eDNA Biodiversity Assessment",
@@ -53,6 +56,9 @@ def initialize_auth():
 
 def main():
     """Main application function"""
+    
+    # Initialize security features
+    initialize_session_security()
     
     # Initialize session state
     state.init_session_state()

@@ -13,6 +13,15 @@ from pathlib import Path
 from datetime import datetime
 from src.ui.data_manager import get_data_manager, RunInfo
 from src.ui.components.run_selector import current_run_header
+from src.auth import get_auth_manager
+from src.security import (
+    rate_limit,
+    InputSanitizer,
+    validate_dataset_path,
+    log_security_event,
+    FileValidator,
+    get_rate_limiter
+)
 
 
 def render():
@@ -350,12 +359,61 @@ def render_upload_run():
             elif not uploaded_file:
                 st.error("Please select a file to upload")
             else:
-                process_upload(dataset_name, uploaded_file)
+                # Apply rate limiting (10 uploads per hour)
+                if not get_rate_limiter().is_allowed('upload_run', max_requests=10, window_seconds=3600):
+                    st.error("❌ Upload limit exceeded. Please try again later.")
+                    log_security_event('upload_rate_limit_exceeded', {
+                        'dataset_name': dataset_name
+                    })
+                else:
+                    process_upload(dataset_name, uploaded_file)
 
 
 def process_upload(dataset_name: str, uploaded_file):
-    """Process uploaded run archive"""
+    """Process uploaded run archive with security validation"""
     dm = get_data_manager()
+    
+    # Sanitize dataset name
+    safe_dataset_name = InputSanitizer.sanitize_dataset_name(dataset_name)
+    
+    if safe_dataset_name != dataset_name:
+        st.warning(f"Dataset name sanitized: '{dataset_name}' → '{safe_dataset_name}'")
+        log_security_event('dataset_name_sanitized', {
+            'original': dataset_name,
+            'sanitized': safe_dataset_name
+        })
+    
+    # Validate filename
+    valid, error = FileValidator.validate_filename(uploaded_file.name)
+    if not valid:
+        st.error(f"❌ Invalid filename: {error}")
+        log_security_event('invalid_upload_filename', {
+            'filename': uploaded_file.name,
+            'error': error
+        })
+        return
+    
+    # Validate file size
+    file_size = uploaded_file.size
+    valid, error = FileValidator.validate_file_size(file_size)
+    if not valid:
+        st.error(f"❌ {error}")
+        log_security_event('upload_file_too_large', {
+            'filename': uploaded_file.name,
+            'size_bytes': file_size
+        })
+        return
+    
+    # Validate dataset path
+    try:
+        dataset_path = validate_dataset_path(safe_dataset_name, str(dm.runs_root))
+    except ValueError as e:
+        st.error(f"❌ Invalid dataset path: {e}")
+        log_security_event('path_traversal_attempt', {
+            'dataset_name': dataset_name,
+            'sanitized': safe_dataset_name
+        })
+        return
     
     try:
         # Create temporary directory
@@ -363,12 +421,50 @@ def process_upload(dataset_name: str, uploaded_file):
             tmpdir_path = Path(tmpdir)
             
             # Save uploaded file
-            zip_path = tmpdir_path / uploaded_file.name
+            safe_filename = FileValidator.sanitize_filename(uploaded_file.name)
+            zip_path = tmpdir_path / safe_filename
+            
             with open(zip_path, 'wb') as f:
                 f.write(uploaded_file.getbuffer())
             
-            # Extract ZIP
+            # Validate it's actually a ZIP file
+            if not zipfile.is_zipfile(zip_path):
+                st.error("❌ File is not a valid ZIP archive")
+                log_security_event('invalid_zip_upload', {
+                    'filename': uploaded_file.name
+                })
+                return
+            
+            # Extract ZIP with safety checks
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                # Check for zip bombs (excessive compression ratio)
+                uncompressed_size = sum(info.file_size for info in zip_ref.filelist)
+                compressed_size = sum(info.compress_size for info in zip_ref.filelist)
+                
+                if compressed_size > 0:
+                    compression_ratio = uncompressed_size / compressed_size
+                    if compression_ratio > 100:  # More than 100:1 compression
+                        st.error("❌ Suspicious compression ratio detected (possible zip bomb)")
+                        log_security_event('zip_bomb_detected', {
+                            'filename': uploaded_file.name,
+                            'ratio': compression_ratio
+                        })
+                        return
+                
+                # Extract with path validation
+                for member in zip_ref.namelist():
+                    # Check for path traversal in archive members
+                    member_path = Path(tmpdir_path) / member
+                    try:
+                        member_path.resolve().relative_to(tmpdir_path.resolve())
+                    except ValueError:
+                        st.error(f"❌ Archive contains invalid path: {member}")
+                        log_security_event('zip_path_traversal', {
+                            'filename': uploaded_file.name,
+                            'member': member
+                        })
+                        return
+                
                 zip_ref.extractall(tmpdir_path)
             
             # Find the run folder (should be the only directory)
@@ -383,15 +479,22 @@ def process_upload(dataset_name: str, uploaded_file):
             # Generate run ID with timestamp
             run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            # Destination path
-            dest_dir = dm.runs_root / dataset_name / run_id
+            # Destination path (already validated above)
+            dest_dir = dataset_path / run_id
             dest_dir.parent.mkdir(parents=True, exist_ok=True)
             
             # Copy the run folder
             shutil.copytree(source_dir, dest_dir)
             
-            st.success(f"✓ Successfully uploaded run: {dataset_name}/{run_id}")
+            st.success(f"✓ Successfully uploaded run: {safe_dataset_name}/{run_id}")
             st.info(f"Location: `{dest_dir}`")
+            
+            # Log successful upload
+            log_security_event('run_uploaded', {
+                'dataset': safe_dataset_name,
+                'run_id': run_id,
+                'file_size': file_size
+            })
             
             # Clear cache
             dm.discover_runs.clear()
@@ -404,6 +507,13 @@ def process_upload(dataset_name: str, uploaded_file):
             
     except zipfile.BadZipFile:
         st.error("Invalid ZIP file")
+        log_security_event('bad_zip_file', {
+            'filename': uploaded_file.name
+        })
     except Exception as e:
         st.error(f"Upload failed: {e}")
+        log_security_event('upload_error', {
+            'filename': uploaded_file.name,
+            'error': str(e)
+        })
         st.exception(e)

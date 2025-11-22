@@ -8,6 +8,12 @@ import plotly.express as px
 import time
 from pathlib import Path
 from src.utils.config import config as app_config
+from src.security import (
+    FileValidator,
+    InputSanitizer,
+    get_rate_limiter,
+    log_security_event
+)
 
 try:
     from src.analysis.dataset_analyzer import DatasetAnalyzer
@@ -115,29 +121,40 @@ def render():
             else:
                 st.warning("SRA integration not available. Please check installation.")
         
-        # File size information
+        # File size information and validation
         file_valid = True
         if uploaded_file is not None:
-            try:
-                # Check file size
-                file_size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
-                file_size_gb = file_size_mb / 1024
-                
-                if file_size_gb >= 1:
-                    st.info(f"File size: {file_size_gb:.2f} GB ({file_size_mb:.0f} MB)")
-                else:
-                    st.info(f"File size: {file_size_mb:.2f} MB")
-                
-                if file_size_mb > 10240:  # 10GB limit
-                    st.error("File size exceeds 10GB limit. Please use a smaller file or contact support for processing very large datasets.")
-                    file_valid = False
-                elif file_size_mb > 1024:  # Warn for files over 1GB
-                    st.warning(f"Large file detected ({file_size_mb:.0f} MB). Upload may take longer than usual. Please be patient.")
-                    
-            except Exception as e:
-                st.error(f"Error reading file: {str(e)}")
-                st.error("This might be due to a network timeout for large files. Please try with a smaller file or check your connection.")
+            # Validate filename
+            valid, error = FileValidator.validate_filename(uploaded_file.name)
+            if not valid:
+                st.error(f"❌ Invalid filename: {error}")
+                log_security_event('invalid_analysis_filename', {
+                    'filename': uploaded_file.name,
+                    'error': error
+                })
                 file_valid = False
+            
+            if file_valid:
+                try:
+                    # Check file size
+                    file_size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
+                    file_size_gb = file_size_mb / 1024
+                    
+                    if file_size_gb >= 1:
+                        st.info(f"File size: {file_size_gb:.2f} GB ({file_size_mb:.0f} MB)")
+                    else:
+                        st.info(f"File size: {file_size_mb:.2f} MB")
+                    
+                    if file_size_mb > 10240:  # 10GB limit
+                        st.error("File size exceeds 10GB limit. Please use a smaller file or contact support for processing very large datasets.")
+                        file_valid = False
+                    elif file_size_mb > 1024:  # Warn for files over 1GB
+                        st.warning(f"Large file detected ({file_size_mb:.0f} MB). Upload may take longer than usual. Please be patient.")
+                        
+                except Exception as e:
+                    st.error(f"Error reading file: {str(e)}")
+                    st.error("This might be due to a network timeout for large files. Please try with a smaller file or check your connection.")
+                    file_valid = False
         
         # Analysis configuration
         st.markdown("## 2. Analysis Configuration")
@@ -145,11 +162,15 @@ def render():
         col1, col2 = st.columns(2)
         
         with col1:
-            dataset_name = st.text_input(
+            dataset_name_input = st.text_input(
                 "Dataset Name",
                 value="My Dataset",
                 help="Custom name for your analysis"
             )
+            # Sanitize dataset name
+            dataset_name = InputSanitizer.sanitize_dataset_name(dataset_name_input)
+            if dataset_name != dataset_name_input:
+                st.warning(f"Dataset name sanitized: '{dataset_name_input}' → '{dataset_name}'")
             
             max_sequences = st.number_input(
                 "Maximum Sequences to Analyze",
