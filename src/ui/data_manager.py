@@ -210,6 +210,12 @@ class DataManager:
         if (run_path / 'analysis_report.txt').exists():
             files['analysis_report'] = run_path / 'analysis_report.txt'
         
+        # Embeddings (check both .npy and .npz)
+        if (run_path / 'embeddings.npy').exists():
+            files['embeddings'] = run_path / 'embeddings.npy'
+        elif (run_path / 'embeddings.npz').exists():
+            files['embeddings'] = run_path / 'embeddings.npz'
+        
         # Clustering files
         clustering_dir = run_path / 'clustering'
         if clustering_dir.exists():
@@ -245,6 +251,82 @@ class DataManager:
                 files[f'viz_{viz_file.stem}'] = viz_file
         
         return files
+    
+    def search_across_embeddings(
+        self,
+        query_run: Path,
+        query_seq_idx: int,
+        top_k: int = 10,
+        exclude_same_run: bool = True
+    ) -> List[Dict]:
+        """
+        Search for similar sequences across all runs using embeddings.
+        
+        Args:
+            query_run: Path to run containing query sequence
+            query_seq_idx: Index of query sequence in that run
+            top_k: Number of results to return
+            exclude_same_run: Exclude results from the same run
+            
+        Returns:
+            List of dicts with keys: dataset, run_id, seq_idx, distance, path
+        """
+        try:
+            import numpy as np
+            
+            # Load query embedding
+            query_emb_file = query_run / 'embeddings.npy'
+            if not query_emb_file.exists():
+                query_emb_file = query_run / 'embeddings.npz'
+            
+            if query_emb_file.suffix == '.npy':
+                query_emb = np.load(query_emb_file, mmap_mode='r')[query_seq_idx]
+            else:
+                with np.load(query_emb_file) as data:
+                    query_emb = data['embeddings'][query_seq_idx]
+            
+            # Search across all runs
+            results = []
+            runs = self.discover_runs()
+            
+            for run in runs:
+                # Skip same run if requested
+                if exclude_same_run and run.path == query_run:
+                    continue
+                
+                # Load run embeddings
+                emb_file = run.path / 'embeddings.npy'
+                if not emb_file.exists():
+                    emb_file = run.path / 'embeddings.npz'
+                if not emb_file.exists():
+                    continue
+                
+                if emb_file.suffix == '.npy':
+                    run_emb = np.load(emb_file, mmap_mode='r')
+                else:
+                    with np.load(emb_file) as data:
+                        run_emb = data['embeddings']
+                
+                # Compute distances
+                distances = np.linalg.norm(run_emb - query_emb, axis=1)
+                
+                # Add all sequences from this run
+                for seq_idx, dist in enumerate(distances):
+                    results.append({
+                        'dataset': run.dataset,
+                        'run_id': run.run_id,
+                        'seq_idx': seq_idx,
+                        'distance': float(dist),
+                        'path': run.path
+                    })
+            
+            # Sort by distance and return top-k
+            results.sort(key=lambda x: x['distance'])
+            return results[:top_k]
+            
+        except Exception as e:
+            st.error(f"Error searching embeddings: {e}")
+            return []
 
 
 # Singleton instance

@@ -300,6 +300,13 @@ pytest tests/
     - `examples/ml_training_example.py` — a training example demonstrating model training steps.
     - `examples/sra_integration_example.py` — an example showing SRA integration usage.
 
+- Embedding management scripts for multi-dataset workflows are in `scripts/`:
+    - `scripts/consolidate_embeddings.py` — Build consolidated reference from all run embeddings
+    - `scripts/compress_embeddings.py` — Compress embeddings to save storage space (~50%)
+    - `scripts/search_reference.py` — Search across all embeddings for similar sequences
+    - `scripts/manage_embedding_versions.py` — Track model versions and tag runs
+    - See [EMBEDDING_MANAGEMENT.md](docs/EMBEDDING_MANAGEMENT.md) for detailed workflow
+
 - Archived one-off or legacy scripts have been moved to `archive/removed_misc/`. If you need to restore a file, copy it back from that directory.
 
 - The Windows helper `start_report_system.bat` is located at `scripts/windows/start_report_system.bat`.
