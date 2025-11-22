@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Streamlit Application
+  streamlit:
+    build:
+      context: .
+      target: development
+    container_name: avalanche-streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONPATH=/app
+      - DB_TYPE=postgresql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=avalanche_edna
+      - DB_USER=avalanche
+      - DB_PASSWORD=avalanche_dev_password
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      # Mount source code for hot reload during development
+      - .:/app
+      # Persistent data volumes
+      - data-raw:/app/data/raw
+      - data-processed:/app/data/processed
+      - data-reference:/app/data/reference
+      - data-reports:/app/data/report_storage
+      - analysis-outputs:/app/analysis_outputs
+      - reference-indices:/app/reference/indices
+      - logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: avalanche-postgres
+    environment:
+      - POSTGRES_DB=avalanche_edna
+      - POSTGRES_USER=avalanche
+      - POSTGRES_PASSWORD=avalanche_dev_password
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Optional: mount init scripts
+      # - ./scripts/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avalanche -d avalanche_edna"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis (for caching and future job queue)
+  redis:
+    image: redis:7-alpine
+    container_name: avalanche-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: avalanche-pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@avalanche.local
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+    profiles:
+      - dev-tools
+
+# Named volumes for data persistence
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  data-raw:
+    driver: local
+  data-processed:
+    driver: local
+  data-reference:
+    driver: local
+  data-reports:
+    driver: local
+  analysis-outputs:
+    driver: local
+  reference-indices:
+    driver: local
+  logs:
+    driver: local
+  pgadmin-data:
+    driver: local
+
+# Network
+networks:
+  avalanche-network:
+    driver: bridge

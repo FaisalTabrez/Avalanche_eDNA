@@ -65,6 +65,81 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 
 ## Installation
 
+### Option 1: Docker (Recommended for Production)
+
+**Prerequisites:**
+- Docker 20.10+
+- Docker Compose 2.0+
+
+**Quick Start:**
+```bash
+# Clone the repository
+git clone https://github.com/FaisalTabrez/Avalanche_eDNA.git
+cd Avalanche_eDNA
+
+# Copy environment template and configure
+cp .env.example .env
+# Edit .env with your settings (database passwords, etc.)
+
+# Start all services (Streamlit, PostgreSQL, Redis)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f streamlit
+
+# Access the application
+# Navigate to http://localhost:8501
+```
+
+**Production Deployment:**
+```bash
+# Copy production environment template
+cp .env.example .env
+# Edit .env with production credentials and settings
+
+# Build and start production services
+docker-compose -f docker-compose.prod.yml up -d
+
+# Scale application instances
+docker-compose -f docker-compose.prod.yml up -d --scale streamlit=3
+
+# View status
+docker-compose -f docker-compose.prod.yml ps
+
+# Access the application
+# Navigate to http://localhost:8501 (or your configured domain)
+```
+
+**Useful Docker Commands:**
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (deletes data!)
+docker-compose down -v
+
+# Rebuild after code changes
+docker-compose build
+docker-compose up -d
+
+# View application logs
+docker-compose logs -f streamlit
+
+# Access shell in running container
+docker-compose exec streamlit bash
+
+# Run database migrations
+docker-compose exec streamlit python scripts/migrate_database.py
+
+# Backup database
+docker-compose exec postgres pg_dump -U avalanche avalanche_edna > backup.sql
+
+# Restore database
+docker-compose exec -T postgres psql -U avalanche avalanche_edna < backup.sql
+```
+
+### Option 2: Local Installation
+
 See [Installation Guide](docs/installation.md) for detailed setup instructions including prerequisites, environment setup, and optional dependencies.
 
 ## 🚀 Quick Start

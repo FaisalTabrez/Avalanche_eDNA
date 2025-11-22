@@ -1,0 +1,167 @@
+version: '3.8'
+
+services:
+  # Streamlit Application (Production)
+  streamlit:
+    build:
+      context: .
+      target: application
+    image: avalanche-edna:latest
+    container_name: avalanche-streamlit-prod
+    ports:
+      - "8501:8501"
+    environment:
+      - PYTHONPATH=/app
+      - DB_TYPE=postgresql
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_URL=${REDIS_URL}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SECRET_KEY=${SECRET_KEY}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - SESSION_TIMEOUT=${SESSION_TIMEOUT:-3600}
+    volumes:
+      # Only mount data volumes, not source code
+      - ${DATA_VOLUME_PATH:-./data}:/app/data
+      - ${ANALYSIS_OUTPUTS_PATH:-./analysis_outputs}:/app/analysis_outputs
+      - ${REFERENCE_PATH:-./reference}:/app/reference
+      - ${LOGS_PATH:-./logs}:/app/logs
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    networks:
+      - avalanche-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database (Production - use managed service in real production)
+  postgres:
+    image: postgres:15-alpine
+    container_name: avalanche-postgres-prod
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-prod-data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - avalanche-network
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=1GB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=2621kB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+
+  # Redis (Production)
+  redis:
+    image: redis:7-alpine
+    container_name: avalanche-redis-prod
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-prod-data:/data
+    networks:
+      - avalanche-network
+    deploy:
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: 
+      - redis-server
+      - --appendonly yes
+      - --maxmemory 1gb
+      - --maxmemory-policy allkeys-lru
+      - --save 60 1000
+      - --save 300 100
+      - --save 900 10
+
+  # Nginx Load Balancer (Optional for multi-instance setup)
+  nginx:
+    image: nginx:alpine
+    container_name: avalanche-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - streamlit
+    networks:
+      - avalanche-network
+    deploy:
+      restart_policy:
+        condition: on-failure
+    profiles:
+      - loadbalancer
+
+# Named volumes for production data persistence
+volumes:
+  postgres-prod-data:
+    driver: local
+  redis-prod-data:
+    driver: local
+
+# Network
+networks:
+  avalanche-network:
+    driver: bridge
