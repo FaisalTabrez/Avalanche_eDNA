@@ -65,7 +65,8 @@ flower>=2.0.1           # Celery monitoring tool
 # Monitoring & Observability
 prometheus-client>=0.19.0  # Prometheus metrics exporter
 psutil>=5.9.0           # System metrics
-celery-exporter>=1.5.1  # Celery metrics for Prometheus (latest: 1.5.1)
+# celery-exporter>=1.5.1  # DISABLED: Requires Rust compiler, optional for Celery metrics
+# Alternative: Use prometheus-client directly with custom Celery metrics
 
 # Development & Testing
 pytest>=7.0.0
