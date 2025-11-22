@@ -50,6 +50,11 @@ python-magic-bin>=0.4.14  # Windows libmagic binaries
 psycopg2-binary>=2.9.0  # For PostgreSQL
 sqlalchemy>=1.4.0       # ORM for database abstraction
 
+# Backup & Cloud Storage (optional)
+boto3>=1.26.0           # AWS S3 backup support
+azure-storage-blob>=12.14.0  # Azure Blob backup support
+google-cloud-storage>=2.7.0  # Google Cloud Storage backup support
+
 # Development
 pytest>=7.0.0
 pytest-cov>=3.0.0

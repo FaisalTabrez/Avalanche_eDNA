@@ -1,0 +1,78 @@
+# Backup Configuration for Avalanche
+
+backup:
+  # Backup root directory
+  root_dir: data/backups
+  
+  # Retention policy
+  retention:
+    daily: 7     # Keep daily backups for 7 days
+    weekly: 4    # Keep weekly backups for 4 weeks
+    monthly: 12  # Keep monthly backups for 12 months
+  
+  # Compression settings
+  compression: true  # Enable gzip compression
+  
+  # Encryption settings
+  encryption: false  # Enable backup encryption (requires setup)
+  encryption_key: null  # Path to encryption key file
+  
+  # Cloud storage settings
+  cloud:
+    enabled: false  # Enable cloud backup upload
+    provider: local  # Options: s3, azure, gcs, local
+    
+    # AWS S3 configuration
+    s3:
+      bucket: avalanche-backups
+      prefix: production/
+      region: us-east-1
+      access_key_id: null  # Set via AWS_ACCESS_KEY_ID env var
+      secret_access_key: null  # Set via AWS_SECRET_ACCESS_KEY env var
+    
+    # Azure Blob Storage configuration
+    azure:
+      container: avalanche-backups
+      prefix: production/
+      connection_string: null  # Set via AZURE_STORAGE_CONNECTION_STRING env var
+    
+    # Google Cloud Storage configuration
+    gcs:
+      bucket: avalanche-backups
+      prefix: production/
+      project_id: null  # Set via GOOGLE_CLOUD_PROJECT env var
+      credentials_file: null  # Path to service account JSON key
+  
+  # Schedule (cron format)
+  schedule:
+    database: "0 2 * * *"      # Daily at 2 AM
+    files: "0 3 * * 0"         # Weekly on Sunday at 3 AM
+    cleanup: "0 4 * * 0"       # Weekly on Sunday at 4 AM
+  
+  # Notification settings
+  notifications:
+    enabled: false
+    email:
+      smtp_host: smtp.gmail.com
+      smtp_port: 587
+      smtp_user: null
+      smtp_password: null
+      from_email: null
+      to_emails: []
+    slack:
+      webhook_url: null
+  
+  # Backup verification
+  verification:
+    enabled: true  # Verify backups after creation
+    checksum_algorithm: sha256  # Options: sha256, md5, sha1
+  
+  # Paths to backup (for file backups)
+  paths:
+    - data/datasets
+    - data/raw
+    - data/processed
+    - data/reference
+    - data/report_storage
+    - consolidated_data
+    - config
