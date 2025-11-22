@@ -11,8 +11,8 @@ from typing import Dict, Any, Optional
 from celery import shared_task
 from datetime import datetime
 
-from src.database.database import DatabaseManager
-from src.utils.security import FileValidator, InputSanitizer
+from src.database.manager import DatabaseManager
+from src.security.validators import FileValidator, InputSanitizer
 
 
 logger = logging.getLogger(__name__)
