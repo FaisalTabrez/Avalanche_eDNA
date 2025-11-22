@@ -38,27 +38,25 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 
 ## 📁 Project Structure
 
+See [DIRECTORY_STRUCTURE.md](DIRECTORY_STRUCTURE.md) for complete organization details.
+
 ```
-├── data/                        # Sample datasets and test data
-├── src/                         # Source code
-│   ├── analysis/                # Dataset analysis utilities
-│   ├── api/                     # Report management API
-│   ├── clustering/              # Clustering algorithms and taxonomy helpers
-│   ├── dashboards/              # Streamlit dashboard modules
-│   ├── database/                # Database models and manager
-│   ├── novelty/                 # Novelty detection logic
-│   ├── organism_profiling/      # Organism profiling modules
-│   ├── preprocessing/           # Data cleaning and preparation
-│   ├── report_management/       # Report/catalogue management
-│   ├── similarity/              # Cross-analysis engine
-│   ├── utils/                   # Shared utilities and config
-│   └── visualization/           # Plotting and dashboard utilities
-├── notebooks/                   # Jupyter notebooks for analysis
-├── tests/                       # Unit and integration tests
+├── docker/                      # Docker configuration files
 ├── docs/                        # Documentation
-├── scripts/                     # Pipeline and automation scripts
-├── streamlit_app.py             # Streamlit UI entrypoint
-└── requirements*.txt            # Python dependencies
+│   ├── guides/                  # Integration guides
+│   ├── reports/                 # Phase & test reports
+│   └── archive/                 # Historical documents
+├── requirements/                # Python dependencies by purpose
+├── scripts/                     # Utility scripts
+├── src/                         # Source code
+│   ├── api/                     # FastAPI endpoints
+│   ├── clustering/              # Clustering & taxonomy
+│   ├── database/                # Database layer
+│   ├── utils/                   # Caching, rate limiting, logging
+│   └── ...                      # Other modules
+├── tests/                       # Test suite (50+ tests)
+├── requirements.txt             # Main Python dependencies
+└── streamlit_app.py             # Streamlit UI entrypoint
 ```
 
 > Note: The current pipeline uses placeholder embeddings and a demo ML taxonomy classifier trained on synthetic data. Replace the embedding step with real models and training when src/models is introduced.
@@ -81,7 +79,8 @@ cd Avalanche_eDNA
 cp .env.example .env
 # Edit .env with your settings (database passwords, etc.)
 
-# Start all services (Streamlit, PostgreSQL, Redis)
+# Start all services (Streamlit, PostgreSQL, Redis, Prometheus, Grafana)
+cd docker/
 docker-compose up -d
 
 # View logs
@@ -98,6 +97,7 @@ cp .env.example .env
 # Edit .env with production credentials and settings
 
 # Build and start production services
+cd docker/
 docker-compose -f docker-compose.prod.yml up -d
 
 # Scale application instances
@@ -112,6 +112,8 @@ docker-compose -f docker-compose.prod.yml ps
 
 **Useful Docker Commands:**
 ```bash
+cd docker/
+
 # Stop all services
 docker-compose down
 
