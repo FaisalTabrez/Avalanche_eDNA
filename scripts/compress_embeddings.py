@@ -97,8 +97,8 @@ def main():
     parser.add_argument(
         '--runs-root',
         type=Path,
-        default=Path('consolidated_data/runs'),
-        help='Root directory containing runs (default: consolidated_data/runs)'
+        default=Path('AvalancheData/runs'),
+        help='Root directory containing runs (default: AvalancheData/runs)'
     )
     parser.add_argument(
         '--execute',
