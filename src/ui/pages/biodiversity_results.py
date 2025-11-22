@@ -17,7 +17,7 @@ from src.ui.components.run_selector import current_run_header
 
 def render():
     """Display unified biodiversity results page"""
-    st.title("🧬 Biodiversity Results")
+    st.title("Biodiversity Results")
     
     st.markdown("""
     Browse all stored analysis runs, upload external runs, and view detailed results in one place.
