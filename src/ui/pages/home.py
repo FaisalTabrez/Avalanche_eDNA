@@ -5,6 +5,7 @@ import streamlit as st
 from pathlib import Path
 from src.utils.config import config as app_config
 from src.auth import get_auth_manager
+from src.ui import state
 
 def render():
     """Display the home page with navigation and quick links"""
@@ -33,7 +34,7 @@ def render():
         col1, col2, col3 = st.columns([1, 1, 2])
         with col1:
             if st.button("🔑 Login", type="primary", use_container_width=True, key="btn_login_top"):
-                st.session_state.current_page_key = "login"
+                state.set('current_page_key', 'login')
                 st.rerun()
         with col3:
             st.warning("⚠️ You are browsing as a guest. Please log in to access analysis features.")
@@ -50,13 +51,13 @@ def render():
             st.markdown("#### Analysis")
             st.info("Process raw sequencing data, perform quality control, and generate taxonomic profiles.")
             if st.button("Launch Analysis", use_container_width=True, key="btn_analysis"):
-                st.session_state.current_page_key = "analysis"
+                state.set('current_page_key', 'analysis')
                 st.rerun()
             
             st.markdown("#### Taxonomy")
             st.info("Explore taxonomic classifications, visualize diversity, and resolve conflicts.")
             if st.button("View Taxonomy", use_container_width=True, key="btn_taxonomy"):
-                st.session_state.current_page_key = "taxonomy"
+                state.set('current_page_key', 'taxonomy')
                 st.rerun()
 
     with col2:
@@ -64,13 +65,13 @@ def render():
             st.markdown("#### Model Training")
             st.info("Train custom DNA embedding models using Contrastive Learning or Autoencoders.")
             if st.button("Train Models", use_container_width=True, key="btn_training"):
-                st.session_state.current_page_key = "training"
+                state.set('current_page_key', 'training')
                 st.rerun()
 
             st.markdown("#### Biodiversity Results")
             st.info("Browse all stored analysis runs, view results, and upload external datasets.")
             if st.button("View Results", use_container_width=True, key="btn_outputs"):
-                st.session_state.current_page_key = "biodiversity_results"
+                state.set('current_page_key', 'biodiversity_results')
                 st.rerun()
 
     with col3:
@@ -78,13 +79,13 @@ def render():
             st.markdown("#### Quick Actions")
             st.success("Ready to start? Begin a new analysis workflow immediately.")
             if st.button("Start New Run", type="primary", use_container_width=True, key="btn_start"):
-                st.session_state.current_page_key = "analysis"
+                state.set('current_page_key', 'analysis')
                 st.rerun()
             
             st.markdown("#### SRA Browser")
             st.info("Search and download sequences from the NCBI Sequence Read Archive.")
             if st.button("Browse SRA", use_container_width=True, key="btn_sra"):
-                st.session_state.current_page_key = "sra_browser"
+                state.set('current_page_key', 'sra_browser')
                 st.rerun()
     
     # Recent runs quick links using centralized data manager
