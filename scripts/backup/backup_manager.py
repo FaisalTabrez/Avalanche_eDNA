@@ -660,11 +660,9 @@ class BackupManager:
         Returns:
             Success status
         """
-        if not AZURE_AVAILABLE:
-            self.logger.error("azure-storage-blob not installed. Install with: pip install azure-storage-blob")
-            return False
-            
         try:
+            from azure.storage.blob import BlobServiceClient
+            
             connection_string = config.get('backup.cloud.azure.connection_string')
             container = config.get('backup.cloud.azure.container')
             prefix = config.get('backup.cloud.azure.prefix', 'backups/')
@@ -687,6 +685,9 @@ class BackupManager:
             self.logger.info("Azure upload successful")
             return True
             
+        except ImportError:
+            self.logger.error("azure-storage-blob not installed. Install with: pip install azure-storage-blob")
+            return False
         except Exception as e:
             self.logger.error(f"Azure upload failed: {e}")
             return False

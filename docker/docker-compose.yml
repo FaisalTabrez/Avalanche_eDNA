@@ -3,9 +3,7 @@ version: '3.8'
 services:
   # Streamlit Application
   streamlit:
-    build:
-      context: .
-      target: development
+    image: avalanche-edna:application
     container_name: avalanche-streamlit
     ports:
       - "8501:8501"
@@ -22,7 +20,7 @@ services:
       - LOG_LEVEL=DEBUG
     volumes:
       # Mount source code for hot reload during development
-      - .:/app
+      - ..:/app
       # Persistent data volumes
       - data-raw:/app/data/raw
       - data-processed:/app/data/processed
@@ -30,6 +28,35 @@ services:
       - data-reports:/app/data/report_storage
       - analysis-outputs:/app/analysis_outputs
       - reference-indices:/app/reference/indices
+      - logs:/app/logs
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - avalanche-network
+    restart: unless-stopped
+
+  # Independent User Management Application
+  user-management:
+    image: avalanche-edna:application
+    container_name: avalanche-user-management
+    ports:
+      - "8502:8502"
+    environment:
+      - PYTHONPATH=/app
+      - DB_TYPE=postgresql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=avalanche_edna
+      - DB_USER=avalanche
+      - DB_PASSWORD=avalanche_dev_password
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+    command: streamlit run user_management_app.py --server.port=8502 --server.address=0.0.0.0
+    volumes:
+      # Mount source code
+      - ..:/app
       - logs:/app/logs
     depends_on:
       - postgres
@@ -104,9 +131,7 @@ services:
 
   # Celery Worker for background tasks
   celery-worker:
-    build:
-      context: .
-      target: development
+    image: avalanche-edna:application
     container_name: avalanche-celery-worker
     command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=4
     environment:
@@ -123,7 +148,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
     volumes:
-      - .:/app
+      - ..:/app
       - data-raw:/app/data/raw
       - data-processed:/app/data/processed
       - data-reference:/app/data/reference
@@ -140,9 +165,7 @@ services:
 
   # Celery Beat for scheduled tasks
   celery-beat:
-    build:
-      context: .
-      target: development
+    image: avalanche-edna:application
     container_name: avalanche-celery-beat
     command: celery -A src.tasks.celery_app beat --loglevel=info
     environment:

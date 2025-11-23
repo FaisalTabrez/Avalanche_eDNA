@@ -1,9 +1,9 @@
 """
 Main authentication manager integrating user management and sessions
 """
+import os
 import streamlit as st
 from typing import Optional, Dict, Tuple
-from .user_manager import UserManager
 from .password_utils import SessionManager, validate_password_strength
 from src.ui import state
 
@@ -13,15 +13,26 @@ class AuthManager:
     Central authentication manager for the application
     """
     
-    def __init__(self, db_path: str = "data/avalanche_users.db", session_timeout: int = 3600):
+    def __init__(self, user_manager=None, session_timeout: int = 3600):
         """
         Initialize authentication manager
         
         Args:
-            db_path: Path to user database
+            user_manager: User manager instance (auto-detected if None)
             session_timeout: Session timeout in seconds (default 1 hour)
         """
-        self.user_manager = UserManager(db_path)
+        if user_manager is None:
+            # Auto-detect based on DB_TYPE environment variable
+            db_type = os.getenv('DB_TYPE', 'sqlite').lower()
+            if db_type == 'postgresql':
+                from .postgres_user_manager import PostgresUserManager
+                self.user_manager = PostgresUserManager()
+            else:
+                from .user_manager import UserManager
+                self.user_manager = UserManager()
+        else:
+            self.user_manager = user_manager
+            
         self.session_manager = SessionManager(session_timeout)
         self._init_session_state()
     
