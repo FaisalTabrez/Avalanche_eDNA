@@ -4,6 +4,7 @@ Decorators for authentication and authorization
 from functools import wraps
 import streamlit as st
 from typing import Callable, Optional
+from src.ui import state
 
 
 def require_auth(redirect_to: str = "login"):
@@ -28,8 +29,8 @@ def require_auth(redirect_to: str = "login"):
             
             if not auth.is_authenticated():
                 st.warning("Please log in to access this feature.")
-                st.switch_page(f"pages/{redirect_to}.py")
-                st.stop()
+                state.set('current_page_key', redirect_to)
+                st.rerun()
             
             return func(*args, **kwargs)
         
@@ -60,13 +61,13 @@ def require_role(role: str, redirect_to: str = "home"):
             
             if not auth.is_authenticated():
                 st.warning("Please log in to access this feature.")
-                st.switch_page("pages/login.py")
-                st.stop()
+                state.set('current_page_key', 'login')
+                st.rerun()
             
             if not auth.has_role(role):
                 st.error(f"Access denied. This feature requires {role} role.")
-                st.switch_page(f"pages/{redirect_to}.py")
-                st.stop()
+                state.set('current_page_key', redirect_to)
+                st.rerun()
             
             return func(*args, **kwargs)
         
@@ -97,13 +98,13 @@ def require_permission(permission: str, redirect_to: str = "home"):
             
             if not auth.is_authenticated():
                 st.warning("Please log in to access this feature.")
-                st.switch_page("pages/login.py")
-                st.stop()
+                state.set('current_page_key', 'login')
+                st.rerun()
             
             if not auth.has_permission(permission):
                 st.error(f"Access denied. This action requires '{permission}' permission.")
-                st.switch_page(f"pages/{redirect_to}.py")
-                st.stop()
+                state.set('current_page_key', redirect_to)
+                st.rerun()
             
             return func(*args, **kwargs)
         
@@ -134,14 +135,14 @@ def require_any_role(*roles: str, redirect_to: str = "home"):
             
             if not auth.is_authenticated():
                 st.warning("Please log in to access this feature.")
-                st.switch_page("pages/login.py")
-                st.stop()
+                state.set('current_page_key', 'login')
+                st.rerun()
             
             user = auth.get_current_user()
             if user['role'] not in roles:
                 st.error(f"Access denied. This feature requires one of: {', '.join(roles)}")
-                st.switch_page(f"pages/{redirect_to}.py")
-                st.stop()
+                state.set('current_page_key', redirect_to)
+                st.rerun()
             
             return func(*args, **kwargs)
         
@@ -172,15 +173,15 @@ def require_any_permission(*permissions: str, redirect_to: str = "home"):
             
             if not auth.is_authenticated():
                 st.warning("Please log in to access this feature.")
-                st.switch_page("pages/login.py")
-                st.stop()
+                state.set('current_page_key', 'login')
+                st.rerun()
             
             has_permission = any(auth.has_permission(perm) for perm in permissions)
             
             if not has_permission:
                 st.error(f"Access denied. This action requires one of: {', '.join(permissions)}")
-                st.switch_page(f"pages/{redirect_to}.py")
-                st.stop()
+                state.set('current_page_key', redirect_to)
+                st.rerun()
             
             return func(*args, **kwargs)
         

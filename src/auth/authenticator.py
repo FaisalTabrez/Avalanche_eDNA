@@ -5,6 +5,7 @@ import streamlit as st
 from typing import Optional, Dict, Tuple
 from .user_manager import UserManager
 from .password_utils import SessionManager, validate_password_strength
+from src.ui import state
 
 
 class AuthManager:
@@ -230,8 +231,8 @@ class AuthManager:
         """
         if not self.is_authenticated():
             st.warning("Please log in to access this page.")
-            st.switch_page(f"pages/{redirect_to}.py")
-            st.stop()
+            state.set('current_page_key', redirect_to)
+            st.rerun()
     
     def require_role(self, role: str, redirect_to: str = "home"):
         """
@@ -245,8 +246,8 @@ class AuthManager:
         
         if not self.has_role(role):
             st.error(f"Access denied. This page requires {role} role.")
-            st.switch_page(f"pages/{redirect_to}.py")
-            st.stop()
+            state.set('current_page_key', redirect_to)
+            st.rerun()
     
     def require_permission(self, permission: str, redirect_to: str = "home"):
         """
@@ -260,8 +261,8 @@ class AuthManager:
         
         if not self.has_permission(permission):
             st.error(f"Access denied. This action requires '{permission}' permission.")
-            st.switch_page(f"pages/{redirect_to}.py")
-            st.stop()
+            state.set('current_page_key', redirect_to)
+            st.rerun()
     
     def create_default_admin(self, username: str = "admin", password: str = "Admin@123"):
         """

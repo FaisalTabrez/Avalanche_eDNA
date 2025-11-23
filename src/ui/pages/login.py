@@ -3,6 +3,7 @@ Login page for user authentication
 """
 import streamlit as st
 from src.auth import get_auth_manager
+from src.ui import state
 
 
 def render():
@@ -19,7 +20,8 @@ def render():
         col1, col2 = st.columns([1, 3])
         with col1:
             if st.button("Go to Home", use_container_width=True):
-                st.switch_page("pages/home.py")
+                state.set('current_page_key', 'home')
+                st.rerun()
         with col2:
             if st.button("Logout", use_container_width=True):
                 auth.logout()
