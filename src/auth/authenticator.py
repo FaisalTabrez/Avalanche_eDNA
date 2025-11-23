@@ -32,6 +32,8 @@ class AuthManager:
             st.session_state.user = None
         if 'session_token' not in st.session_state:
             st.session_state.session_token = None
+        if 'admin_created_shown' not in st.session_state:
+            st.session_state.admin_created_shown = False
     
     def login(self, username: str, password: str) -> Tuple[bool, str]:
         """
@@ -80,6 +82,9 @@ class AuthManager:
         Returns:
             True if authenticated, False otherwise
         """
+        # Ensure session state is initialized
+        self._init_session_state()
+        
         if not st.session_state.authenticated:
             return False
         
