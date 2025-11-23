@@ -30,12 +30,13 @@ def render():
     if user:
         st.success(f"Welcome back, **{user['username']}**! You are logged in as **{user['role']}**.")
     else:
-        st.warning("⚠️ You are browsing as a guest. Please [log in](/login) to access analysis features.")
         col1, col2, col3 = st.columns([1, 1, 2])
         with col1:
-            if st.button("Login", use_container_width=True):
+            if st.button("🔑 Login", type="primary", use_container_width=True, key="btn_login_top"):
                 st.session_state.current_page_key = "login"
                 st.rerun()
+        with col3:
+            st.warning("⚠️ You are browsing as a guest. Please log in to access analysis features.")
     
     st.markdown("---")
     
