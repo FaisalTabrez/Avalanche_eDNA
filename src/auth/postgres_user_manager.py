@@ -599,6 +599,12 @@ class PostgresUserManager:
         try:
             cursor = conn.cursor()
             
+            # Only log user_id if user still exists (avoid FK constraint violations)
+            if user_id:
+                cursor.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
+                if not cursor.fetchone():
+                    user_id = None  # User was deleted, don't reference them
+            
             cursor.execute("""
                 INSERT INTO audit_log (timestamp, user_id, action, details, ip_address)
                 VALUES (%s, %s, %s, %s, %s)
