@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ncbi-blast+ \
     bedtools \
     samtools \
+    # libmagic for file type detection
+    libmagic1 \
     # Network and utilities
     curl \
     wget \
