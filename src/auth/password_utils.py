@@ -130,6 +130,28 @@ def generate_secure_token(length: int = 32) -> str:
     return secrets.token_hex(length)
 
 
+# Wrapper functions for backward compatibility
+def validate_password(password: str) -> Tuple[bool, str]:
+    """
+    Wrapper for validate_password_strength for backward compatibility
+    """
+    return validate_password_strength(password)
+
+
+def hash_password(password: str) -> str:
+    """
+    Wrapper for PasswordHasher.hash_password for backward compatibility
+    """
+    return PasswordHasher.hash_password(password)
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """
+    Wrapper for PasswordHasher.verify_password for backward compatibility
+    """
+    return PasswordHasher.verify_password(password, hashed)
+
+
 class SessionManager:
     """
     Manage user sessions with automatic expiration

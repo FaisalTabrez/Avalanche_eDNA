@@ -1,0 +1,385 @@
+{
+  "timestamp": "2025-11-23T07:56:16.154040",
+  "total_tests": 55,
+  "passed": 44,
+  "failed": 11,
+  "success_rate": 80.0,
+  "results": [
+    {
+      "test": "Main Application (avalanche-streamlit)",
+      "passed": false,
+      "details": "Error: [Errno 2] No such file or directory: 'docker'",
+      "timestamp": "2025-11-23T07:56:15.108527"
+    },
+    {
+      "test": "User Management (avalanche-user-management)",
+      "passed": false,
+      "details": "Error: [Errno 2] No such file or directory: 'docker'",
+      "timestamp": "2025-11-23T07:56:15.109285"
+    },
+    {
+      "test": "PostgreSQL Database (avalanche-postgres)",
+      "passed": false,
+      "details": "Error: [Errno 2] No such file or directory: 'docker'",
+      "timestamp": "2025-11-23T07:56:15.110001"
+    },
+    {
+      "test": "Redis Cache (avalanche-redis)",
+      "passed": false,
+      "details": "Error: [Errno 2] No such file or directory: 'docker'",
+      "timestamp": "2025-11-23T07:56:15.110505"
+    },
+    {
+      "test": "Celery Worker (avalanche-celery-worker)",
+      "passed": false,
+      "details": "Error: [Errno 2] No such file or directory: 'docker'",
+      "timestamp": "2025-11-23T07:56:15.111057"
+    },
+    {
+      "test": "Celery Beat Scheduler (avalanche-celery-beat)",
+      "passed": false,
+      "details": "Error: [Errno 2] No such file or directory: 'docker'",
+      "timestamp": "2025-11-23T07:56:15.111739"
+    },
+    {
+      "test": "PostgreSQL Connection",
+      "passed": true,
+      "details": "Connected to avalanche_edna",
+      "timestamp": "2025-11-23T07:56:15.139785"
+    },
+    {
+      "test": "Database Version",
+      "passed": true,
+      "details": "PostgreSQL 15.15 on x86_64-pc-linux-musl",
+      "timestamp": "2025-11-23T07:56:15.148685"
+    },
+    {
+      "test": "Users Table Exists",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-11-23T07:56:15.162606"
+    },
+    {
+      "test": "User Count",
+      "passed": true,
+      "details": "1 users in database",
+      "timestamp": "2025-11-23T07:56:15.164834"
+    },
+    {
+      "test": "Sessions Table Exists",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-11-23T07:56:15.166115"
+    },
+    {
+      "test": "Audit Log Table Exists",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-11-23T07:56:15.167334"
+    },
+    {
+      "test": "Audit Log Entries",
+      "passed": true,
+      "details": "16 entries",
+      "timestamp": "2025-11-23T07:56:15.169761"
+    },
+    {
+      "test": "Database Indexes",
+      "passed": true,
+      "details": "10 indexes found",
+      "timestamp": "2025-11-23T07:56:15.173462"
+    },
+    {
+      "test": "Redis Connection",
+      "passed": true,
+      "details": "Connected to redis://redis:6379/0",
+      "timestamp": "2025-11-23T07:56:15.175531"
+    },
+    {
+      "test": "Redis Set/Get Operations",
+      "passed": true,
+      "details": "Successfully stored and retrieved test data",
+      "timestamp": "2025-11-23T07:56:15.176739"
+    },
+    {
+      "test": "Redis TTL Support",
+      "passed": true,
+      "details": "TTL: 60 seconds",
+      "timestamp": "2025-11-23T07:56:15.177165"
+    },
+    {
+      "test": "Redis Statistics",
+      "passed": true,
+      "details": "Total commands: 12270",
+      "timestamp": "2025-11-23T07:56:15.178435"
+    },
+    {
+      "test": "User Management UI Accessible",
+      "passed": false,
+      "details": "Cannot connect to port 8502",
+      "timestamp": "2025-11-23T07:56:15.188388"
+    },
+    {
+      "test": "Main Application UI Accessible",
+      "passed": true,
+      "details": "HTTP 200",
+      "timestamp": "2025-11-23T07:56:15.201119"
+    },
+    {
+      "test": "Main Application Health Check",
+      "passed": true,
+      "details": "Streamlit health endpoint responding",
+      "timestamp": "2025-11-23T07:56:15.213376"
+    },
+    {
+      "test": "Password Validation Rules",
+      "passed": true,
+      "details": "All weak passwords correctly rejected",
+      "timestamp": "2025-11-23T07:56:15.402768"
+    },
+    {
+      "test": "Strong Password Accepted",
+      "passed": true,
+      "details": "",
+      "timestamp": "2025-11-23T07:56:15.402818"
+    },
+    {
+      "test": "Password Hashing",
+      "passed": false,
+      "details": "bcrypt hash generated",
+      "timestamp": "2025-11-23T07:56:15.421836"
+    },
+    {
+      "test": "Password Verification",
+      "passed": true,
+      "details": "Correct password verified",
+      "timestamp": "2025-11-23T07:56:15.440773"
+    },
+    {
+      "test": "Wrong Password Rejected",
+      "passed": true,
+      "details": "Incorrect password rejected",
+      "timestamp": "2025-11-23T07:56:15.459018"
+    },
+    {
+      "test": "Admin User Exists",
+      "passed": true,
+      "details": "Username: admin, Role: admin, Active: True",
+      "timestamp": "2025-11-23T07:56:15.469937"
+    },
+    {
+      "test": "Admin Role - manage_users",
+      "passed": true,
+      "details": "Admin role includes manage_users",
+      "timestamp": "2025-11-23T07:56:16.109498"
+    },
+    {
+      "test": "Admin Role - view_reports",
+      "passed": true,
+      "details": "Admin role includes view_reports",
+      "timestamp": "2025-11-23T07:56:16.109512"
+    },
+    {
+      "test": "Admin Role - create_reports",
+      "passed": true,
+      "details": "Admin role includes create_reports",
+      "timestamp": "2025-11-23T07:56:16.109516"
+    },
+    {
+      "test": "Admin Role - delete_reports",
+      "passed": true,
+      "details": "Admin role includes delete_reports",
+      "timestamp": "2025-11-23T07:56:16.109519"
+    },
+    {
+      "test": "Analyst Role - view_reports",
+      "passed": true,
+      "details": "Analyst can view reports",
+      "timestamp": "2025-11-23T07:56:16.109522"
+    },
+    {
+      "test": "Analyst Role - manage_users",
+      "passed": false,
+      "details": "Analyst cannot manage users",
+      "timestamp": "2025-11-23T07:56:16.109525"
+    },
+    {
+      "test": "Viewer Role - view_reports",
+      "passed": true,
+      "details": "Viewer can view reports",
+      "timestamp": "2025-11-23T07:56:16.109529"
+    },
+    {
+      "test": "Viewer Role - create_reports",
+      "passed": false,
+      "details": "Viewer cannot create reports",
+      "timestamp": "2025-11-23T07:56:16.109532"
+    },
+    {
+      "test": "Audit Log Schema",
+      "passed": true,
+      "details": "Columns: log_id, timestamp, user_id, action, resource, details, ip_address",
+      "timestamp": "2025-11-23T07:56:16.128102"
+    },
+    {
+      "test": "Recent Audit Entries",
+      "passed": true,
+      "details": "5 recent entries found",
+      "timestamp": "2025-11-23T07:56:16.130286"
+    },
+    {
+      "test": "Audit Log Indexes",
+      "passed": true,
+      "details": "3 indexes for performance",
+      "timestamp": "2025-11-23T07:56:16.132690"
+    },
+    {
+      "test": "Report Directory: reports",
+      "passed": true,
+      "details": "/app/data/report_storage/reports",
+      "timestamp": "2025-11-23T07:56:16.132853"
+    },
+    {
+      "test": "Report Directory: exports",
+      "passed": true,
+      "details": "/app/data/report_storage/exports",
+      "timestamp": "2025-11-23T07:56:16.132864"
+    },
+    {
+      "test": "Report Directory: metadata",
+      "passed": true,
+      "details": "/app/data/report_storage/metadata",
+      "timestamp": "2025-11-23T07:56:16.132874"
+    },
+    {
+      "test": "Report Directory: visualizations",
+      "passed": true,
+      "details": "/app/data/report_storage/visualizations",
+      "timestamp": "2025-11-23T07:56:16.132882"
+    },
+    {
+      "test": "Report Management Module",
+      "passed": true,
+      "details": "/app/src/report_management",
+      "timestamp": "2025-11-23T07:56:16.135776"
+    },
+    {
+      "test": "Report Management Components",
+      "passed": true,
+      "details": "1 modules: catalogue_manager.py",
+      "timestamp": "2025-11-23T07:56:16.138816"
+    },
+    {
+      "test": "Analysis Module",
+      "passed": true,
+      "details": "/app/src/analysis",
+      "timestamp": "2025-11-23T07:56:16.140287"
+    },
+    {
+      "test": "Analysis Components",
+      "passed": true,
+      "details": "4 modules found",
+      "timestamp": "2025-11-23T07:56:16.143187"
+    },
+    {
+      "test": "Reference Database Directory",
+      "passed": true,
+      "details": "/app/reference",
+      "timestamp": "2025-11-23T07:56:16.143443"
+    },
+    {
+      "test": "BLAST Database Indices",
+      "passed": true,
+      "details": "3 index files found",
+      "timestamp": "2025-11-23T07:56:16.143531"
+    },
+    {
+      "test": "Data Directory: raw",
+      "passed": true,
+      "details": "/app/data/raw",
+      "timestamp": "2025-11-23T07:56:16.143555"
+    },
+    {
+      "test": "Data Directory: processed",
+      "passed": true,
+      "details": "/app/data/processed",
+      "timestamp": "2025-11-23T07:56:16.143565"
+    },
+    {
+      "test": "Data Directory: results",
+      "passed": false,
+      "details": "/app/consolidated_data/results",
+      "timestamp": "2025-11-23T07:56:16.143923"
+    },
+    {
+      "test": "Backup Script: backup_database.py",
+      "passed": true,
+      "details": "/app/scripts/backup_database.py",
+      "timestamp": "2025-11-23T07:56:16.146141"
+    },
+    {
+      "test": "Backup Script: restore_manager.py",
+      "passed": true,
+      "details": "/app/scripts/backup/restore_manager.py",
+      "timestamp": "2025-11-23T07:56:16.149677"
+    },
+    {
+      "test": "Backup Storage Directory",
+      "passed": true,
+      "details": "/app/data/report_storage/backups",
+      "timestamp": "2025-11-23T07:56:16.149712"
+    },
+    {
+      "test": "Existing Backups",
+      "passed": true,
+      "details": "1 backup files found",
+      "timestamp": "2025-11-23T07:56:16.149766"
+    }
+  ],
+  "failures": [
+    {
+      "test": "Main Application (avalanche-streamlit)",
+      "details": "Error: [Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "test": "User Management (avalanche-user-management)",
+      "details": "Error: [Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "test": "PostgreSQL Database (avalanche-postgres)",
+      "details": "Error: [Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "test": "Redis Cache (avalanche-redis)",
+      "details": "Error: [Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "test": "Celery Worker (avalanche-celery-worker)",
+      "details": "Error: [Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "test": "Celery Beat Scheduler (avalanche-celery-beat)",
+      "details": "Error: [Errno 2] No such file or directory: 'docker'"
+    },
+    {
+      "test": "User Management UI Accessible",
+      "details": "Cannot connect to port 8502"
+    },
+    {
+      "test": "Password Hashing",
+      "details": "bcrypt hash generated"
+    },
+    {
+      "test": "Analyst Role - manage_users",
+      "details": "Analyst cannot manage users"
+    },
+    {
+      "test": "Viewer Role - create_reports",
+      "details": "Viewer cannot create reports"
+    },
+    {
+      "test": "Data Directory: results",
+      "details": "/app/consolidated_data/results"
+    }
+  ]
+}

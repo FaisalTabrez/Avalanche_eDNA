@@ -134,6 +134,7 @@ services:
     image: avalanche-edna:application
     container_name: avalanche-celery-worker
     command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=4
+    working_dir: /app
     environment:
       - PYTHONPATH=/app
       - DB_TYPE=postgresql
@@ -168,6 +169,7 @@ services:
     image: avalanche-edna:application
     container_name: avalanche-celery-beat
     command: celery -A src.tasks.celery_app beat --loglevel=info
+    working_dir: /app
     environment:
       - PYTHONPATH=/app
       - DB_TYPE=postgresql
@@ -182,7 +184,7 @@ services:
       - ENVIRONMENT=development
       - LOG_LEVEL=INFO
     volumes:
-      - .:/app
+      - ..:/app
       - logs:/app/logs
     depends_on:
       - postgres
