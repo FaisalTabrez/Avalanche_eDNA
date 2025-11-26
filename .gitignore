@@ -184,8 +184,17 @@ examples/
 analysis_outputs/datasets/
 analysis_outputs/runs/
 celerybeat-schedule
-*.npzmodels/dnabert2/
+*.npz
+
+# Large model files and outputs
+models/dnabert2/
+models/dnabert2_cpu/
+models/pretrained/
 pipeline_outputs_*/
 real_pipeline_simulation_output/
 swissprot_simulation_output/
 test_dynamic_pipeline_output/
+AvalancheData/
+
+# Large temporary files
+files-to-remove.txt
