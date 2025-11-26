@@ -1,0 +1,99 @@
+{
+  "models": {
+    "v1.0": {
+      "version": "v1.0",
+      "model_path": "demo_outputs\\model_v1.0.pt",
+      "checkpoint_path": null,
+      "base_model": "zhihan1996/DNABERT-2-117M",
+      "parent_version": null,
+      "datasets": [
+        "marine_bacteria"
+      ],
+      "metrics": {
+        "loss": 0.3,
+        "accuracy": 0.8
+      },
+      "config": {},
+      "description": "Initial model trained on marine bacteria",
+      "created_at": "2025-11-26T14:33:52.307496",
+      "status": "active"
+    },
+    "v2.0": {
+      "version": "v2.0",
+      "model_path": "demo_outputs\\model_v2.0.pt",
+      "checkpoint_path": null,
+      "base_model": "zhihan1996/DNABERT-2-117M",
+      "parent_version": "v1.0",
+      "datasets": [
+        "marine_bacteria",
+        "freshwater_algae"
+      ],
+      "metrics": {
+        "loss": 0.25,
+        "accuracy": 0.85
+      },
+      "config": {},
+      "description": "Fine-tuned on marine bacteria + freshwater algae",
+      "created_at": "2025-11-26T14:33:52.310549",
+      "status": "active"
+    },
+    "v1.1": {
+      "version": "v1.1",
+      "model_path": "demo_outputs\\model_v1.1.pt",
+      "checkpoint_path": null,
+      "base_model": "zhihan1996/DNABERT-2-117M",
+      "parent_version": null,
+      "datasets": [
+        "marine_bacteria"
+      ],
+      "metrics": {
+        "loss": 0.42,
+        "accuracy": 0.79
+      },
+      "config": {},
+      "description": "",
+      "created_at": "2025-11-26T14:33:52.369514",
+      "status": "active"
+    },
+    "v1.2": {
+      "version": "v1.2",
+      "model_path": "demo_outputs\\model_v1.2.pt",
+      "checkpoint_path": null,
+      "base_model": "zhihan1996/DNABERT-2-117M",
+      "parent_version": "v1.1",
+      "datasets": [
+        "marine_bacteria",
+        "freshwater_algae"
+      ],
+      "metrics": {
+        "loss": 0.33999999999999997,
+        "accuracy": 0.83
+      },
+      "config": {},
+      "description": "",
+      "created_at": "2025-11-26T14:33:52.372695",
+      "status": "active"
+    },
+    "v1.3": {
+      "version": "v1.3",
+      "model_path": "demo_outputs\\model_v1.3.pt",
+      "checkpoint_path": null,
+      "base_model": "zhihan1996/DNABERT-2-117M",
+      "parent_version": "v1.2",
+      "datasets": [
+        "marine_bacteria",
+        "freshwater_algae",
+        "soil_fungi"
+      ],
+      "metrics": {
+        "loss": 0.26,
+        "accuracy": 0.87
+      },
+      "config": {},
+      "description": "",
+      "created_at": "2025-11-26T14:33:52.376258",
+      "status": "active"
+    }
+  },
+  "metadata": {}
+}
