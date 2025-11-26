@@ -1,12 +1,20 @@
 """
 DNABERT-2 Fine-Tuning Module
-Provides fine-tuning capabilities for DNABERT-2 on domain-specific eDNA data
+Provides fine-tuning capabilities for DNABERT-2 on domain-specific eDNA data.
+
+This module enables:
+- Layer-wise freezing strategies for efficient fine-tuning
+- Parameter-efficient training with selective layer updates
+- Contrastive learning for sequence representation
+- Learning rate scheduling with warmup
+- Mixed precision training support (future)
 """
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 from transformers import AutoTokenizer, AutoModel, get_linear_schedule_with_warmup
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple, Union
 from pathlib import Path
 import logging
 
@@ -31,13 +39,29 @@ class DNABERTFineTuner:
                  freeze_embeddings: bool = True,
                  device: str = 'auto'):
         """
-        Initialize DNABERT-2 fine-tuner
+        Initialize DNABERT-2 fine-tuner with configurable freezing strategy.
         
         Args:
-            model_id: Hugging Face model identifier
-            freeze_layers: List of layer indices to freeze (None = finetune all)
-            freeze_embeddings: Whether to freeze embedding layer
-            device: Device to use ('auto', 'cuda', 'cpu')
+            model_id (str, optional): Hugging Face model identifier for DNABERT-2 model. 
+                Defaults to 'zhihan1996/DNABERT-2-117M'.
+            freeze_layers (Optional[List[int]], optional): List of transformer layer indices to freeze (0-indexed). 
+                If None, all layers are trainable. Example: [0, 1, 2] freezes first 3 layers. Defaults to None.
+            freeze_embeddings (bool, optional): Whether to freeze the embedding layer. 
+                Recommended for small datasets. Defaults to True.
+            device (str, optional): Device for model ('auto', 'cuda', 'cpu'). 
+                'auto' selects GPU if available. Defaults to 'auto'.
+        
+        Example:
+            >>> # Full fine-tuning (all layers trainable)
+            >>> finetuner = DNABERTFineTuner(model_id='zhihan1996/DNABERT-2-117M', freeze_layers=None, freeze_embeddings=False)
+            >>> 
+            >>> # Conservative fine-tuning (freeze bottom 6 layers)
+            >>> finetuner = DNABERTFineTuner(freeze_layers=[0, 1, 2, 3, 4, 5], freeze_embeddings=True)
+        
+        Note:
+            - Freezing layers reduces memory usage and training time
+            - Typically freeze lower layers for domain adaptation
+            - Use freeze_embeddings=True for small datasets to prevent overfitting
         """
         self.model_id = model_id
         self.freeze_layers = freeze_layers or []
@@ -282,11 +306,33 @@ class DNABERTFineTuner:
 
 class ContrastiveLearningHead(nn.Module):
     """
-    Contrastive learning head for fine-tuning DNABERT-2
-    Projects embeddings to a lower-dimensional space for contrastive learning
+    Contrastive learning projection head for DNABERT-2 fine-tuning.
+    
+    Projects high-dimensional embeddings to a lower-dimensional space optimized
+    for contrastive learning (e.g., SimCLR, NT-Xent loss). This head can be
+    attached to DNABERT-2 for self-supervised or semi-supervised learning.
+    
+    Attributes:
+        projection (nn.Sequential): MLP projection network.
+        temperature (float): Temperature parameter for contrastive loss scaling.
     """
     
     def __init__(self, input_dim: int, projection_dim: int = 128, temperature: float = 0.07):
+        """
+        Initialize contrastive learning head.
+        
+        Args:
+            input_dim (int): Dimension of input embeddings from DNABERT-2 (typically 768).
+            projection_dim (int, optional): Dimension of projected space. Lower dimensions
+                encourage learning of more general features. Defaults to 128.
+            temperature (float, optional): Temperature for NT-Xent loss. Lower values
+                increase sensitivity to hard negatives. Defaults to 0.07.
+        
+        Example:
+            >>> head = ContrastiveLearningHead(input_dim=768, projection_dim=128)
+            >>> embeddings = model(sequences)  # Shape: [batch_size, 768]
+            >>> projections = head(embeddings)  # Shape: [batch_size, 128]
+        """
         super().__init__()
         self.projection = nn.Sequential(
             nn.Linear(input_dim, projection_dim),
@@ -301,14 +347,31 @@ class ContrastiveLearningHead(nn.Module):
     
     def contrastive_loss(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
         """
-        Compute NT-Xent (normalized temperature-scaled cross entropy) loss
+        Compute NT-Xent (Normalized Temperature-scaled Cross Entropy) loss.
+        
+        This is the standard contrastive learning loss used in SimCLR and related methods.
+        Also known as InfoNCE loss. Maximizes agreement between differently augmented
+        views of the same sequence while pushing apart different sequences.
         
         Args:
-            z1: Projected embeddings from augmented view 1
-            z2: Projected embeddings from augmented view 2
+            z1 (torch.Tensor): Projected embeddings from augmented view 1. Shape: [batch_size, projection_dim].
+            z2 (torch.Tensor): Projected embeddings from augmented view 2. Shape: [batch_size, projection_dim].
             
         Returns:
-            Contrastive loss
+            torch.Tensor: Scalar contrastive loss value (lower is better).
+        
+        Example:
+            >>> head = ContrastiveLearningHead(input_dim=768)
+            >>> # Get embeddings for two augmented views of same batch
+            >>> z1 = head(embeddings_aug1)  # [32, 128]
+            >>> z2 = head(embeddings_aug2)  # [32, 128]
+            >>> loss = head.contrastive_loss(z1, z2)
+            >>> loss.backward()
+        
+        Note:
+            - Batch size should be sufficiently large (>= 32) for effective contrastive learning
+            - Both z1 and z2 must have the same shape
+            - Method name is 'contrastive_loss' (not 'nt_xent_loss')
         """
         batch_size = z1.shape[0]
         

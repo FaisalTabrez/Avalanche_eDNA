@@ -1,12 +1,27 @@
 """
 Continual Learning Strategies for DNABERT-2
-Prevents catastrophic forgetting when training on sequential datasets
+Prevents catastrophic forgetting when training on sequential datasets.
+
+This module implements multiple anti-forgetting strategies:
+1. Experience Replay - Maintains buffer of past samples for rehearsal
+2. Elastic Weight Consolidation (EWC) - Protects important parameters
+3. Learning Without Forgetting (LwF) - Knowledge distillation from previous model
+4. Combined Strategy - Integrates multiple approaches
+
+Typical workflow:
+    1. Initialize ContinualLearner with chosen strategy
+    2. Train on first dataset
+    3. Compute Fisher information (EWC) or store model (LwF)
+    4. Store samples in replay buffer
+    5. Train on next dataset with combined loss
+    6. Repeat for additional datasets
 """
 
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.nn.functional as F
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 from collections import deque
 import numpy as np
 import logging
@@ -29,19 +44,42 @@ class ContinualLearner:
                  buffer_size: int = 10000,
                  ewc_lambda: float = 0.4):
         """
-        Initialize continual learner
+        Initialize continual learning manager with anti-forgetting strategy.
         
         Args:
-            strategy: Learning strategy ('experience_replay', 'ewc', 'lwf', 'combined')
-            buffer_size: Size of experience replay buffer
-            ewc_lambda: Importance of EWC regularization
+            strategy (str, optional): Learning strategy to use. Options:
+                - 'experience_replay': Replay samples from previous datasets (fast, memory-based)
+                - 'ewc': Elastic Weight Consolidation (parameter protection)
+                - 'lwf': Learning without Forgetting (knowledge distillation)
+                - 'combined': Use all strategies together (best performance, higher cost)
+                Defaults to 'experience_replay'.
+            buffer_size (int, optional): Maximum number of samples to store in replay buffer.
+                Only used if strategy includes 'experience_replay'. Defaults to 10000.
+            ewc_lambda (float, optional): Importance weight for EWC regularization loss.
+                Higher values = stronger forgetting prevention but slower adaptation.
+                Typical range: 0.1-1.0. Defaults to 0.4.
+        
+        Example:
+            >>> # Experience replay only
+            >>> learner = ContinualLearner(strategy='experience_replay', buffer_size=5000)
+            >>> 
+            >>> # Combined strategy for maximum forgetting prevention
+            >>> learner = ContinualLearner(strategy='combined', buffer_size=10000, ewc_lambda=0.5)
+            >>> 
+            >>> # EWC only for parameter protection
+            >>> learner = ContinualLearner(strategy='ewc', ewc_lambda=0.6)
+        
+        Note:
+            - This class does NOT take a 'model' parameter in __init__
+            - Model is passed to methods like compute_fisher_information() as needed
+            - ExperienceReplayBuffer uses 'max_size' not 'buffer_size'
         """
         self.strategy = strategy
         self.buffer_size = buffer_size
         self.ewc_lambda = ewc_lambda
         
-        # Experience replay buffer
-        self.replay_buffer = ExperienceReplayBuffer(buffer_size)
+        # Experience replay buffer (note: ExperienceReplayBuffer uses 'max_size' parameter)
+        self.replay_buffer = ExperienceReplayBuffer(max_size=buffer_size)
         
         # EWC Fisher information matrix
         self.fisher_dict = {}
@@ -246,16 +284,36 @@ class ContinualLearner:
 
 class ExperienceReplayBuffer:
     """
-    Stores samples from previous tasks for experience replay
-    Implements reservoir sampling for efficient storage
+    Stores samples from previous tasks for experience replay.
+    
+    Implements reservoir sampling algorithm for efficient memory-bounded storage
+    of representative samples from streaming data. Maintains uniform sampling
+    probability across all seen samples.
+    
+    Attributes:
+        max_size (int): Maximum buffer capacity.
+        sequences (deque): Stored DNA sequences.
+        labels (deque): Corresponding labels (if provided).
+        num_seen (int): Total number of samples processed.
     """
     
     def __init__(self, max_size: int = 10000):
         """
-        Initialize replay buffer
+        Initialize experience replay buffer.
         
         Args:
-            max_size: Maximum number of samples to store
+            max_size (int, optional): Maximum number of samples to store in buffer.
+                Uses reservoir sampling when buffer is full. Defaults to 10000.
+        
+        Example:
+            >>> buffer = ExperienceReplayBuffer(max_size=5000)
+            >>> buffer.add_samples(['ATCG', 'GCTA'], labels=[0, 1])
+            >>> sequences, labels = buffer.sample(batch_size=32)
+        
+        Note:
+            - Parameter name is 'max_size' not 'buffer_size'
+            - Uses deque for efficient memory management
+            - Implements reservoir sampling for uniform distribution
         """
         self.max_size = max_size
         self.sequences = deque(maxlen=max_size)

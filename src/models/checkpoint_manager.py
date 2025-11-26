@@ -1,13 +1,21 @@
 """
 Checkpoint Manager for Model Training
 Handles saving, loading, and managing model checkpoints for continual learning
+
+This module provides comprehensive checkpoint management including:
+- Saving/loading complete training state (model, optimizer, scheduler)
+- Automatic best model tracking based on metrics
+- Checkpoint history and metadata management
+- Cleanup of old checkpoints with configurable retention
 """
 
 import torch
+import torch.nn as nn
+import torch.optim as optim
 import json
 import shutil
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 from datetime import datetime
 import logging
 
@@ -28,12 +36,16 @@ class CheckpointManager:
     
     def __init__(self, checkpoint_dir: str, max_checkpoints: int = 5, keep_best: bool = True):
         """
-        Initialize checkpoint manager
+        Initialize checkpoint manager.
         
         Args:
-            checkpoint_dir: Directory to store checkpoints
-            max_checkpoints: Maximum number of checkpoints to keep (0 = unlimited)
-            keep_best: Always keep the best checkpoint regardless of max_checkpoints
+            checkpoint_dir (str): Directory to store checkpoints. Will be created if it doesn't exist.
+            max_checkpoints (int, optional): Maximum number of checkpoints to keep. Set to 0 for unlimited. Defaults to 5.
+            keep_best (bool, optional): Always keep the best checkpoint regardless of max_checkpoints limit. Defaults to True.
+        
+        Example:
+            >>> manager = CheckpointManager('checkpoints/', max_checkpoints=3)
+            >>> # Saves checkpoints to 'checkpoints/' directory, keeping max 3
         """
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -48,8 +60,8 @@ class CheckpointManager:
         logger.info(f"CheckpointManager initialized at {self.checkpoint_dir}")
     
     def save_checkpoint(self,
-                       model: torch.nn.Module,
-                       optimizer: torch.optim.Optimizer,
+                       model: nn.Module,
+                       optimizer: optim.Optimizer,
                        epoch: int,
                        metrics: Dict[str, float],
                        scheduler: Optional[Any] = None,
@@ -57,20 +69,35 @@ class CheckpointManager:
                        model_config: Optional[Dict[str, Any]] = None,
                        checkpoint_name: Optional[str] = None) -> str:
         """
-        Save a training checkpoint
+        Save a complete training checkpoint with model state, optimizer, and metadata.
         
         Args:
-            model: PyTorch model to save
-            optimizer: Optimizer state
-            epoch: Current epoch number
-            metrics: Dictionary of metrics (loss, accuracy, etc.)
-            scheduler: Optional learning rate scheduler
-            dataset_info: Information about training dataset
-            model_config: Model configuration
-            checkpoint_name: Optional custom checkpoint name
+            model (nn.Module): PyTorch model to save. The model's state_dict will be extracted.
+            optimizer (optim.Optimizer): Optimizer whose state will be saved for resuming training.
+            epoch (int): Current training epoch number (0-indexed).
+            metrics (Dict[str, float]): Training/validation metrics (e.g., {'val_loss': 0.25, 'val_acc': 0.92}).
+            scheduler (Optional[Any], optional): Learning rate scheduler to save. Defaults to None.
+            dataset_info (Optional[Dict[str, Any]], optional): Metadata about dataset used (e.g., {'name': 'dataset1', 'size': 10000}). Defaults to None.
+            model_config (Optional[Dict[str, Any]], optional): Model configuration dictionary. Defaults to None.
+            checkpoint_name (Optional[str], optional): Custom checkpoint name. If None, auto-generated as 'checkpoint_epoch{epoch}_{timestamp}'. Defaults to None.
             
         Returns:
-            Path to saved checkpoint
+            str: Absolute path to the saved checkpoint file.
+        
+        Example:
+            >>> manager = CheckpointManager('checkpoints/')
+            >>> checkpoint_path = manager.save_checkpoint(
+            ...     model=model,
+            ...     optimizer=optimizer,
+            ...     epoch=10,
+            ...     metrics={'val_loss': 0.25, 'val_acc': 0.92},
+            ...     dataset_info={'name': 'bacteria_16S'}
+            ... )
+        
+        Note:
+            - Automatically updates checkpoint metadata and history
+            - Triggers cleanup of old checkpoints based on max_checkpoints setting
+            - Updates best_checkpoint if current metrics are better
         """
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
@@ -111,15 +138,38 @@ class CheckpointManager:
                        checkpoint_name: Optional[str] = None,
                        load_best: bool = False) -> Dict[str, Any]:
         """
-        Load a checkpoint
+        Load a checkpoint from disk.
         
         Args:
-            checkpoint_path: Full path to checkpoint file
-            checkpoint_name: Name of checkpoint to load
-            load_best: Load the best checkpoint based on metrics
+            checkpoint_path (Optional[str], optional): Full path to checkpoint file. Takes priority if provided. Defaults to None.
+            checkpoint_name (Optional[str], optional): Name of checkpoint to load (without .pt extension). Defaults to None.
+            load_best (bool, optional): Load the best checkpoint based on tracked metrics. Defaults to False.
             
         Returns:
-            Checkpoint data dictionary
+            Dict[str, Any]: Checkpoint data containing:
+                - epoch (int): Training epoch
+                - model_state_dict (Dict): Model weights
+                - optimizer_state_dict (Dict): Optimizer state
+                - scheduler_state_dict (Dict, optional): Scheduler state if saved
+                - metrics (Dict[str, float]): Saved metrics
+                - dataset_info (Dict): Dataset metadata
+                - model_config (Dict): Model configuration
+        
+        Raises:
+            ValueError: If no checkpoint is found or parameters are invalid.
+            FileNotFoundError: If specified checkpoint file doesn't exist.
+        
+        Example:
+            >>> manager = CheckpointManager('checkpoints/')
+            >>> # Load best checkpoint
+            >>> checkpoint = manager.load_checkpoint(load_best=True)
+            >>> # Load specific checkpoint
+            >>> checkpoint = manager.load_checkpoint(checkpoint_name='checkpoint_epoch10_20251126')
+            >>> # Load from path
+            >>> checkpoint = manager.load_checkpoint(checkpoint_path='checkpoints/my_checkpoint.pt')
+        
+        Note:
+            Priority order: load_best > checkpoint_path > checkpoint_name > latest
         """
         if load_best:
             checkpoint_path = self._get_best_checkpoint_path()
@@ -141,21 +191,38 @@ class CheckpointManager:
         return checkpoint_data
     
     def resume_training(self,
-                       model: torch.nn.Module,
-                       optimizer: torch.optim.Optimizer,
+                       model: nn.Module,
+                       optimizer: optim.Optimizer,
                        scheduler: Optional[Any] = None,
                        checkpoint_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Resume training from a checkpoint
+        Resume training from a checkpoint by loading states into provided objects.
         
         Args:
-            model: Model to load state into
-            optimizer: Optimizer to load state into
-            scheduler: Optional scheduler to load state into
-            checkpoint_path: Path to checkpoint (uses latest if None)
+            model (nn.Module): Model to load weights into (modified in-place).
+            optimizer (optim.Optimizer): Optimizer to load state into (modified in-place).
+            scheduler (Optional[Any], optional): Scheduler to load state into if checkpoint contains scheduler state. Defaults to None.
+            checkpoint_path (Optional[str], optional): Path to checkpoint. Uses latest if None. Defaults to None.
             
         Returns:
-            Checkpoint metadata (epoch, metrics, etc.)
+            Dict[str, Any]: Resume information containing:
+                - start_epoch (int): Next epoch number to start from
+                - metrics (Dict[str, float]): Metrics from checkpoint
+                - dataset_info (Dict): Dataset metadata
+                - model_config (Dict): Model configuration
+        
+        Example:
+            >>> manager = CheckpointManager('checkpoints/')
+            >>> model = MyModel()
+            >>> optimizer = torch.optim.Adam(model.parameters())
+            >>> scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10)
+            >>> 
+            >>> resume_info = manager.resume_training(model, optimizer, scheduler)
+            >>> start_epoch = resume_info['start_epoch']
+            >>> print(f"Resuming from epoch {start_epoch}")
+        
+        Note:
+            Model, optimizer, and scheduler are modified in-place.
         """
         checkpoint = self.load_checkpoint(checkpoint_path)
         
