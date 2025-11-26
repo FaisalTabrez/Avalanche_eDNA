@@ -170,7 +170,8 @@ Thumbs.db
 *.pkl
 *.pickle
 data/
-models/
+models/  # Trained model files, not source code
+!src/models/  # But track source code in src/models/
 checkpoints/
 logs/
 wandb/
