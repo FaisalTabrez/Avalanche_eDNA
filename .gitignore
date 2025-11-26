@@ -174,3 +174,11 @@ models/
 checkpoints/
 logs/
 wandb/
+archive/
+consolidated_data/
+results/
+examples/
+analysis_outputs/datasets/
+analysis_outputs/runs/
+celerybeat-schedule
+*.npz
