@@ -184,4 +184,8 @@ examples/
 analysis_outputs/datasets/
 analysis_outputs/runs/
 celerybeat-schedule
-*.npz
+*.npzmodels/dnabert2/
+pipeline_outputs_*/
+real_pipeline_simulation_output/
+swissprot_simulation_output/
+test_dynamic_pipeline_output/
