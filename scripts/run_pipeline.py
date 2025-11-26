@@ -12,15 +12,15 @@ import numpy as np
 import time
 import json
 
-# Add src to path for imports
-sys.path.append(str(Path(__file__).parent.parent / "src"))
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.config import config
-from preprocessing.pipeline import PreprocessingPipeline
-from clustering.algorithms import EmbeddingClusterer
-from clustering.taxonomy import HybridTaxonomyAssigner, BlastTaxonomyAssigner, MLTaxonomyClassifier, TaxonomyIndex, KNNLCATaxonomyAssigner
-from novelty.detection import NoveltyAnalyzer
-from visualization.plots import BiodiversityPlotter
+from src.utils.config import config
+from src.preprocessing.pipeline import PreprocessingPipeline
+from src.clustering.algorithms import EmbeddingClusterer
+from src.clustering.taxonomy import HybridTaxonomyAssigner, BlastTaxonomyAssigner, MLTaxonomyClassifier, TaxonomyIndex, KNNLCATaxonomyAssigner
+from src.novelty.detection import NoveltyAnalyzer
+from src.visualization.plots import BiodiversityPlotter
 
 # Setup logging
 logging.basicConfig(
@@ -244,7 +244,7 @@ class eDNABiodiversityPipeline:
     def _process_sra_data(self, input_path: Path, output_dir: Path) -> List[str]:
         """Process SRA data using SRA processor"""
         try:
-            from preprocessing.sra_processor import SRAProcessor
+            from src.preprocessing.sra_processor import SRAProcessor
         except ImportError as e:
             raise ImportError("SRA processor not available. Please ensure src/preprocessing/sra_processor.py exists.") from e
 
@@ -585,7 +585,7 @@ class eDNABiodiversityPipeline:
         taxdump_dir = taxonomy_cfg.get('taxdump_dir')
         try:
             if taxdump_dir and Path(taxdump_dir).exists():
-                from clustering.taxonomy import TaxdumpResolver
+                from src.clustering.taxonomy import TaxdumpResolver
                 resolver = TaxdumpResolver(taxdump_dir)
                 if resolver.available():
                     enriched = []
