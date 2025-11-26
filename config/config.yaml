@@ -325,6 +325,83 @@ performance:
   use_gpu: true
   gpu_memory_fraction: 0.8
 
+# Continual Learning Configuration
+continual_learning:
+  # Checkpoint management
+  checkpoint:
+    enabled: true
+    save_frequency: 5  # Save checkpoint every N epochs
+    max_checkpoints: 10  # Maximum number of checkpoints to keep
+    checkpoint_dir: "checkpoints"
+    save_best_only: true  # Only save if metrics improve
+    monitor_metric: "val_loss"  # Metric to monitor for best model
+    
+  # Fine-tuning configuration
+  fine_tuning:
+    enabled: false  # Enable via --fine-tune flag
+    learning_rate: 2e-5
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    max_epochs: 10
+    batch_size: 16
+    gradient_accumulation_steps: 2
+    
+    # Layer freezing strategy
+    freeze_strategy: "gradual"  # all, none, half, gradual, top3
+    freeze_embeddings: true  # Freeze embedding layer
+    unfreeze_schedule:
+      # Gradual unfreezing schedule (epoch: layers_to_unfreeze)
+      0: 0    # Start with all frozen
+      2: 3    # Unfreeze top 3 layers at epoch 2
+      5: 6    # Unfreeze top 6 layers at epoch 5
+      8: -1   # Unfreeze all at epoch 8
+    
+    # Contrastive learning
+    use_contrastive: true
+    projection_dim: 128
+    temperature: 0.07
+    
+  # Continual learning strategy
+  strategy:
+    method: "combined"  # experience_replay, ewc, lwf, combined
+    
+    # Experience replay settings
+    experience_replay:
+      buffer_size: 1000  # Number of samples to keep from previous datasets
+      sample_strategy: "reservoir"  # reservoir or balanced
+      replay_ratio: 0.2  # Ratio of replay samples in each batch
+    
+    # Elastic Weight Consolidation (EWC)
+    ewc:
+      lambda: 0.4  # Importance weight for old task performance
+      fisher_samples: 500  # Number of samples to estimate Fisher information
+      online_ewc: true  # Use online EWC (recommended for multiple datasets)
+    
+    # Learning Without Forgetting (LwF)
+    lwf:
+      temperature: 2.0  # Temperature for distillation
+      alpha: 0.5  # Weight for distillation loss
+      
+  # Model registry
+  model_registry:
+    enabled: true
+    registry_dir: "model_registry"
+    backend: "json"  # json or sqlite
+    auto_register: true  # Automatically register models after training
+    track_lineage: true  # Track model lineage (parent-child relationships)
+    
+    # Versioning
+    version_format: "dataset_{dataset}_v{counter}"  # Format for version names
+    auto_increment: true  # Auto-increment version counter
+    
+  # Dataset memory
+  dataset_memory:
+    enabled: true
+    memory_dir: "dataset_memory"
+    store_embeddings: true  # Store embeddings for faster replay
+    store_raw_sequences: false  # Store raw sequences (takes more space)
+    compression: true  # Compress stored data
+
 # Logging
 logging:
   level: "INFO"

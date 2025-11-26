@@ -21,6 +21,10 @@ from src.clustering.algorithms import EmbeddingClusterer
 from src.clustering.taxonomy import HybridTaxonomyAssigner, BlastTaxonomyAssigner, MLTaxonomyClassifier, TaxonomyIndex, KNNLCATaxonomyAssigner
 from src.novelty.detection import NoveltyAnalyzer
 from src.visualization.plots import BiodiversityPlotter
+from src.models.checkpoint_manager import CheckpointManager
+from src.models.finetuner import DNABERTFineTuner
+from src.models.continual_learning import ContinualLearner
+from src.models.model_registry import ModelRegistry
 
 # Setup logging
 logging.basicConfig(
@@ -56,6 +60,12 @@ class eDNABiodiversityPipeline:
         self.novelty_analyzer = None
         self.plotter = None
         
+        # Initialize continual learning components
+        self.checkpoint_manager = None
+        self.finetuner = None
+        self.continual_learner = None
+        self.model_registry = None
+        
         logger.info("eDNA Biodiversity Pipeline initialized")
     
     def run_complete_pipeline(self,
@@ -68,7 +78,13 @@ class eDNABiodiversityPipeline:
                             run_novelty: bool = True,
                             run_visualization: bool = True,
                             train_model: bool = False,
-                            custom_model_path: Optional[str] = None) -> Dict[str, Any]:
+                            custom_model_path: Optional[str] = None,
+                            # Continual learning parameters
+                            resume_from_checkpoint: Optional[str] = None,
+                            enable_fine_tuning: bool = False,
+                            checkpoint_every: int = 0,
+                            dataset_name: Optional[str] = None,
+                            model_version: Optional[str] = None) -> Dict[str, Any]:
         """
         Run the complete eDNA biodiversity assessment pipeline
         
@@ -83,12 +99,30 @@ class eDNABiodiversityPipeline:
             run_visualization: Whether to generate visualizations
             train_model: Whether to train a custom embedding model
             custom_model_path: Path to pre-trained custom model (overrides training)
+            resume_from_checkpoint: Path to checkpoint to resume from
+            enable_fine_tuning: Whether to fine-tune DNABERT-2 on this dataset
+            checkpoint_every: Save checkpoint every N epochs (0 = disabled)
+            dataset_name: Name of dataset for model registry
+            model_version: Version identifier for model registry
             
         Returns:
             Complete pipeline results
         """
         start_time = time.time()
         logger.info("Starting complete eDNA biodiversity assessment pipeline")
+        
+        # Setup output directory
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize continual learning components if enabled
+        if enable_fine_tuning or resume_from_checkpoint or checkpoint_every > 0:
+            self._initialize_continual_learning(output_dir)
+        
+        # Resume from checkpoint if specified
+        if resume_from_checkpoint:
+            logger.info(f"Resuming from checkpoint: {resume_from_checkpoint}")
+            self._resume_from_checkpoint(resume_from_checkpoint)
         
         # Setup output directory
         output_dir = Path(output_dir)
@@ -877,6 +911,77 @@ class eDNABiodiversityPipeline:
         logger.info(f"Custom model embeddings saved: {embeddings.shape}")
         
         return embeddings
+    
+    def _initialize_continual_learning(self, output_dir: Path):
+        """Initialize continual learning components"""
+        checkpoint_dir = output_dir / 'checkpoints'
+        registry_dir = output_dir / 'model_registry'
+        
+        self.checkpoint_manager = CheckpointManager(
+            checkpoint_dir=str(checkpoint_dir)
+        )
+        
+        self.model_registry = ModelRegistry(
+            registry_dir=str(registry_dir),
+            backend='json'  # Use JSON for simplicity
+        )
+        
+        logger.info("Continual learning components initialized")
+    
+    def _resume_from_checkpoint(self, checkpoint_path: str):
+        """Resume training from checkpoint"""
+        if not self.checkpoint_manager:
+            raise ValueError("CheckpointManager not initialized. Call _initialize_continual_learning first.")
+        
+        checkpoint_data = self.checkpoint_manager.resume_training(checkpoint_path)
+        
+        # Restore model state
+        if self.embedding_model and 'model_state_dict' in checkpoint_data:
+            self.embedding_model.load_state_dict(checkpoint_data['model_state_dict'])
+            logger.info(f"Resumed from checkpoint: epoch {checkpoint_data.get('epoch', 0)}")
+    
+    def _save_checkpoint_if_enabled(self, epoch: int, checkpoint_every: int, 
+                                    output_dir: Path, metrics: Optional[Dict] = None):
+        """Save checkpoint if checkpointing is enabled"""
+        if checkpoint_every > 0 and epoch % checkpoint_every == 0:
+            if not self.checkpoint_manager:
+                logger.warning("CheckpointManager not initialized, skipping checkpoint")
+                return
+            
+            checkpoint_data = {
+                'epoch': epoch,
+                'metrics': metrics or {}
+            }
+            
+            if self.embedding_model:
+                checkpoint_data['model_state_dict'] = self.embedding_model.state_dict()
+            
+            checkpoint_path = self.checkpoint_manager.save_checkpoint(
+                model_state=checkpoint_data.get('model_state_dict'),
+                optimizer_state=None,  # Add if using optimizer
+                epoch=epoch,
+                metrics=metrics,
+                config={'output_dir': str(output_dir)}
+            )
+            
+            logger.info(f"Checkpoint saved at epoch {epoch}: {checkpoint_path}")
+    
+    def _register_model_version(self, model_path: str, dataset_name: str, 
+                               version: str, metrics: Optional[Dict] = None):
+        """Register model version in registry"""
+        if not self.model_registry:
+            logger.warning("ModelRegistry not initialized, skipping registration")
+            return
+        
+        self.model_registry.register_model(
+            version=version,
+            model_path=model_path,
+            datasets=[dataset_name],
+            metrics=metrics or {},
+            description=f"Model trained on {dataset_name}"
+        )
+        
+        logger.info(f"Registered model version: {version}")
 
 def create_sample_data(output_dir: Path, n_sequences: int = 1000) -> None:
     """Create sample eDNA data for testing"""
@@ -927,6 +1032,18 @@ def main():
     parser.add_argument('--skip-visualization', action='store_true',
                        help="Skip visualization generation")
     
+    # Continual learning arguments
+    parser.add_argument('--resume', type=str, default=None,
+                       help="Path to checkpoint to resume training from")
+    parser.add_argument('--fine-tune', action='store_true',
+                       help="Enable fine-tuning of DNABERT-2 on this dataset")
+    parser.add_argument('--checkpoint-every', type=int, default=0,
+                       help="Save checkpoint every N epochs (0 = disabled)")
+    parser.add_argument('--dataset-name', type=str, default=None,
+                       help="Name of dataset for model registry")
+    parser.add_argument('--model-version', type=str, default=None,
+                       help="Version identifier for model registry")
+    
     args = parser.parse_args()
     
     # Create logs directory
@@ -953,7 +1070,12 @@ def main():
             run_novelty=not args.skip_novelty,
             run_visualization=not args.skip_visualization,
             train_model=args.train_model,
-            custom_model_path=args.model_path
+            custom_model_path=args.model_path,
+            resume_from_checkpoint=args.resume,
+            enable_fine_tuning=args.fine_tune,
+            checkpoint_every=args.checkpoint_every,
+            dataset_name=args.dataset_name,
+            model_version=args.model_version
         )
         
         # Print summary
