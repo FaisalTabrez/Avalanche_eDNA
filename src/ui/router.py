@@ -10,6 +10,7 @@ from src.ui.pages import (
     biodiversity_results,
     taxonomy,
     progress_updates,
+    model_training_dashboard,
     about
 )
 
@@ -30,6 +31,8 @@ def render_page(page_key):
         taxonomy.render()
     elif page_key == "progress_updates":
         progress_updates.render()
+    elif page_key == "model_training_dashboard":
+        model_training_dashboard.main()
     elif page_key == "about":
         about.render()
     else:
@@ -42,6 +45,7 @@ def get_pages_config():
         {"key": "analysis", "label": "Dataset Analysis"},
         {"key": "progress_updates", "label": "Pipeline Progress"},
         {"key": "training", "label": "Model Training"},
+        {"key": "model_training_dashboard", "label": "Training Dashboard"},
         {"key": "sra_browser", "label": "SRA Browser"},
         {"key": "biodiversity_results", "label": "Biodiversity Results"},
         {"key": "taxonomy", "label": "Taxonomy Viewer"},
