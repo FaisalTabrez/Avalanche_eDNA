@@ -1,12 +1,14 @@
-# Deep-Sea eDNA Biodiversity Assessment System
+# Avalanche eDNA - Deep-Sea Biodiversity Assessment System
 
-An end-to-end system for identifying taxonomic diversity and assessing biological richness in deep-sea environmental DNA (eDNA) datasets using advanced machine learning and bioinformatics techniques.
+An advanced end-to-end system for identifying taxonomic diversity and assessing biological richness in deep-sea environmental DNA (eDNA) datasets using state-of-the-art machine learning, continual learning, and bioinformatics techniques.
 
 ## Table of Contents
 - [Overview](#overview)
-- [Features](#features)
+- [Key Features](#key-features)
+- [What's New](#whats-new)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Continual Learning](#continual-learning)
 - [Documentation](#documentation)
 - [Usage](#usage)
 - [Contributing](#contributing)
@@ -14,27 +16,90 @@ An end-to-end system for identifying taxonomic diversity and assessing biologica
 
 ## 🌊 Overview
 
-This system addresses the challenges of deep-sea eDNA analysis by:
-- Processing massive, complex eDNA datasets efficiently
-- Discovering novel taxa without relying solely on existing reference databases
-- Providing scalable, accurate taxonomic classification
-- Offering intuitive visualization and analysis tools
+Avalanche eDNA is a comprehensive platform for deep-sea eDNA analysis that combines cutting-edge deep learning with robust bioinformatics workflows. The system features:
 
-## 🔧 Features
+- **DNABERT-2 Embeddings**: Utilizing state-of-the-art 117M parameter transformer models for DNA sequence understanding
+- **Continual Learning**: Models that grow and improve with each new dataset without forgetting previous knowledge
+- **Real-time Monitoring**: Live pipeline progress tracking and model training visualization
+- **Scalable Processing**: GPU-accelerated workflows for handling massive eDNA datasets
+- **Novel Taxa Discovery**: Advanced unsupervised methods for identifying previously unknown organisms
+- **Comprehensive Taxonomy**: Multi-source taxonomic assignment combining BLAST, k-NN, and ML classifiers
 
-- **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal
-- **Transformer Embeddings**: DNABERT-2 with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
-- **Custom Model Training**: Train your own DNA embedding models using contrastive learning, transformers, or autoencoders
-- **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
-- **Interactive Dashboard**: Web-based visualization and analysis interface
-- **Scalable Architecture**: GPU acceleration and cloud deployment ready
-- **NCBI SRA Integration**: Search, browse, and download from 1000+ eDNA studies in NCBI Sequence Read Archive
-  - Direct dataset download with SRA Toolkit
-  - Batch processing for multiple datasets
-  - Integrated search with custom filters
-  - Automatic format conversion (SRA → FASTQ)
+## 🚀 Key Features
+
+### Core Capabilities
+- **Advanced DNA Embeddings**: DNABERT-2 (117M parameters) with chunked mean-pooling, optional PCA, and L2 normalization
+- **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal, and format conversion
 - **Multi-Format Support**: Universal support for FASTA, FASTQ, Swiss-Prot, GenBank, EMBL, and SRA formats
-- **Real-time Processing**: Live progress tracking with interactive visualizations
+- **Advanced Clustering**: Unsupervised taxonomic grouping with DBSCAN, HDBSCAN, and hierarchical methods
+- **Hybrid Taxonomy Assignment**: 
+  - BLAST-based reference matching
+  - k-NN with FAISS indexing
+  - ML classification (Random Forest, XGBoost)
+  - Confidence-weighted consensus scoring
+- **Novelty Detection**: Identify novel taxa candidates using isolation forests and similarity metrics
+
+### Continual Learning System 🆕
+- **Model Evolution**: Train models that accumulate knowledge across multiple eDNA datasets
+- **Catastrophic Forgetting Prevention**: 
+  - Elastic Weight Consolidation (EWC)
+  - Experience Replay with reservoir sampling
+  - Learning Without Forgetting (LwF)
+- **Checkpoint Management**: Save/resume training with automatic best model selection
+- **Model Registry**: Track model versions, lineage, and performance metrics
+- **Fine-tuning Strategies**: Layer freezing, learning rate scheduling, contrastive learning
+
+### Interactive Dashboards
+- **Main Dashboard**: Multi-page Streamlit interface for analysis and visualization
+- **Pipeline Progress Monitor**: Real-time batch processing and model loading status
+- **Training Dashboard**: Visualize model evolution, compare versions, track lineage
+- **SRA Browser**: Search and download from 1000+ NCBI eDNA datasets
+- **Biodiversity Results**: Interactive plots for species distribution and diversity metrics
+- **Taxonomy Viewer**: Explore taxonomic assignments with confidence scores
+
+### Integration & Scalability
+- **NCBI SRA Integration**: Direct dataset download with SRA Toolkit and batch processing
+- **GPU Acceleration**: CUDA support for embeddings and training
+- **Cloud-Ready**: Containerized deployment with scalable architecture
+- **Report Management**: Full-featured API for dataset cataloging and cross-analysis
+- **Real-time Monitoring**: Live progress tracking with metrics and visualizations
+
+## 🆕 What's New
+
+### Version 2.0 - Continual Learning Release
+
+**Major Features:**
+1. **Continual Learning Infrastructure**
+   - Complete checkpoint/resume functionality
+   - DNABERT-2 fine-tuning with layer freezing strategies
+   - Anti-forgetting mechanisms (EWC, replay, distillation)
+   - Model versioning and lineage tracking
+
+2. **Enhanced Pipeline**
+   - New flags: `--resume`, `--fine-tune`, `--checkpoint-every`
+   - Dataset-specific model training
+   - Automatic model registration
+   - Performance trend visualization
+
+3. **Training Dashboard**
+   - Model overview with status and metrics
+   - Performance trends across versions
+   - Model lineage tree visualization
+   - Side-by-side model comparison
+   - Checkpoint management interface
+
+4. **DNABERT-2 Optimization**
+   - Replaced Nucleotide Transformer with DNABERT-2
+   - Optimized chunking for long sequences
+   - Configurable fine-tuning parameters
+   - Experience replay buffer for old datasets
+
+**Technical Improvements:**
+- Comprehensive configuration in `config.yaml`
+- Modular architecture for easy extension
+- JSON/SQLite backends for model registry
+- Real-time progress monitoring
+- Enhanced error handling and logging
 
 ## 📁 Project Structure
 
@@ -43,25 +108,42 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 ├── src/                         # Source code
 │   ├── analysis/                # Dataset analysis utilities
 │   ├── api/                     # Report management API
-│   ├── clustering/              # Clustering algorithms and taxonomy helpers
+│   ├── clustering/              # Clustering algorithms and taxonomy
 │   ├── dashboards/              # Streamlit dashboard modules
 │   ├── database/                # Database models and manager
+│   ├── models/                  # 🆕 Model implementations
+│   │   ├── checkpoint_manager.py   # Training checkpoint management
+│   │   ├── continual_learning.py   # EWC, replay, LwF strategies
+│   │   ├── dnabert.py              # DNABERT/DNABERT-2 wrapper
+│   │   ├── embeddings.py           # Embedding generation
+│   │   ├── finetuner.py            # Fine-tuning functionality
+│   │   ├── model_registry.py       # Version tracking & lineage
+│   │   ├── tokenizer.py            # DNA tokenization
+│   │   └── trainer.py              # Model training loops
 │   ├── novelty/                 # Novelty detection logic
 │   ├── organism_profiling/      # Organism profiling modules
 │   ├── preprocessing/           # Data cleaning and preparation
 │   ├── report_management/       # Report/catalogue management
 │   ├── similarity/              # Cross-analysis engine
+│   ├── ui/                      # 🆕 Streamlit UI pages
+│   │   └── pages/
+│   │       ├── progress_updates.py         # Pipeline monitoring
+│   │       ├── model_training_dashboard.py # Training visualization
+│   │       └── ...
 │   ├── utils/                   # Shared utilities and config
 │   └── visualization/           # Plotting and dashboard utilities
 ├── notebooks/                   # Jupyter notebooks for analysis
 ├── tests/                       # Unit and integration tests
 ├── docs/                        # Documentation
 ├── scripts/                     # Pipeline and automation scripts
+│   ├── run_pipeline.py          # Main pipeline (with continual learning)
+│   ├── launch_dashboard.py      # Streamlit dashboard launcher
+│   └── ...
+├── config/                      # Configuration files
+│   └── config.yaml              # Main config (with continual_learning section)
 ├── streamlit_app.py             # Streamlit UI entrypoint
 └── requirements*.txt            # Python dependencies
 ```
-
-> Note: The current pipeline uses placeholder embeddings and a demo ML taxonomy classifier trained on synthetic data. Replace the embedding step with real models and training when src/models is introduced.
 
 ## Installation
 
@@ -69,125 +151,134 @@ See [Installation Guide](docs/installation.md) for detailed setup instructions i
 
 ## 🚀 Quick Start
 
-Note: The default embedding backend uses a pretrained DNABERT-2 model from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
+The system uses DNABERT-2 as the default embedding model. The first run will automatically download model weights (~894MB) to your local HuggingFace cache.
 
-### Basic Analysis
-
-1. **Create Sample Data and Run Analysis**
-    ```bash
-    # Create sample eDNA dataset
-    python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
-
-    # Run complete analysis pipeline
-    python scripts/run_pipeline.py --input data/sample/sample_edna_sequences.fasta --output results/demo
-    ```
-
-2. **Launch Interactive Dashboard**
-    ```bash
-    python scripts/launch_dashboard.py
-    ```
-    Then open http://localhost:8504 in your browser
-
-3. **View Results**
-    ```bash
-    # Results are saved in results/demo/
-    # - pipeline_results.json: Complete analysis results
-    # - visualizations/: Interactive plots
-    # - clustering/: Clustering analysis
-    # - taxonomy/: Taxonomic assignments
-    # - novelty/: Novel taxa detection
-    ```
-
-### Custom Model Training
-
-Train your own DNA embedding models for improved performance on specific datasets:
-
-1. **Train a Contrastive Learning Model**
-    ```bash
-    # Train on your own sequences
-    python scripts/train_model.py \
-        --input data/training_sequences.fasta \
-        --output models/my_custom_model \
-        --model-type contrastive \
-        --epochs 100 \
-        --batch-size 32
-    
-    # With labeled data for supervised training
-    python scripts/train_model.py \
-        --input data/sequences.fasta \
-        --labels data/taxonomy_labels.csv \
-        --output models/supervised_model \
-        --model-type contrastive \
-        --epochs 50
-    ```
-
-2. **Use Custom Model in Pipeline**
-    ```bash
-    # Use pre-trained custom model
-    python scripts/run_pipeline.py \
-        --input data/sample/sample_edna_sequences.fasta \
-        --output results/custom_model_run \
-        --model-path models/my_custom_model/model
-    
-    # Train model and run analysis in one go
-    python scripts/run_pipeline.py \
-        --input data/sample/sample_edna_sequences.fasta \
-        --output results/trained_run \
-        --train-model
-    ```
-
-3. **Training Configuration**
-    
-    Edit `config/config.yaml` to customize training parameters:
-    ```yaml
-    embedding:
-      training:
-        model_type: "contrastive"  # or "transformer", "autoencoder"
-        projection_dim: 128
-        temperature: 0.1
-        batch_size: 32
-        learning_rate: 0.0001
-        epochs: 100
-        device: "auto"  # auto, cuda, or cpu
-    ```
-
-## Documentation
-## 🖥️ Running the Report System
-
-You can start the API and dashboard using the included Windows helper or start the services manually.
-
-Option 1 — Windows helper (convenience)
-
-```bat
-start_report_system.bat
-```
-
-This launches two separate command windows:
-- FastAPI server on `http://127.0.0.1:8000`
-- Streamlit dashboard on `http://localhost:8504`
-
-Option 2 — Manual (cross-platform)
-
-Run the FastAPI server:
+### 1. Basic Analysis
 
 ```bash
-python -m uvicorn src.api.report_management_api:app --host 127.0.0.1 --port 8000
+# Create sample eDNA dataset
+python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
+
+# Run complete analysis pipeline
+python scripts/run_pipeline.py \
+    --input data/sample/sample_edna_sequences.fasta \
+    --output results/demo
 ```
 
-Run the Streamlit dashboard:
+### 2. Launch Interactive Dashboard
 
 ```bash
-streamlit run streamlit_app.py --server.port=8504 --server.address=localhost
+# Start the main dashboard
+python scripts/launch_dashboard.py
+
+# Or directly with streamlit
+streamlit run streamlit_app.py --server.port=8504
 ```
 
-Notes:
-- The batch helper is a convenience for Windows users; prefer the manual commands for cross-platform workflows.
-- If you changed the `.streamlit/config.toml` server address or port, update the commands or the batch file accordingly.
+Then open http://localhost:8504 in your browser to access:
+- Dataset Analysis
+- Pipeline Progress Monitor
+- Model Training Dashboard
+- SRA Browser
+- Biodiversity Results
+- Taxonomy Viewer
 
+### 3. View Results
+
+Results are automatically saved in your output directory:
+```
+results/demo/
+├── pipeline_results.json        # Complete analysis summary
+├── preprocessed_sequences.fasta # Cleaned sequences
+├── sequence_embeddings.npy      # DNABERT-2 embeddings
+├── clustering/                  # Cluster assignments
+├── taxonomy/                    # Taxonomic predictions
+├── novelty/                     # Novel taxa candidates
+└── visualizations/              # Interactive plots
+```
+
+## 🧬 Continual Learning
+
+Train models that grow with your data - accumulating knowledge from multiple eDNA datasets without forgetting.
+
+### Fine-tune on a New Dataset
+
+```bash
+# Fine-tune DNABERT-2 on your dataset
+python scripts/run_pipeline.py \
+    --input data/marine_dataset \
+    --output results/marine_run \
+    --fine-tune \
+    --checkpoint-every 5 \
+    --dataset-name "Marine_eDNA_2024" \
+    --model-version "v1.0"
+```
+
+### Continue Training on Additional Datasets
+
+```bash
+# Train on a second dataset (model accumulates knowledge)
+python scripts/run_pipeline.py \
+    --input data/freshwater_dataset \
+    --output results/freshwater_run \
+    --fine-tune \
+    --dataset-name "Freshwater_eDNA_2024" \
+    --model-version "v1.1"
+```
+
+### Resume from Checkpoint
+
+```bash
+# Resume interrupted training
+python scripts/run_pipeline.py \
+    --resume results/marine_run/checkpoints/checkpoint_epoch_10.pt \
+    --input data/continue_training \
+    --output results/continued
+```
+
+### Monitor Training Progress
+
+Access the **Training Dashboard** in the Streamlit UI to:
+- View model evolution across datasets
+- Compare performance metrics between versions
+- Visualize model lineage tree
+- Manage checkpoints and resume training
+- Track catastrophic forgetting prevention
+
+### Continual Learning Strategies
+
+Configure in `config/config.yaml`:
+
+```yaml
+continual_learning:
+  strategy:
+    method: "combined"  # Use EWC + Replay + LwF together
+    
+    experience_replay:
+      buffer_size: 1000
+      replay_ratio: 0.2
+    
+    ewc:
+      lambda: 0.4
+      online_ewc: true
+    
+    lwf:
+      temperature: 2.0
+      alpha: 0.5
+```
+
+**Available Strategies:**
+- **EWC (Elastic Weight Consolidation)**: Protects important weights from previous tasks
+- **Experience Replay**: Replays samples from old datasets during training
+- **LwF (Learning Without Forgetting)**: Distills knowledge from previous model version
+- **Combined**: Uses all three strategies for maximum stability
+
+## 📚 Documentation
 
 - [User Guide](docs/user_guide.md) - Complete usage instructions and tutorials
 - [API Reference](docs/api_reference.md) - Detailed API documentation
-- [Configuration](docs/configuration.md) - Configuration options and examples
+- [Configuration Guide](docs/configuration.md) - Configuration options and examples
+- [Installation Guide](docs/installation.md) - Detailed setup instructions
 - [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md) - NCBI SRA integration and usage
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 
@@ -195,23 +286,76 @@ Notes:
 
 ### Command Line Interface
 
+#### Standard Analysis
 ```bash
 # Complete end-to-end analysis
-python scripts/run_pipeline.py --input sequences.fasta --output results/
+python scripts/run_pipeline.py \
+    --input sequences.fasta \
+    --output results/
 
 # Skip specific steps
-python scripts/run_pipeline.py --input sequences.fasta --output results/ --skip-preprocessing
-
-# Create sample data for testing
-python scripts/run_pipeline.py --create-sample --input data/sample --output results/demo
+python scripts/run_pipeline.py \
+    --input sequences.fasta \
+    --output results/ \
+    --skip-preprocessing \
+    --skip-clustering
 ```
+
+#### Continual Learning Features
+```bash
+# Fine-tune model on dataset
+python scripts/run_pipeline.py \
+    --input sequences.fasta \
+    --output results/ \
+    --fine-tune \
+    --checkpoint-every 5 \
+    --dataset-name "MyDataset" \
+    --model-version "v1.0"
+
+# Resume from checkpoint
+python scripts/run_pipeline.py \
+    --resume results/checkpoints/checkpoint_epoch_10.pt \
+    --input new_sequences.fasta \
+    --output results/continued/
+```
+
+#### Available Flags
+- `--input`: Input file (FASTA/FASTQ) or directory
+- `--output`: Output directory for results
+- `--fine-tune`: Enable DNABERT-2 fine-tuning
+- `--resume`: Resume from checkpoint path
+- `--checkpoint-every`: Save checkpoint every N epochs
+- `--dataset-name`: Dataset name for registry
+- `--model-version`: Model version identifier
+- `--skip-preprocessing`: Skip preprocessing step
+- `--skip-embedding`: Skip embedding generation
+- `--skip-clustering`: Skip clustering step
+- `--skip-taxonomy`: Skip taxonomy assignment
+- `--skip-novelty`: Skip novelty detection
+- `--skip-visualization`: Skip visualization generation
+- `--create-sample`: Create sample dataset
 
 ### Interactive Dashboard
 
+Launch the multi-page Streamlit dashboard:
+
 ```bash
-# Launch web interface
+# Method 1: Using launcher script
 python scripts/launch_dashboard.py
+
+# Method 2: Direct streamlit
+streamlit run streamlit_app.py --server.port=8504
 ```
+
+**Available Pages:**
+- **Home**: System overview and quick start
+- **Dataset Analysis**: Upload and analyze eDNA datasets
+- **Pipeline Progress**: Monitor real-time processing status
+- **Model Training**: 🆕 Track continual learning progress
+- **SRA Browser**: Search and download NCBI datasets
+- **Biodiversity Results**: Visualize species diversity
+- **Taxonomy Viewer**: Explore taxonomic assignments
+- **About**: System information and documentation
 
 ### Python API
 
@@ -221,101 +365,293 @@ from scripts.run_pipeline import eDNABiodiversityPipeline
 # Initialize pipeline
 pipeline = eDNABiodiversityPipeline()
 
-# Run analysis
+# Standard analysis
 results = pipeline.run_complete_pipeline(
     input_data="sequences.fasta",
     output_dir="results/analysis"
 )
 
-print(f"Found {results['summary']['novel_taxa_candidates']} novel taxa candidates")
+# With continual learning
+results = pipeline.run_complete_pipeline(
+    input_data="sequences.fasta",
+    output_dir="results/analysis",
+    enable_fine_tuning=True,
+    checkpoint_every=5,
+    dataset_name="MyDataset",
+    model_version="v1.0"
+)
+
+# Access results
+print(f"Sequences processed: {results['summary']['total_sequences_processed']}")
+print(f"Novel taxa found: {results['summary']['novel_taxa_candidates']}")
+print(f"Clusters detected: {results['summary']['clusters_detected']}")
+```
+
+### Model Registry API
+
+```python
+from src.models.model_registry import ModelRegistry
+
+# Initialize registry
+registry = ModelRegistry(registry_dir="results/model_registry")
+
+# List all models
+models = registry.list_models(status='active')
+
+# Get model lineage
+lineage = registry.get_lineage("v1.2")
+
+# Compare two models
+comparison = registry.compare_models("v1.0", "v1.2")
+
+# Get best model by metric
+best = registry.get_best_model(metric='val_loss', minimize=True)
 ```
 
 ### Example Analysis Workflow
 
-1. **Data Upload**: Load FASTQ/FASTA files
+1. **Data Upload**: Load FASTQ/FASTA files or download from SRA
 2. **Preprocessing**: Quality filtering, adapter removal, chimera detection
-3. **Embedding Generation**: Deep learning sequence representations
-4. **Clustering**: Group sequences into taxonomic units
-5. **Taxonomy Assignment**: BLAST + ML classification
-6. **Novelty Detection**: Identify potential new species
-7. **Visualization**: Interactive plots and reports
+3. **Embedding Generation**: DNABERT-2 sequence representations with optional fine-tuning
+4. **Clustering**: Group sequences into taxonomic units (DBSCAN/HDBSCAN)
+5. **Taxonomy Assignment**: Hybrid approach (BLAST + k-NN + ML)
+6. **Novelty Detection**: Identify potential new species using isolation forests
+7. **Visualization**: Interactive plots and comprehensive reports
+8. **Model Registry**: Track performance and model evolution
+
+### Configuration Examples
+
+#### Basic Embedding Configuration
+```yaml
+# config/config.yaml
+embedding:
+  model_id: "zhihan1996/DNABERT-2-117M"
+  max_sequence_length: 512
+  transformer:
+    stride: 256
+    batch_size: 8
+  postprocess:
+    pca_dims: 256
+    normalize: true
+```
+
+#### Continual Learning Configuration
+```yaml
+continual_learning:
+  checkpoint:
+    enabled: true
+    save_frequency: 5
+    max_checkpoints: 10
+    
+  fine_tuning:
+    learning_rate: 2e-5
+    warmup_ratio: 0.1
+    freeze_strategy: "gradual"
+    
+  strategy:
+    method: "combined"
+    experience_replay:
+      buffer_size: 1000
+    ewc:
+      lambda: 0.4
+    lwf:
+      alpha: 0.5
+```
+
+## 🖥️ Running the Report System
+
+The system includes a comprehensive report management API for cataloging datasets and cross-analysis.
+
+**Option 1 — Windows helper (convenience)**
+
+```bat
+start_report_system.bat
+```
+
+This launches two separate command windows:
+- FastAPI server on `http://127.0.0.1:8000`
+- Streamlit dashboard on `http://localhost:8504`
+
+**Option 2 — Manual (cross-platform)**
+
+Run the FastAPI server:
+```bash
+python -m uvicorn src.api.report_management_api:app --host 127.0.0.1 --port 8000
+```
+
+Run the Streamlit dashboard:
+```bash
+streamlit run streamlit_app.py --server.port=8504 --server.address=localhost
+```
 
 ## 🧬 NCBI SRA Integration
 
-The system includes comprehensive NCBI SRA (Sequence Read Archive) integration for accessing thousands of publicly available eDNA datasets:
+The system includes comprehensive NCBI SRA (Sequence Read Archive) integration for accessing thousands of publicly available eDNA datasets.
 
 ### Features
 - **Search & Browse**: Search NCBI SRA with custom keywords and filters
 - **Direct Download**: Download datasets using integrated SRA Toolkit
 - **Batch Processing**: Queue and download multiple datasets efficiently
 - **Auto-conversion**: Automatic SRA → FASTQ conversion
-- **Web Interface**: Full integration in Streamlit dashboard
+- **Web Interface**: Full integration in Streamlit SRA Browser page
 - **API Access**: Programmatic access via Python API
 
 ### Quick Start with SRA
 
-1. **Using the Web Interface**
-   ```bash
-   # Launch dashboard
-   streamlit run streamlit_app.py
-   
-   # Navigate to "SRA Browser" page
-   # Search for datasets, download, and analyze
-   ```
+**1. Using the Web Interface**
+```bash
+# Launch dashboard
+streamlit run streamlit_app.py
 
-2. **Command Line**
-   ```bash
-   # Download a specific dataset
-   python scripts/download_sra_data.py --accession SRR12345678 --output data/sra
-   
-   # Search and download
-   python scripts/download_sra_data.py --search "marine eDNA" --max-results 10
-   ```
+# Navigate to "SRA Browser" page
+# Search for datasets, download, and analyze directly
+```
 
-3. **Python API**
-   ```python
-   from src.utils.sra_integration import SRAIntegrationUI
-   
-   # Initialize
-   sra = SRAIntegrationUI()
-   
-   # Search datasets
-   results = sra.search_sra_datasets(["eDNA", "18S rRNA"], max_results=50)
-   
-   # Download
-   success, file_path = sra.download_sra_dataset("SRR12345678", output_dir)
-   ```
+**2. Command Line**
+```bash
+# Download a specific dataset
+python scripts/download_sra_data.py \
+    --accession SRR12345678 \
+    --output data/sra
+
+# Search and download multiple datasets
+python scripts/download_sra_data.py \
+    --search "marine eDNA" \
+    --max-results 10 \
+    --output data/sra_datasets
+```
+
+**3. Python API**
+```python
+from src.utils.sra_integration import SRAIntegrationUI
+
+# Initialize
+sra = SRAIntegrationUI()
+
+# Search datasets
+results = sra.search_sra_datasets(
+    keywords=["eDNA", "18S rRNA"],
+    max_results=50
+)
+
+# Download specific dataset
+success, file_path = sra.download_sra_dataset(
+    "SRR12345678",
+    output_dir="data/sra"
+)
+
+# Process downloaded data
+pipeline.run_complete_pipeline(
+    input_data=file_path,
+    output_dir="results/sra_analysis"
+)
+```
 
 For complete SRA integration documentation, see [SRA Integration Guide](docs/SRA_INTEGRATION_GUIDE.md).
 
 ## 🧪 Testing
 
+Run the test suite:
+
 ```bash
+# Run all tests
 pytest tests/
+
+# Run specific test file
+pytest tests/test_system.py
+
+# Run with coverage
+pytest --cov=src tests/
+
+# Run specific test category
+pytest tests/ -k "embedding"
 ```
 
-## Examples & Archived Tools
+## 🔧 Advanced Features
 
-- Examples for common workflows are in the `examples/` folder. Notable examples:
-    - `examples/ml_training_example.py` — a training example demonstrating model training steps.
-    - `examples/sra_integration_example.py` — an example showing SRA integration usage.
+### Embedding Management
+Scripts for multi-dataset workflows are available in `scripts/`:
 
-- Embedding management scripts for multi-dataset workflows are in `scripts/`:
-    - `scripts/consolidate_embeddings.py` — Build consolidated reference from all run embeddings
-    - `scripts/compress_embeddings.py` — Compress embeddings to save storage space (~50%)
-    - `scripts/search_reference.py` — Search across all embeddings for similar sequences
-    - `scripts/manage_embedding_versions.py` — Track model versions and tag runs
-    - See [EMBEDDING_MANAGEMENT.md](docs/EMBEDDING_MANAGEMENT.md) for detailed workflow
+```bash
+# Build consolidated reference from all run embeddings
+python scripts/consolidate_embeddings.py \
+    --runs-dir analysis_outputs/runs \
+    --output consolidated_data/
 
-- Archived one-off or legacy scripts have been moved to `archive/removed_misc/`. If you need to restore a file, copy it back from that directory.
+# Compress embeddings to save storage (~50% reduction)
+python scripts/compress_embeddings.py \
+    --input results/embeddings.npy \
+    --output results/embeddings_compressed.npz
 
-- The Windows helper `start_report_system.bat` is located at `scripts/windows/start_report_system.bat`.
+# Search across all embeddings for similar sequences
+python scripts/search_reference.py \
+    --query sequence.fasta \
+    --reference consolidated_data/
+
+# Track model versions and tag runs
+python scripts/manage_embedding_versions.py \
+    --registry results/model_registry \
+    --action list
+```
+
+See [EMBEDDING_MANAGEMENT.md](docs/EMBEDDING_MANAGEMENT.md) for detailed workflows.
+
+### Custom Extensions
+
+The modular architecture allows easy extension:
+
+```python
+# Add custom clustering algorithm
+from src.clustering.algorithms import EmbeddingClusterer
+
+class MyClusterer(EmbeddingClusterer):
+    def cluster(self, embeddings):
+        # Your implementation
+        return labels
+
+# Add custom taxonomy classifier
+from src.clustering.taxonomy import TaxonomyClassifier
+
+class MyClassifier(TaxonomyClassifier):
+    def predict(self, embeddings):
+        # Your implementation
+        return predictions
+```
 
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Areas for Contribution:**
+- New clustering algorithms
+- Additional taxonomy databases
+- Model architectures and training strategies
+- Visualization improvements
+- Documentation and tutorials
+- Bug reports and feature requests
 
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## 🙏 Acknowledgments
+
+This project uses the following key technologies:
+- **DNABERT-2** - Pre-trained DNA language model by Zhihan Zhou et al.
+- **Transformers** - Hugging Face transformers library
+- **Streamlit** - Interactive web applications
+- **PyTorch** - Deep learning framework
+- **NCBI SRA** - Sequence Read Archive integration
+- **BLAST+** - Sequence alignment tools
+
+## 📧 Contact
+
+For questions, issues, or collaboration:
+- Open an issue on GitHub
+- Check the [documentation](docs/)
+- Review [troubleshooting guide](docs/troubleshooting.md)
+
+---
+
+**Built with ❤️ for deep-sea biodiversity research**
