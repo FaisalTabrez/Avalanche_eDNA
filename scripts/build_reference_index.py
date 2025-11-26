@@ -25,7 +25,7 @@ Outputs (by default):
 - data/reference/reference_labels.csv
 - data/reference/reference_meta.json
 
-Note: This uses the same Nucleotide Transformer configuration as the main pipeline.
+Note: This uses the same DNABERT-2 configuration as the main pipeline.
 It will be slow on CPU for large reference sets; consider running on a machine with a GPU.
 """
 

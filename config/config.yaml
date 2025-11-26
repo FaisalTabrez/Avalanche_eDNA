@@ -129,7 +129,7 @@ embedding:
   
   # Transformer specific
   transformer:
-    # Hugging Face model id for nucleotide transformer
+    # Hugging Face model id for DNABERT-2
     model_id: "zhihan1996/DNABERT-2-117M"
     # Inference settings
     stride: 128

@@ -23,7 +23,7 @@ This system addresses the challenges of deep-sea eDNA analysis by:
 ## 🔧 Features
 
 - **Data Preprocessing Pipeline**: Quality filtering, adapter trimming, chimera removal
-- **Transformer Embeddings**: Nucleotide Transformer (HF) with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
+- **Transformer Embeddings**: DNABERT-2 with chunked mean-pooling, optional PCA to 256 dims, and L2 normalization
 - **Custom Model Training**: Train your own DNA embedding models using contrastive learning, transformers, or autoencoders
 - **Advanced Clustering**: Unsupervised taxonomic grouping with novelty detection
 - **Interactive Dashboard**: Web-based visualization and analysis interface
@@ -69,7 +69,7 @@ See [Installation Guide](docs/installation.md) for detailed setup instructions i
 
 ## 🚀 Quick Start
 
-Note: The default embedding backend uses a pretrained Nucleotide Transformer from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
+Note: The default embedding backend uses a pretrained DNABERT-2 model from Hugging Face. The first run will download the model weights to your local cache. Embedding post-processing (optional PCA to 256 and L2 normalization) is configurable in config/config.yaml under embedding.postprocess.
 
 ### Basic Analysis
 

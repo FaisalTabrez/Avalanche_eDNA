@@ -19,7 +19,7 @@ def render():
     
     st.title("Pipeline Progress Monitor")
     st.markdown("""
-    Monitor real-time progress of eDNA pipeline execution including model loading, 
+    Monitor real-time progress of eDNA pipeline execution including DNABERT-2 model loading, 
     batch processing updates, and complete terminal output.
     """)
     

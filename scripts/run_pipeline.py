@@ -292,37 +292,37 @@ class eDNABiodiversityPipeline:
         return sequences
     
     def _run_embedding_step(self, sequences: List[str], output_dir: Path, custom_model_path: Optional[str] = None) -> np.ndarray:
-        """Run embedding generation step using Nucleotide Transformer or custom model"""
+        """Run embedding generation step using DNABERT-2 or custom model"""
         
         # Use custom trained model if provided
         if custom_model_path:
             logger.info(f"Using custom trained model from: {custom_model_path}")
             return self._extract_custom_embeddings(sequences, custom_model_path, output_dir)
         
-        # Otherwise use Hugging Face Nucleotide Transformer
+        # Otherwise use DNABERT-2 from Hugging Face
         try:
             import torch
             from transformers import AutoTokenizer, AutoModel
         except ImportError as e:
             raise ImportError(
                 "Transformers/PyTorch not installed. Please install requirements (transformers, torch) "
-                "to use Nucleotide Transformer embeddings."
+                "to use DNABERT-2 embeddings."
             ) from e
 
         embedding_cfg = self.config.get('embedding', {})
         transformer_cfg = embedding_cfg.get('transformer', {}) or {}
 
-        model_id = transformer_cfg.get('model_id', 'InstaDeepAI/nucleotide-transformer-250m-1000g')
+        model_id = transformer_cfg.get('model_id', 'zhihan1996/DNABERT-2-117M')
         max_len = embedding_cfg.get('max_sequence_length', 512)
-        stride = transformer_cfg.get('stride', 128)
+        stride = transformer_cfg.get('stride', 256)
         batch_size = transformer_cfg.get('batch_size', 8)
 
         # Device selection
         use_gpu = bool(self.config.get('performance.use_gpu', True))
         device = 'cuda' if (use_gpu and torch.cuda.is_available()) else 'cpu'
-        logger.info(f"Loading Nucleotide Transformer model: {model_id} on device: {device}")
+        logger.info(f"Loading DNABERT-2 model: {model_id} on device: {device}")
 
-        # Load model and tokenizer lazily to avoid overhead when skipping step
+        # Load model and tokenizer
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
         model = AutoModel.from_pretrained(model_id, trust_remote_code=True)
         model.to(device)
@@ -409,7 +409,7 @@ class eDNABiodiversityPipeline:
         # Persist
         embeddings_file = output_dir / 'sequence_embeddings.npy'
         np.save(embeddings_file, embeddings)
-        logger.info(f"Embeddings generated via {model_id}: {embeddings.shape}")
+        logger.info(f"Embeddings generated via DNABERT-2 ({model_id}): {embeddings.shape}")
         return embeddings
     
     def _run_clustering_step(self, embeddings: np.ndarray, sequences: List[str], output_dir: Path) -> Dict[str, Any]:
