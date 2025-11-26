@@ -10,7 +10,7 @@ This project is a comprehensive, Python-based system for analyzing deep-sea envi
 - **Language:** Python
 - **Backend/Pipeline:** The core logic is a multi-step pipeline that includes:
     - **Preprocessing:** Quality filtering, adapter trimming, and chimera removal using tools like `cutadapt`.
-    - **Sequence Embedding:** Generates vector representations of DNA sequences using a pre-trained Nucleotide Transformer model from Hugging Face (`zhihan1996/DNABERT-2-117M`).
+    - **Sequence Embedding:** Generates vector representations of DNA sequences using a pre-trained DNABERT-2 model from Hugging Face (`zhihan1996/DNABERT-2-117M`).
     - **Clustering:** Uses `UMAP` for dimensionality reduction and `HDBSCAN` to group sequences into Operational Taxonomic Units (OTUs).
     - **Taxonomic Assignment:** A hybrid approach using `FAISS` for fast k-NN similarity search against a reference database, followed by a Lowest Common Ancestor (LCA) algorithm. A `BLAST`-based fallback is used for sequences that cannot be confidently classified by the primary method.
     - **Novelty Detection:** Identifies sequences that are significantly different from known reference databases, flagging them as potential new taxa.

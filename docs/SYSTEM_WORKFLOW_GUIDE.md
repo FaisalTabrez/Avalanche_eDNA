@@ -31,7 +31,7 @@ The analysis pipeline consists of 6 sequential steps. Each step can be configure
 ### Step 2: Embedding Generation
 *   **Goal**: Convert biological sequences into numerical vectors (embeddings).
 *   **Process**:
-    *   **Model**: Uses a Nucleotide Transformer (or configured model) to read DNA sequences.
+    *   **Model**: Uses DNABERT-2 (or configured model) to read DNA sequences.
     *   **Vectorization**: Maps each sequence to a high-dimensional vector (e.g., 256 dimensions) capturing semantic biological meaning.
     *   **Storage**: Saves embeddings as `.npy` (NumPy) files for efficiency.
 *   **Output**: `embeddings.npy` (Shape: [N_sequences, Dimensions]).

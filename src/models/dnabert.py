@@ -23,11 +23,6 @@ class DNABERTEmbedder:
     """
     
     AVAILABLE_MODELS = {
-        # InstaDeep Nucleotide Transformer (may have compatibility issues with newer transformers)
-        'nt-50m': 'InstaDeepAI/nucleotide-transformer-v2-50m-multi-species',
-        'nt-100m': 'InstaDeepAI/nucleotide-transformer-v2-100m-multi-species',
-        'nt-250m': 'InstaDeepAI/nucleotide-transformer-v2-250m-multi-species',
-        'nt-500m': 'InstaDeepAI/nucleotide-transformer-v2-500m-multi-species',
         # DNABERT original (works on CPU, uses k-mer tokenization)
         'dnabert': 'zhihan1996/DNA_bert_6',
         'dnabert-3': 'zhihan1996/DNA_bert_3',
@@ -42,7 +37,7 @@ class DNABERTEmbedder:
                  cache_dir: Optional[str] = None,
                  max_length: int = 1000):
         """
-        Initialize Nucleotide Transformer or DNABERT-2
+        Initialize DNABERT or DNABERT-2
         
         Args:
             model_size: Model identifier (nt-250m, dnabert2, etc)
@@ -63,7 +58,7 @@ class DNABERTEmbedder:
         else:
             self.device = torch.device(device)
         
-        logger.info(f"Initializing Nucleotide Transformer ({model_size})")
+        logger.info(f"Initializing DNABERT model ({model_size})")
         logger.info(f"Model: {self.model_name}")
         logger.info(f"Device: {self.device}")
         

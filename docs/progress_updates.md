@@ -966,7 +966,7 @@ Figure 2. Novelty view (no novel candidates under current thresholds)
 ---
 ## ⚠️ **Partially Implemented Features**
 ### DNA Sequence Embeddings
-- **Status**: Uses Hugging Face Nucleotide Transformer (DNABERT-2-117M)
+- **Status**: Uses Hugging Face DNABERT-2 (DNABERT-2-117M)
 - **Post-processing**: PCA reduction and L2 normalization implemented
 - **Chunked processing**: Handles long sequences
 - **Limitation**: README notes "placeholder embeddings" and "demo ML taxonomy classifier trained on synthetic data"
