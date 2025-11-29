@@ -243,6 +243,38 @@ def train_model(args):
         stride=args.kmer_stride
     )
     
+    # Initialize dynamic scaling if enabled
+    scaling_config = None
+    if args.enable_scaling:
+        if not labels:
+            logger.error("Dynamic scaling requires labels. Please provide --labels argument.")
+            sys.exit(1)
+        
+        try:
+            from src.models.dynamic_hybrid_buffer import ScalingConfig
+            
+            # Determine number of clusters from labels
+            unique_labels = sorted(set(labels))
+            n_clusters = len(unique_labels)
+            dataset_size = len(sequences)
+            
+            logger.info(f"Initializing dynamic scaling for {n_clusters} clusters, {dataset_size} samples")
+            
+            # Create scaling config
+            scaling_config = ScalingConfig.auto_scale(
+                n_clusters=n_clusters,
+                dataset_size=dataset_size,
+                memory_budget_gb=args.memory_budget,
+                target_accuracy=args.target_accuracy
+            )
+            
+            logger.info(f"Scaling config: {scaling_config.exemplars_per_cluster} exemplars/cluster, "
+                       f"{scaling_config.uncertainty_buffer_size} uncertainty buffer")
+        
+        except ImportError:
+            logger.error("Dynamic scaling not available. Install required dependencies.")
+            sys.exit(1)
+    
     # Resume from checkpoint or create new model
     if args.resume:
         logger.info(f"Resuming from checkpoint: {args.resume}")
@@ -257,7 +289,7 @@ def train_model(args):
             logger.warning("Model type not specified, defaulting to contrastive")
             model, model_name = create_model('contrastive', tokenizer.vocab_size, config_dict)
         
-        trainer = EmbeddingTrainer(model, tokenizer, device=args.device)
+        trainer = EmbeddingTrainer(model, tokenizer, device=args.device, scaling_config=scaling_config)
         
         # Load checkpoint
         try:
@@ -269,38 +301,60 @@ def train_model(args):
     else:
         # Create new model
         model, model_name = create_model(args.model_type, tokenizer.vocab_size, config_dict)
-        trainer = EmbeddingTrainer(model, tokenizer, device=args.device)
+        trainer = EmbeddingTrainer(model, tokenizer, device=args.device, scaling_config=scaling_config)
     
-    # Prepare data
-    logger.info("Preparing training data...")
-    train_loader, val_loader = trainer.prepare_data(
-        sequences=sequences,
-        labels=labels,
-        validation_split=args.val_split,
-        batch_size=args.batch_size,
-        max_length=args.max_length
-    )
+    # Train model based on mode
+    logger.info(f"Starting training...")
     
-    logger.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
-    
-    # Train model
-    logger.info(f"Starting training for {args.epochs} epochs...")
-    
-    if args.model_type == 'autoencoder' or isinstance(model, DNAAutoencoder):
-        history = trainer.train_autoencoder(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            epochs=args.epochs,
-            learning_rate=args.learning_rate
+    if args.enable_scaling:
+        # Dynamic scaling mode - continual learning
+        logger.info("=" * 80)
+        logger.info("TRAINING MODE: Dynamic Scaling with Continual Learning")
+        logger.info("=" * 80)
+        
+        history = trainer.train_with_dynamic_scaling(
+            sequences=sequences,
+            labels=labels,
+            epochs_per_task=args.epochs_per_task,
+            learning_rate=args.learning_rate,
+            batch_size=args.batch_size,
+            max_length=args.max_length,
+            replay_ratio=args.replay_ratio,
+            validation_split=args.val_split
         )
     else:
-        # Contrastive or transformer (use contrastive training)
-        history = trainer.train_contrastive(
-            train_loader=train_loader,
-            val_loader=val_loader,
-            epochs=args.epochs,
-            learning_rate=args.learning_rate
+        # Standard training mode
+        logger.info("=" * 80)
+        logger.info("TRAINING MODE: Standard (Static)")
+        logger.info("=" * 80)
+        
+        # Prepare data
+        logger.info("Preparing training data...")
+        train_loader, val_loader = trainer.prepare_data(
+            sequences=sequences,
+            labels=labels,
+            validation_split=args.val_split,
+            batch_size=args.batch_size,
+            max_length=args.max_length
         )
+        
+        logger.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
+        
+        if args.model_type == 'autoencoder' or isinstance(model, DNAAutoencoder):
+            history = trainer.train_autoencoder(
+                train_loader=train_loader,
+                val_loader=val_loader,
+                epochs=args.epochs,
+                learning_rate=args.learning_rate
+            )
+        else:
+            # Contrastive or transformer (use contrastive training)
+            history = trainer.train_contrastive(
+                train_loader=train_loader,
+                val_loader=val_loader,
+                epochs=args.epochs,
+                learning_rate=args.learning_rate
+            )
     
     # Save model
     logger.info(f"Saving model to {output_dir}")
@@ -320,15 +374,29 @@ def train_model(args):
         'vocab_size': tokenizer.vocab_size,
         'max_length': args.max_length,
         'batch_size': args.batch_size,
-        'epochs': args.epochs,
+        'epochs': args.epochs if not args.enable_scaling else args.epochs_per_task,
         'learning_rate': args.learning_rate,
         'validation_split': args.val_split,
         'device': args.device,
         'training_time_seconds': time.time() - start_time,
         'final_train_loss': history['train_loss'][-1],
         'final_val_loss': history['val_loss'][-1],
-        'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+        'dynamic_scaling_enabled': args.enable_scaling
     }
+    
+    # Add scaling-specific metadata
+    if args.enable_scaling:
+        metadata.update({
+            'n_clusters': len(set(labels)),
+            'epochs_per_task': args.epochs_per_task,
+            'replay_ratio': args.replay_ratio,
+            'memory_budget_gb': args.memory_budget,
+            'target_accuracy': args.target_accuracy,
+            'final_buffer_size': history['buffer_size'][-1] if 'buffer_size' in history else None,
+            'final_memory_mb': history['memory_mb'][-1] if 'memory_mb' in history else None,
+            'exemplars_per_cluster': history['exemplars_per_cluster'][-1] if 'exemplars_per_cluster' in history else None
+        })
     
     with open(output_dir / "metadata.json", 'w') as f:
         json.dump(metadata, f, indent=2)
@@ -393,6 +461,18 @@ def main():
                         help='Learning rate (default: 0.0001)')
     parser.add_argument('--val-split', type=float, default=0.2,
                         help='Validation split fraction (default: 0.2)')
+    
+    # Dynamic Scaling Configuration
+    parser.add_argument('--enable-scaling', action='store_true',
+                        help='Enable dynamic scaling for continual learning')
+    parser.add_argument('--memory-budget', type=float, default=None,
+                        help='Memory budget in GB for dynamic buffer (default: auto-detect)')
+    parser.add_argument('--target-accuracy', type=float, default=0.80,
+                        help='Target accuracy for buffer retention (default: 0.80)')
+    parser.add_argument('--epochs-per-task', type=int, default=10,
+                        help='Epochs per cluster/task for continual learning (default: 10)')
+    parser.add_argument('--replay-ratio', type=float, default=0.3,
+                        help='Ratio of replay samples (0.0-1.0, default: 0.3)')
     
     # Device configuration
     parser.add_argument('--device', choices=['auto', 'cuda', 'cpu'],

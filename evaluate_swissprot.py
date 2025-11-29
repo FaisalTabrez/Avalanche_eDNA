@@ -1,11 +1,11 @@
 """
-DEPRECATED: Archived SwissProt evaluation script
+DEPRECATED: SwissProt evaluation script
 
-This file has been archived and copied to `experiments/swissprot/` for historical reference.
-Do not use for current eDNA workflows.
+This evaluation script has been archived and moved to `experiments/swissprot/` and is no longer maintained.
+See `experiments/swissprot/evaluate_swissprot.py` for the archived evaluation code and historical results.
 """
 
-print("Archived: use experiments/swissprot/scripts/analysis/evaluate_swissprot.py for the original code.")
+print("This evaluation script has been archived. See experiments/swissprot/evaluate_swissprot.py for the original content.")
 
 # Load the latest checkpoint to get the correct number of clusters
 checkpoints = sorted((output_dir / 'checkpoints').glob('checkpoint_*.pt'))
