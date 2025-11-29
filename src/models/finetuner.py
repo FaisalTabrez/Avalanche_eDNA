@@ -317,7 +317,7 @@ class ContrastiveLearningHead(nn.Module):
         temperature (float): Temperature parameter for contrastive loss scaling.
     """
     
-    def __init__(self, input_dim: int, projection_dim: int = 128, temperature: float = 0.07):
+    def __init__(self, input_dim: int, projection_dim: int = 64, temperature: float = 0.07):  # OPTIMIZED
         """
         Initialize contrastive learning head.
         

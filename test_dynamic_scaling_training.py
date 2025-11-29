@@ -68,7 +68,7 @@ def test_dynamic_scaling_training():
     
     # Initialize tokenizer
     print("\n[Step 1] Initializing tokenizer...")
-    tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=6)
+    tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=4)  # OPTIMIZED
     print(f"✓ Vocab size: {tokenizer.vocab_size}")
     
     # Create model

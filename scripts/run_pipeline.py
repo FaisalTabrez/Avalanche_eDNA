@@ -807,7 +807,7 @@ class eDNABiodiversityPipeline:
                 nhead=num_heads,
                 num_layers=num_layers
             )
-            projection_dim = training_config.get('projection_dim', 128)
+            projection_dim = training_config.get('projection_dim', 64)  # OPTIMIZED
             temperature = training_config.get('temperature', 0.1)
             
             self.embedding_model = DNAContrastiveModel(
@@ -894,7 +894,7 @@ class eDNABiodiversityPipeline:
         )
         self.embedding_model = DNAContrastiveModel(
             backbone_model=backbone,
-            projection_dim=128
+            projection_dim=64  # OPTIMIZED
         )
         
         # Create trainer and load model

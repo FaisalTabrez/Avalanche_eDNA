@@ -1,0 +1,338 @@
+[
+  {
+    "run_id": 1,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 25,
+      "replay_ratio": 0.3,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.662,
+    "early_accuracy": 0.75,
+    "middle_accuracy": 0.68,
+    "recent_accuracy": 0.6,
+    "forgetting_score": -0.15000000000000002,
+    "avg_cluster_accuracy": 0.662,
+    "min_cluster_accuracy": 0.6,
+    "cluster_accuracies": [
+      0.75,
+      0.63,
+      0.73,
+      0.6,
+      0.6
+    ],
+    "final_buffer_size": 525,
+    "final_memory_mb": 0.5126953125,
+    "runtime_seconds": 161.0310878753662,
+    "success": true
+  },
+  {
+    "run_id": 2,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 25,
+      "replay_ratio": 0.5,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.614,
+    "early_accuracy": 0.73,
+    "middle_accuracy": 0.615,
+    "recent_accuracy": 0.555,
+    "forgetting_score": -0.17499999999999993,
+    "avg_cluster_accuracy": 0.6140000000000001,
+    "min_cluster_accuracy": 0.53,
+    "cluster_accuracies": [
+      0.73,
+      0.55,
+      0.68,
+      0.58,
+      0.53
+    ],
+    "final_buffer_size": 525,
+    "final_memory_mb": 0.5126953125,
+    "runtime_seconds": 156.72243309020996,
+    "success": true
+  },
+  {
+    "run_id": 3,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 25,
+      "replay_ratio": 0.7,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.644,
+    "early_accuracy": 0.75,
+    "middle_accuracy": 0.645,
+    "recent_accuracy": 0.59,
+    "forgetting_score": -0.16000000000000003,
+    "avg_cluster_accuracy": 0.644,
+    "min_cluster_accuracy": 0.55,
+    "cluster_accuracies": [
+      0.75,
+      0.55,
+      0.74,
+      0.58,
+      0.6
+    ],
+    "final_buffer_size": 525,
+    "final_memory_mb": 0.5126953125,
+    "runtime_seconds": 161.07794785499573,
+    "success": true
+  },
+  {
+    "run_id": 4,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 50,
+      "replay_ratio": 0.3,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.652,
+    "early_accuracy": 0.76,
+    "middle_accuracy": 0.665,
+    "recent_accuracy": 0.585,
+    "forgetting_score": -0.17500000000000004,
+    "avg_cluster_accuracy": 0.6519999999999999,
+    "min_cluster_accuracy": 0.52,
+    "cluster_accuracies": [
+      0.76,
+      0.55,
+      0.78,
+      0.65,
+      0.52
+    ],
+    "final_buffer_size": 650,
+    "final_memory_mb": 0.634765625,
+    "runtime_seconds": 163.12939620018005,
+    "success": true
+  },
+  {
+    "run_id": 5,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 50,
+      "replay_ratio": 0.5,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.692,
+    "early_accuracy": 0.81,
+    "middle_accuracy": 0.69,
+    "recent_accuracy": 0.635,
+    "forgetting_score": -0.17500000000000004,
+    "avg_cluster_accuracy": 0.692,
+    "min_cluster_accuracy": 0.61,
+    "cluster_accuracies": [
+      0.81,
+      0.61,
+      0.77,
+      0.66,
+      0.61
+    ],
+    "final_buffer_size": 650,
+    "final_memory_mb": 0.634765625,
+    "runtime_seconds": 169.4740138053894,
+    "success": true
+  },
+  {
+    "run_id": 6,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 50,
+      "replay_ratio": 0.7,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.632,
+    "early_accuracy": 0.7,
+    "middle_accuracy": 0.685,
+    "recent_accuracy": 0.545,
+    "forgetting_score": -0.15499999999999992,
+    "avg_cluster_accuracy": 0.6319999999999999,
+    "min_cluster_accuracy": 0.52,
+    "cluster_accuracies": [
+      0.7,
+      0.64,
+      0.73,
+      0.57,
+      0.52
+    ],
+    "final_buffer_size": 650,
+    "final_memory_mb": 0.634765625,
+    "runtime_seconds": 169.38842701911926,
+    "success": true
+  },
+  {
+    "run_id": 7,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 100,
+      "replay_ratio": 0.3,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.674,
+    "early_accuracy": 0.72,
+    "middle_accuracy": 0.675,
+    "recent_accuracy": 0.65,
+    "forgetting_score": -0.06999999999999995,
+    "avg_cluster_accuracy": 0.6739999999999999,
+    "min_cluster_accuracy": 0.6,
+    "cluster_accuracies": [
+      0.72,
+      0.62,
+      0.73,
+      0.7,
+      0.6
+    ],
+    "final_buffer_size": 800,
+    "final_memory_mb": 0.78125,
+    "runtime_seconds": 164.64283418655396,
+    "success": true
+  },
+  {
+    "run_id": 8,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 100,
+      "replay_ratio": 0.5,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.668,
+    "early_accuracy": 0.76,
+    "middle_accuracy": 0.66,
+    "recent_accuracy": 0.63,
+    "forgetting_score": -0.13,
+    "avg_cluster_accuracy": 0.668,
+    "min_cluster_accuracy": 0.59,
+    "cluster_accuracies": [
+      0.76,
+      0.59,
+      0.73,
+      0.6,
+      0.66
+    ],
+    "final_buffer_size": 800,
+    "final_memory_mb": 0.78125,
+    "runtime_seconds": 153.0519003868103,
+    "success": true
+  },
+  {
+    "run_id": 9,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 100,
+      "replay_ratio": 0.7,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.674,
+    "early_accuracy": 0.79,
+    "middle_accuracy": 0.68,
+    "recent_accuracy": 0.61,
+    "forgetting_score": -0.18000000000000005,
+    "avg_cluster_accuracy": 0.6739999999999999,
+    "min_cluster_accuracy": 0.59,
+    "cluster_accuracies": [
+      0.79,
+      0.61,
+      0.75,
+      0.63,
+      0.59
+    ],
+    "final_buffer_size": 800,
+    "final_memory_mb": 0.78125,
+    "runtime_seconds": 161.45348715782166,
+    "success": true
+  },
+  {
+    "run_id": 10,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 150,
+      "replay_ratio": 0.3,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.668,
+    "early_accuracy": 0.8,
+    "middle_accuracy": 0.685,
+    "recent_accuracy": 0.585,
+    "forgetting_score": -0.21500000000000008,
+    "avg_cluster_accuracy": 0.6679999999999999,
+    "min_cluster_accuracy": 0.56,
+    "cluster_accuracies": [
+      0.8,
+      0.62,
+      0.75,
+      0.56,
+      0.61
+    ],
+    "final_buffer_size": 800,
+    "final_memory_mb": 0.78125,
+    "runtime_seconds": 155.68809580802917,
+    "success": true
+  },
+  {
+    "run_id": 11,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 150,
+      "replay_ratio": 0.5,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.662,
+    "early_accuracy": 0.75,
+    "middle_accuracy": 0.665,
+    "recent_accuracy": 0.615,
+    "forgetting_score": -0.135,
+    "avg_cluster_accuracy": 0.662,
+    "min_cluster_accuracy": 0.58,
+    "cluster_accuracies": [
+      0.75,
+      0.64,
+      0.69,
+      0.65,
+      0.58
+    ],
+    "final_buffer_size": 800,
+    "final_memory_mb": 0.78125,
+    "runtime_seconds": 159.2410523891449,
+    "success": true
+  },
+  {
+    "run_id": 12,
+    "config": {
+      "kmer_size": 4,
+      "projection_dim": 64,
+      "exemplars_per_cluster": 150,
+      "replay_ratio": 0.7,
+      "memory_budget_gb": 1.0
+    },
+    "overall_accuracy": 0.626,
+    "early_accuracy": 0.73,
+    "middle_accuracy": 0.605,
+    "recent_accuracy": 0.595,
+    "forgetting_score": -0.135,
+    "avg_cluster_accuracy": 0.626,
+    "min_cluster_accuracy": 0.49,
+    "cluster_accuracies": [
+      0.73,
+      0.49,
+      0.72,
+      0.64,
+      0.55
+    ],
+    "final_buffer_size": 800,
+    "final_memory_mb": 0.78125,
+    "runtime_seconds": 162.08274865150452,
+    "success": true
+  }
+]

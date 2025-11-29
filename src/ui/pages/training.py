@@ -121,7 +121,7 @@ def render_training_interface():
         embedding_dim = st.number_input("Embedding Dimension", min_value=32, max_value=2048, value=256)
         
         if model_type == "Contrastive Learning":
-            projection_dim = st.number_input("Projection Dimension", min_value=32, max_value=1024, value=128)
+            projection_dim = st.number_input("Projection Dimension", min_value=32, max_value=1024, value=64)  # OPTIMIZED
             temperature = st.number_input("Temperature", min_value=0.01, max_value=1.0, value=0.1)
         else:
             projection_dim = None
@@ -394,7 +394,7 @@ def train_model_ui(sequences_path, labels_path, model_type_ui, model_name,
         status_container.info(f"📊 Loaded {len(sequences)} sequences")
         
         # Create tokenizer
-        tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=6)
+        tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=4)  # OPTIMIZED
         
         # Create model
         config_dict = {

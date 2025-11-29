@@ -14,7 +14,7 @@ class DNATokenizer:
     
     def __init__(self, 
                  encoding_type: str = "kmer",
-                 kmer_size: int = 6,
+                 kmer_size: int = 4,  # OPTIMIZED: Best performance in eDNA tuning (was 6)
                  stride: int = 1,
                  add_special_tokens: bool = True):
         """

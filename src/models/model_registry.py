@@ -51,7 +51,7 @@ class ModelRegistry:
                       version: str,
                       model_path: str,
                       checkpoint_path: Optional[str] = None,
-                      base_model: str = 'zhihan1996/DNABERT-2-117M',
+                      base_model: str = 'zhihan1996/DNABERT-2-117M',  # OPTIMIZED: k-mer=4, proj_dim=64, exemplars=50
                       parent_version: Optional[str] = None,
                       datasets: Optional[List[str]] = None,
                       metrics: Optional[Dict[str, float]] = None,

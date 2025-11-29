@@ -130,7 +130,7 @@ class DNAContrastiveModel(nn.Module):
     
     def __init__(self, 
                  backbone_model: nn.Module,
-                 projection_dim: int = 128,
+                 projection_dim: int = 64,  # OPTIMIZED: Best performance in eDNA tuning (was 128)
                  temperature: float = 0.1):
         """
         Initialize contrastive model
@@ -289,7 +289,7 @@ class ModelFactory:
     def create_contrastive(backbone_model: nn.Module, config: Dict[str, Any]) -> DNAContrastiveModel:
         return DNAContrastiveModel(
             backbone_model=backbone_model,
-            projection_dim=config.get('projection_dim', 128),
+            projection_dim=config.get('projection_dim', 64),  # OPTIMIZED
             temperature=config.get('temperature', 0.1)
         )
     

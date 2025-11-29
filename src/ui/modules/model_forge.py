@@ -261,7 +261,7 @@ def train_dnabert2_cpu(sequences_path, model_name, epochs, batch_size,
         logger.info(f"Loaded {len(sequences)} sequences")
         
         # Create tokenizer
-        tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=6)
+        tokenizer = DNATokenizer(encoding_type='kmer', kmer_size=4)  # OPTIMIZED
         
         # Create model config
         config_dict = {
@@ -276,7 +276,7 @@ def train_dnabert2_cpu(sequences_path, model_name, epochs, batch_size,
         model = DNAContrastiveModel(
             vocab_size=tokenizer.vocab_size,
             embedding_dim=256,
-            projection_dim=128
+            projection_dim=64  # OPTIMIZED
         )
         
         # Initialize trainer

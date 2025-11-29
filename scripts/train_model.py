@@ -190,7 +190,7 @@ def create_model(model_type: str, vocab_size: int, config_dict: Dict) -> Tuple:
         )
         
         # Wrap with contrastive learning
-        projection_dim = training_config.get('projection_dim', 128)
+        projection_dim = training_config.get('projection_dim', 64)  # OPTIMIZED
         temperature = training_config.get('temperature', 0.1)
         
         model = DNAContrastiveModel(
