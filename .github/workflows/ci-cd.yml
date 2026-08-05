@@ -125,8 +125,8 @@ jobs:
       - name: Install Python dependencies (CPU-only for CI)
         run: |
           pip install --upgrade pip
-          # Install CPU-only torch for CI speed (no CUDA needed for unit tests)
-          pip install torch==2.2.0+cpu --index-url https://download.pytorch.org/whl/cpu
+          # Install CPU-only torch for CI speed (PyTorch 2.4+ required for NumPy 2.x compatibility)
+          pip install torch==2.4.0+cpu --index-url https://download.pytorch.org/whl/cpu
           pip install \
             transformers>=4.38.0 \
             biopython>=1.83 \
