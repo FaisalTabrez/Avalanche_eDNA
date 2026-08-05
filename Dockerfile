@@ -76,7 +76,9 @@ RUN pip install --no-cache-dir \
     seaborn>=0.12.0 \
     plotly>=5.18.0 \
     pytest>=7.4.0 \
+    pytest-cov>=4.1.0 \
     cutadapt>=4.6
+
 
 # ---- Stage 2: BLAST binary installer ----------------------------------------
 FROM ubuntu:22.04 AS blast-builder
