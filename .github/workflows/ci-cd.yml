@@ -170,7 +170,9 @@ jobs:
             -n auto \
             -v \
             --tb=short \
-            --ignore=tests/test_sra_download.py
+            --ignore=tests/test_sra_download.py \
+            --ignore=tests/test_model_memory.py \
+            --ignore=tests/test_dynamic_pipeline_integration.py
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v4

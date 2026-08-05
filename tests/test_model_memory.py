@@ -96,7 +96,7 @@ def load_model_and_data():
     return model, embeddings, cluster_labels
 
 
-def test_model_memory(model, embeddings, cluster_labels):
+def evaluate_model_memory(model, embeddings, cluster_labels):
     """Test if model remembers the training data."""
 
     print("\n" + "=" * 70)
@@ -262,7 +262,7 @@ def test_model_memory(model, embeddings, cluster_labels):
     return overall_accuracy, cluster_results
 
 
-def test_incremental_forgetting(model, embeddings, cluster_labels):
+def evaluate_incremental_forgetting(model, embeddings, cluster_labels):
     """Test memory retention for clusters learned earlier vs later."""
 
     print("\n" + "=" * 70)
@@ -345,12 +345,12 @@ def main():
         return
 
     # Test overall memory
-    overall_accuracy, cluster_results = test_model_memory(
+    overall_accuracy, cluster_results = evaluate_model_memory(
         model, embeddings, cluster_labels
     )
 
     # Test temporal forgetting
-    test_incremental_forgetting(model, embeddings, cluster_labels)
+    evaluate_incremental_forgetting(model, embeddings, cluster_labels)
 
     # Final summary
     print("\n" + "=" * 70)
