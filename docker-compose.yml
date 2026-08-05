@@ -96,7 +96,6 @@ x-edna-base: &edna-base
     TRANSFORMERS_CACHE: /app/.cache/huggingface
     HF_HOME: /app/.cache/huggingface
     USE_GPU: "false"
-    OMP_NUM_THREADS: "0"
   volumes:
     - edna_data_raw:/app/data/raw
     - edna_data_processed:/app/data/processed

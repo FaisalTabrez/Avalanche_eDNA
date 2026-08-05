@@ -42,9 +42,10 @@ COPY requirements.txt requirements.txt
 COPY setup.py setup.py
 
 # Install CPU-only PyTorch first (largest dep — cached as its own layer)
+# PyTorch 2.4+ is required for NumPy 2.x compatibility and Transformers >= 4.38
 RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir \
-        torch==2.2.0+cpu \
+        torch==2.4.0+cpu \
         --index-url https://download.pytorch.org/whl/cpu
 
 # Install all remaining Python packages (no CUDA, no serving deps)
@@ -126,9 +127,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/opt/blast/bin:/opt/sratoolkit/bin:/usr/local/bin:${PATH}" \
     # HuggingFace model cache directory
     TRANSFORMERS_CACHE=/app/.cache/huggingface \
-    HF_HOME=/app/.cache/huggingface \
-    # CPU threading — let PyTorch use all available cores
-    OMP_NUM_THREADS=0
+    HF_HOME=/app/.cache/huggingface
 
 # Runtime system libraries (no CUDA, no libgomp for GPU)
 RUN apt-get update && apt-get install -y --no-install-recommends \
