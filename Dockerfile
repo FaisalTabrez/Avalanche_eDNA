@@ -74,6 +74,7 @@ RUN pip install --no-cache-dir \
     python-dotenv>=1.0.0 \
     matplotlib>=3.7.0 \
     seaborn>=0.12.0 \
+    plotly>=5.18.0 \
     pytest>=7.4.0 \
     cutadapt>=4.6
 

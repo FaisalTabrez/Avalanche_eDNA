@@ -2,10 +2,18 @@
 Visualization modules for biodiversity analysis
 """
 
-from .dashboard import BiodiversityDashboard
+try:
+    from .dashboard import BiodiversityDashboard
+except ImportError:
+    try:
+        from src.ui.dashboard import BiodiversityDashboard
+    except ImportError:
+        BiodiversityDashboard = None
+
 from .plots import BiodiversityPlotter
 
 __all__ = [
-    'BiodiversityDashboard',
     'BiodiversityPlotter'
 ]
+if BiodiversityDashboard is not None:
+    __all__.append('BiodiversityDashboard')
