@@ -72,6 +72,9 @@ RUN pip install --no-cache-dir \
     psycopg2-binary>=2.9.9 \
     sqlalchemy>=2.0.0 \
     python-dotenv>=1.0.0 \
+    matplotlib>=3.7.0 \
+    seaborn>=0.12.0 \
+    pytest>=7.4.0 \
     cutadapt>=4.6
 
 # ---- Stage 2: BLAST binary installer ----------------------------------------
