@@ -1,0 +1,222 @@
+# =============================================================================
+# Avalanche eDNA - Docker Compose (Local Development & Testing)
+# =============================================================================
+# Usage:
+#   docker compose up --build          # Start all services
+#   docker compose up pipeline         # Run just the pipeline
+#   docker compose --profile tools up  # Also start MLflow + pgAdmin
+# =============================================================================
+
+version: "3.9"
+
+# ---------- Shared volume definitions -----------------------------------------
+volumes:
+  edna_data_raw:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_DATA_RAW:-./data/raw}
+
+  edna_data_processed:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_DATA_PROCESSED:-./data/processed}
+
+  edna_data_reference:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_DATA_REFERENCE:-./data/reference}
+
+  edna_data_output:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_DATA_OUTPUT:-./data/output}
+
+  edna_models:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_MODELS_DIR:-./models}
+
+  edna_reference_indices:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_REFERENCE_DIR:-./reference}
+
+  edna_lancedb:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_LANCEDB_DIR:-./data/lancedb}
+
+  edna_hf_cache:
+    driver: local
+
+  edna_analysis_outputs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${HOST_ANALYSIS_OUTPUTS:-./analysis_outputs}
+
+  postgres_data:
+    driver: local
+
+  mlflow_artifacts:
+    driver: local
+
+# ---------- Shared service base -----------------------------------------------
+x-edna-base: &edna-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: runtime
+    args:
+      BUILDKIT_INLINE_CACHE: "1"
+  image: avalanche-edna:${IMAGE_TAG:-latest}
+  env_file:
+    - .env
+  environment:
+    EDNA_ENV: ${EDNA_ENV:-development}
+    DB_HOST: postgres
+    DB_PORT: 5432
+    MLFLOW_TRACKING_URI: http://mlflow:5000
+    LANCEDB_URI: /app/data/lancedb
+    TRANSFORMERS_CACHE: /app/.cache/huggingface
+    HF_HOME: /app/.cache/huggingface
+  volumes:
+    - edna_data_raw:/app/data/raw
+    - edna_data_processed:/app/data/processed
+    - edna_data_reference:/app/data/reference
+    - edna_data_output:/app/data/output
+    - edna_models:/app/models
+    - edna_reference_indices:/app/reference
+    - edna_lancedb:/app/data/lancedb
+    - edna_hf_cache:/app/.cache/huggingface
+    - edna_analysis_outputs:/app/analysis_outputs
+    # Bind-mount source code for development hot-reload
+    - ./src:/app/src:ro
+    - ./config:/app/config:ro
+  depends_on:
+    postgres:
+      condition: service_healthy
+  restart: unless-stopped
+  networks:
+    - edna_network
+
+# ---------- Services ----------------------------------------------------------
+services:
+
+  # ---- PostgreSQL: report and metadata database -------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: edna_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-edna_reports}
+      POSTGRES_USER: ${DB_USER:-edna_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-edna_user} -d ${DB_NAME:-edna_reports}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edna_network
+    restart: unless-stopped
+
+  # ---- One-shot Pipeline Runner (default service) ----------------------------
+  pipeline:
+    <<: *edna-base
+    container_name: edna_pipeline
+    command: >
+      python3 scripts/run_pipeline.py
+      --input /app/data/raw
+      --output /app/data/output
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # No profile — starts by default with `docker compose up`
+
+  # ---- Model Training ---------------------------------------------------------
+  trainer:
+    <<: *edna-base
+    container_name: edna_trainer
+    command: >
+      python3 scripts/train_model.py
+      --input /app/data/processed
+      --output /app/models/trained
+      --model-type contrastive
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    profiles:
+      - training
+
+  # ---- MLflow Tracking Server (optional tools profile) ------------------------
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.0
+    container_name: edna_mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://${DB_USER:-edna_user}:${DB_PASSWORD:-changeme}@postgres:5432/${DB_NAME:-edna_reports}
+      --default-artifact-root /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - edna_network
+    profiles:
+      - tools
+    restart: unless-stopped
+
+  # ---- pgAdmin (optional, for DB inspection) ----------------------------------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: edna_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@edna.local
+      PGADMIN_DEFAULT_PASSWORD: ${DB_PASSWORD:-changeme}
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - edna_network
+    profiles:
+      - tools
+    restart: unless-stopped
+
+# ---------- Networks ----------------------------------------------------------
+networks:
+  edna_network:
+    driver: bridge
+    name: avalanche_edna_net

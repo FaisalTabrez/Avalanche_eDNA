@@ -1,0 +1,73 @@
+# =============================================================================
+# Avalanche eDNA - Kubernetes Deployment Manifests
+# Deploy: kubectl apply -f infrastructure/k8s/
+# =============================================================================
+
+# ---------- Namespace ---------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: edna-production
+  labels:
+    project: avalanche-edna
+    environment: production
+
+---
+# ---------- ConfigMap (non-secret config) ------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edna-config
+  namespace: edna-production
+data:
+  EDNA_ENV: "production"
+  LOG_LEVEL: "INFO"
+  LANCEDB_URI: "/data/lancedb"
+  DATA_RAW_DIR: "/data/raw"
+  DATA_PROCESSED_DIR: "/data/processed"
+  DATA_REFERENCE_DIR: "/data/reference"
+  DATA_OUTPUT_DIR: "/data/output"
+  TAXDUMP_DIR: "/data/taxdump"
+  BLAST_BIN_DIR: "/opt/blast/bin"
+  SRA_BIN_DIR: "/opt/sratoolkit/bin"
+  N_JOBS: "-1"
+  CHUNK_SIZE: "1000"
+  USE_GPU: "true"
+  PYTORCH_CUDA_ALLOC_CONF: "max_split_size_mb:512"
+  GCS_DATA_PREFIX: "datasets/"
+  GCS_MODELS_PREFIX: "models/"
+
+---
+# ---------- Secret (populated by CI/CD from Secret Manager) ------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: edna-secrets
+  namespace: edna-production
+type: Opaque
+# Values are base64 encoded — managed by external-secrets-operator in production
+# DO NOT put plaintext credentials here
+stringData:
+  DB_HOST: "REPLACE_WITH_CLOUD_SQL_PRIVATE_IP"
+  DB_PORT: "5432"
+  DB_NAME: "edna_reports"
+  DB_USER: "edna_user"
+  DB_PASSWORD: "REPLACE_FROM_SECRET_MANAGER"
+  MLFLOW_TRACKING_URI: "http://mlflow:5000"
+  GCS_BUCKET_NAME: "your-edna-data-bucket"
+
+---
+# ---------- PersistentVolumeClaim (GCS-backed via GCSFuse or Filestore) ------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edna-data-pvc
+  namespace: edna-production
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard-rwx   # Filestore for multi-pod access
+  resources:
+    requests:
+      storage: 2Ti
+

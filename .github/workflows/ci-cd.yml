@@ -1,0 +1,371 @@
+# =============================================================================
+# Avalanche eDNA - GitHub Actions CI/CD Pipeline
+# =============================================================================
+# Triggers: push/PR to main & develop, plus manual dispatch
+# Stages:
+#   1. lint       → flake8, mypy, black
+#   2. test       → pytest with coverage
+#   3. build      → Docker multi-stage build (cached)
+#   4. push       → Push to Google Artifact Registry
+#   5. deploy     → (main only) rolling update on GKE or Cloud Run
+# =============================================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: "Target environment for manual deploy"
+        required: true
+        default: "staging"
+        type: choice
+        options: [staging, production]
+
+# Cancel in-progress runs on the same branch to save CI minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  ARTIFACT_REGISTRY: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev
+  IMAGE_NAME: ${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO || 'edna-pipeline' }}/avalanche-edna
+  GKE_CLUSTER: ${{ vars.GKE_CLUSTER_NAME || 'edna-gke-cluster' }}
+
+jobs:
+  # ===========================================================================
+  # Job 1: Code Quality (Lint + Type Checks)
+  # ===========================================================================
+  lint:
+    name: "🔍 Lint & Type Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install lint dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            black>=24.0.0 \
+            flake8>=7.0.0 \
+            flake8-bugbear \
+            flake8-docstrings \
+            mypy>=1.8.0 \
+            isort>=5.13.0 \
+            pyyaml \
+            types-PyYAML \
+            types-requests
+
+      - name: Run black (formatting check)
+        run: black --check --diff src/ scripts/ tests/
+
+      - name: Run isort (import ordering)
+        run: isort --check-only --diff src/ scripts/ tests/
+
+      - name: Run flake8 (PEP8 + bugbear)
+        run: |
+          flake8 src/ scripts/ tests/ \
+            --max-line-length=100 \
+            --extend-ignore=E203,W503,D100,D101,D102,D103,D104 \
+            --exclude=__pycache__,.git,*.egg-info
+
+      - name: Run mypy (type checking)
+        run: |
+          mypy src/ \
+            --ignore-missing-imports \
+            --no-strict-optional \
+            --python-version=3.11
+        continue-on-error: true   # Soft-fail until full type annotations are added
+
+  # ===========================================================================
+  # Job 2: Unit & Integration Tests
+  # ===========================================================================
+  test:
+    name: "🧪 Tests (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install system dependencies (bioinformatics tools)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            ncbi-blast+ \
+            libhdf5-dev \
+            libssl-dev
+
+      - name: Install Python dependencies (CPU-only for CI)
+        run: |
+          pip install --upgrade pip
+          # Install CPU-only torch for CI speed (no CUDA needed for unit tests)
+          pip install torch==2.2.0+cpu --index-url https://download.pytorch.org/whl/cpu
+          pip install \
+            transformers>=4.38.0 \
+            biopython>=1.83 \
+            numpy>=1.24.0 \
+            pandas>=2.0.0 \
+            scipy>=1.11.0 \
+            scikit-learn>=1.3.0 \
+            umap-learn>=0.5.6 \
+            hdbscan>=0.8.33 \
+            faiss-cpu>=1.7.4 \
+            lancedb>=0.6.0 \
+            pyarrow>=14.0.0 \
+            plotly>=5.18.0 \
+            pyyaml>=6.0.1 \
+            click>=8.1.7 \
+            requests>=2.31.0 \
+            tqdm>=4.66.0 \
+            joblib>=1.3.0 \
+            python-dotenv>=1.0.0 \
+            sqlalchemy>=2.0.0 \
+            psycopg2-binary>=2.9.9 \
+            pytest>=7.4.0 \
+            pytest-cov>=4.1.0 \
+            pytest-xdist>=3.5.0 \
+            pytest-mock>=3.12.0
+
+      - name: Create required directories
+        run: |
+          mkdir -p logs data/raw data/processed data/reference data/output models/trained
+
+      - name: Run unit tests with coverage
+        env:
+          EDNA_ENV: testing
+          DB_TYPE: sqlite
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-fail-under=50 \
+            -n auto \
+            -v \
+            --tb=short \
+            --ignore=tests/test_sra_download.py
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        if: matrix.python-version == '3.11'
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: avalanche-edna-coverage
+        continue-on-error: true
+
+  # ===========================================================================
+  # Job 3: Build Docker Image
+  # ===========================================================================
+  build:
+    name: "🐳 Build Docker Image"
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      image_digest: ${{ steps.build.outputs.digest }}
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:latest
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+        if: github.event_name != 'pull_request'
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.ARTIFACT_REGISTRY }} --quiet
+        if: github.event_name != 'pull_request'
+
+      - name: Extract Docker metadata (tags + labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build Docker image (with layer cache)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          dockerfile: Dockerfile
+          target: runtime
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}:cache
+            type=gha
+          cache-to: |
+            type=registry,ref=${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}:cache,mode=max
+            type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+          platforms: linux/amd64
+
+      - name: Output image digest
+        run: echo "Image pushed with digest ${{ steps.build.outputs.digest }}"
+
+  # ===========================================================================
+  # Job 4: Security Scan (Trivy)
+  # ===========================================================================
+  security-scan:
+    name: "🔒 Security Scan"
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.ARTIFACT_REGISTRY }} --quiet
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+        continue-on-error: true
+
+  # ===========================================================================
+  # Job 5: Deploy to GKE (main branch only)
+  # ===========================================================================
+  deploy-staging:
+    name: "🚀 Deploy to Staging (GKE)"
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://edna-staging.your-domain.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}-staging
+          location: ${{ env.GCP_REGION }}
+
+      - name: Deploy to GKE Staging
+        run: |
+          # Update image in the deployment manifest
+          IMAGE_URI="${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
+          kubectl set image deployment/edna-pipeline \
+            pipeline="${IMAGE_URI}" \
+            --namespace=edna-staging
+          kubectl rollout status deployment/edna-pipeline \
+            --namespace=edna-staging \
+            --timeout=300s
+
+  deploy-production:
+    name: "🚀 Deploy to Production (GKE)"
+    runs-on: ubuntu-latest
+    needs: [build, security-scan]
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://edna.your-domain.com
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          location: ${{ env.GCP_REGION }}
+
+      - name: Deploy to GKE Production (rolling update)
+        run: |
+          IMAGE_URI="${{ env.ARTIFACT_REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
+          kubectl set image deployment/edna-pipeline \
+            pipeline="${IMAGE_URI}" \
+            --namespace=edna-production
+          kubectl rollout status deployment/edna-pipeline \
+            --namespace=edna-production \
+            --timeout=600s
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          make_latest: true
