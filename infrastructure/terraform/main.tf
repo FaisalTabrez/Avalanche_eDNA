@@ -73,26 +73,9 @@ variable "gke_node_count" {
 variable "gke_machine_type" {
   description = "Machine type for GKE CPU node pool"
   type        = string
-  default     = "n2-standard-8"
+  default     = "n2-standard-4"
 }
 
-variable "gke_gpu_machine_type" {
-  description = "Machine type for GKE GPU node pool"
-  type        = string
-  default     = "n1-standard-8"
-}
-
-variable "gke_gpu_type" {
-  description = "GPU accelerator type (nvidia-tesla-t4 | nvidia-l4)"
-  type        = string
-  default     = "nvidia-l4"
-}
-
-variable "gke_gpu_count" {
-  description = "Number of GPUs per node"
-  type        = number
-  default     = 1
-}
 
 variable "db_tier" {
   description = "Cloud SQL instance tier"
@@ -295,44 +278,6 @@ resource "google_container_cluster" "edna_gke" {
   depends_on = [google_project_service.apis]
 }
 
-# GPU Node Pool (Standard mode only, for production)
-resource "google_container_node_pool" "gpu_pool" {
-  count    = var.environment == "production" ? 1 : 0
-  name     = "gpu-pool"
-  cluster  = google_container_cluster.edna_gke.name
-  location = var.region
-
-  # Scale from 0 to 8 GPU nodes
-  autoscaling {
-    min_node_count = 0
-    max_node_count = 8
-  }
-
-  node_config {
-    machine_type    = var.gke_gpu_machine_type
-    service_account = google_service_account.edna_pipeline.email
-    oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
-    labels          = merge(local.labels, { "pool" = "gpu" })
-    tags            = ["edna-gpu-node"]
-
-    guest_accelerator {
-      type  = var.gke_gpu_type
-      count = var.gke_gpu_count
-      gpu_driver_installation_config {
-        gpu_driver_version = "LATEST"
-      }
-    }
-
-    # Use Spot VMs to reduce GPU costs by ~60-70%
-    spot = var.environment == "staging"
-
-    taint {
-      key    = "nvidia.com/gpu"
-      value  = "present"
-      effect = "NO_SCHEDULE"
-    }
-  }
-}
 
 # =============================================================================
 # Cloud SQL (PostgreSQL 15)
