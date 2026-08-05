@@ -32,21 +32,23 @@ import pandas as pd
 import numpy as np
 import json
 import time
+import os
 
-# Add src to path
-sys.path.append(str(Path(__file__).parent.parent))
 
 from src.models.tokenizer import DNATokenizer, SequenceDataset
 from src.models.embeddings import DNATransformerEmbedder, DNAAutoencoder, DNAContrastiveModel
 from src.models.trainer import EmbeddingTrainer
 from src.utils.config import config
 
-# Setup logging
+# Setup logging — log directory controlled by LOG_DIR env var (default: 'logs')
+_log_dir = Path(os.getenv('LOG_DIR', 'logs'))
+_log_dir.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/model_training.log'),
+        logging.FileHandler(_log_dir / 'model_training.log'),
         logging.StreamHandler()
     ]
 )

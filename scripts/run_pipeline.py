@@ -11,9 +11,8 @@ import pandas as pd
 import numpy as np
 import time
 import json
+import os
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils.config import config
 from src.preprocessing.pipeline import PreprocessingPipeline
@@ -26,12 +25,15 @@ from src.models.finetuner import DNABERTFineTuner
 from src.models.continual_learning import ContinualLearner
 from src.models.model_registry import ModelRegistry
 
-# Setup logging
+# Setup logging — log directory controlled by LOG_DIR env var (default: 'logs')
+_log_dir = Path(os.getenv('LOG_DIR', 'logs'))
+_log_dir.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('logs/edna_pipeline.log'),
+        logging.FileHandler(_log_dir / 'edna_pipeline.log'),
         logging.StreamHandler()
     ]
 )

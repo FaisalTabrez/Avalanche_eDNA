@@ -22,6 +22,7 @@ class Config:
         
         self.config_path = Path(config_path)
         self.config = self._load_config()
+        self._resolve_env_overrides()
     
     def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file"""
@@ -32,6 +33,47 @@ class Config:
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
         except yaml.YAMLError as e:
             raise ValueError(f"Error parsing configuration file: {e}")
+
+    def _resolve_env_overrides(self) -> None:
+        """
+        Override YAML config values with environment variables at runtime.
+
+        This implements the 12-factor app config principle: any value that
+        differs between environments (paths, credentials, endpoints) must
+        come from the environment, not from a committed config file.
+
+        Precedence: environment variable > config.yaml value.
+        """
+        env_map = {
+            # SRA Toolkit tool paths
+            "databases.sra.sra_tools.prefetch_path":     "PREFETCH_PATH",
+            "databases.sra.sra_tools.fastq_dump_path":   "FASTQ_DUMP_PATH",
+            "databases.sra.sra_tools.fasterq_dump_path": "FASTERQ_DUMP_PATH",
+            "databases.sra.sra_tools.bin_dir":           "SRA_BIN_DIR",
+            # BLAST+ executable paths
+            "taxonomy.blast.blast_bin_dir":              "BLAST_BIN_DIR",
+            "taxonomy.blast.blastn_path":                "BLASTN_PATH",
+            "taxonomy.blast.makeblastdb_path":           "MAKEBLASTDB_PATH",
+            "taxonomy.blast_fallback.blastn_path":       "BLASTN_PATH",
+            # NCBI taxdump directories
+            "taxonomy.taxdump_dir":                      "TAXDUMP_DIR",
+            "taxonomy.taxdump_backup_dir":               "TAXDUMP_BACKUP_DIR",
+            # Data I/O directories
+            "data.raw_dir":                              "DATA_RAW_DIR",
+            "data.processed_dir":                        "DATA_PROCESSED_DIR",
+            "data.reference_dir":                        "DATA_REFERENCE_DIR",
+            "data.output_dir":                           "DATA_OUTPUT_DIR",
+            # Storage
+            "storage.datasets_dir":                      "ANALYSIS_DATASETS_DIR",
+            "storage.runs_dir":                          "ANALYSIS_RUNS_DIR",
+            # Logging
+            "logging.file":                              "LOG_FILE",
+            "logging.level":                             "LOG_LEVEL",
+        }
+        for config_key, env_var in env_map.items():
+            val = os.getenv(env_var)
+            if val:
+                self.set(config_key, val)
     
     def get(self, key: str, default: Any = None) -> Any:
         """

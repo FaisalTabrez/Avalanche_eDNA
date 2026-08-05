@@ -28,10 +28,12 @@ databases:
   sra:
     # SRA Toolkit paths (if installed locally)
     sra_tools:
-      prefetch_path: "C:/Users/FAISAL TABREZ/sra-toolkit/sratoolkit.3.0.10-win64/bin/prefetch.exe"
-      fastq_dump_path: "C:/Users/FAISAL TABREZ/sra-toolkit/sratoolkit.3.0.10-win64/bin/fastq-dump.exe"
-      fasterq_dump_path: "C:/Users/FAISAL TABREZ/sra-toolkit/sratoolkit.3.0.10-win64/bin/fasterq-dump.exe"
-      bin_dir: "C:/Users/FAISAL TABREZ/sra-toolkit/sratoolkit.3.0.10-win64/bin"
+      # Paths resolved at runtime from env vars: PREFETCH_PATH, FASTQ_DUMP_PATH,
+      # FASTERQ_DUMP_PATH, SRA_BIN_DIR (see src/utils/config.py _resolve_env_overrides)
+      prefetch_path: "sratoolkit/bin/prefetch"
+      fastq_dump_path: "sratoolkit/bin/fastq-dump"
+      fasterq_dump_path: "sratoolkit/bin/fasterq-dump"
+      bin_dir: "sratoolkit/bin"
 
     # Download settings
     download:
@@ -75,21 +77,21 @@ references:
   sources:
     - name: pr2
       marker: "18S"
-      fasta: "reference\\pr2\\pr2_18S.fasta"
-      taxonomy: "reference\\pr2\\taxonomy.tsv"
+      fasta: "reference/pr2/pr2_18S.fasta"
+      taxonomy: "reference/pr2/taxonomy.tsv"
       weight: 1.0
     - name: silva
       marker: "18S"
-      fasta: "reference\\silva\\silva_18S_euk.fasta"
-      taxonomy: "reference\\silva\\taxonomy.tsv"
+      fasta: "reference/silva/silva_18S_euk.fasta"
+      taxonomy: "reference/silva/taxonomy.tsv"
       weight: 0.8
   combined:
     marker: "18S"
-    fasta: "reference\\combined\\18S\\references.fasta"
-    taxonomy: "reference\\combined\\18S\\taxonomy.csv"
-    blast_db_prefix: "reference\\indices\\18S\\combined_18S"
-    faiss_embeddings: "reference\\indices\\18S\\reference_embeddings.npy"
-    faiss_labels: "reference\\indices\\18S\\reference_labels.csv"
+    fasta: "reference/combined/18S/references.fasta"
+    taxonomy: "reference/combined/18S/taxonomy.csv"
+    blast_db_prefix: "reference/indices/18S/combined_18S"
+    faiss_embeddings: "reference/indices/18S/reference_embeddings.npy"
+    faiss_labels: "reference/indices/18S/reference_labels.csv"
   thresholds:
     knn_min_similarity: 0.65
     knn_distance_margin: 0.07
@@ -207,8 +209,8 @@ taxonomy:
   # Primary: KNN + LCA on pretrained embeddings
   knn:
     reference_dir: "reference"
-    embeddings_path: "reference\\indices\\18S\\reference_embeddings.npy"
-    labels_path: "reference\\indices\\18S\\reference_labels.csv"
+    embeddings_path: "reference/indices/18S/reference_embeddings.npy"
+    labels_path: "reference/indices/18S/reference_labels.csv"
     index: "flat_ip"
     k: 50
     min_similarity: 0.65
@@ -221,13 +223,13 @@ taxonomy:
 
   # BLAST settings (used by fallback, and for general blast usage)
   blast:
-    # Windows BLAST executable paths
-    blast_bin_dir: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin"
-    blastn_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\blastn.exe"
-    makeblastdb_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\makeblastdb.exe"
+    # Paths resolved from env vars: BLAST_BIN_DIR, BLASTN_PATH, MAKEBLASTDB_PATH
+    blast_bin_dir: "blast/bin"
+    blastn_path: "blast/bin/blastn"
+    makeblastdb_path: "blast/bin/makeblastdb"
     
     # Database settings
-    database: "reference\\indices\\18S\\combined_18S"
+    database: "reference/indices/18S/combined_18S"
     evalue: 1e-5
     max_targets: 10
     identity_threshold: 97.0
@@ -239,8 +241,8 @@ taxonomy:
   # BLAST fallback policy
   blast_fallback:
     enable: true
-    blastn_path: "C:\\Program Files\\NCBI\\blast-2.17.0+\\bin\\blastn.exe"
-    database: "reference\\indices\\18S\\combined_18S"
+    blastn_path: "blast/bin/blastn"       # overridden by BLASTN_PATH env var
+    database: "reference/indices/18S/combined_18S"
     min_identity_species: 97.0
     evalue: 1e-5
     max_targets: 5
@@ -249,9 +251,9 @@ taxonomy:
   cluster_consensus:
     min_cluster_agreement: 0.7
 
-  # Enhanced taxonomic lineage system
-  taxdump_dir: "F:\\Dataset\\taxdump"
-  taxdump_backup_dir: "F:\\Dataset\\taxdump\\backups"
+  # Taxdump path resolved from env var: TAXDUMP_DIR (see .env.example)
+  taxdump_dir: "data/taxdump"
+  taxdump_backup_dir: "data/taxdump/backups"
   keep_taxdump_backups: 5
   
   # Enhanced lineage configuration
