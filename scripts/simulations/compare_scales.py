@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Results
-scales = ['1,000 seqs', '2,500 seqs']
+scales = ["1,000 seqs", "2,500 seqs"]
 overall_acc = [13.8, 18.0]
 
 # Cluster-wise breakdown
@@ -15,52 +15,73 @@ overall_acc = [13.8, 18.0]
 
 cluster_retention = [
     [0, 0, 0, 0, 100],  # 1K sequences
-    [0, 0, 0, 0, 100]   # 2.5K sequences
+    [0, 0, 0, 0, 100],  # 2.5K sequences
 ]
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
 # Plot 1: Overall accuracy comparison
-bars = axes[0].bar(scales, overall_acc, color=['steelblue', 'coral'], alpha=0.7)
-axes[0].set_ylabel('Overall Accuracy (%)', fontsize=12)
-axes[0].set_title('Catastrophic Forgetting Across Scales', fontsize=14, fontweight='bold')
+bars = axes[0].bar(scales, overall_acc, color=["steelblue", "coral"], alpha=0.7)
+axes[0].set_ylabel("Overall Accuracy (%)", fontsize=12)
+axes[0].set_title(
+    "Catastrophic Forgetting Across Scales", fontsize=14, fontweight="bold"
+)
 axes[0].set_ylim([0, 100])
-axes[0].axhline(y=20, color='red', linestyle='--', alpha=0.3, label='Expected (20% if random)')
-axes[0].grid(axis='y', alpha=0.3)
+axes[0].axhline(
+    y=20, color="red", linestyle="--", alpha=0.3, label="Expected (20% if random)"
+)
+axes[0].grid(axis="y", alpha=0.3)
 
 # Add value labels
 for i, (bar, val) in enumerate(zip(bars, overall_acc)):
-    axes[0].text(bar.get_x() + bar.get_width()/2, val + 2,
-                f'{val:.1f}%', ha='center', fontsize=11, fontweight='bold')
+    axes[0].text(
+        bar.get_x() + bar.get_width() / 2,
+        val + 2,
+        f"{val:.1f}%",
+        ha="center",
+        fontsize=11,
+        fontweight="bold",
+    )
 
 axes[0].legend()
 
 # Plot 2: Cluster retention heatmap
 cluster_data = np.array(cluster_retention)
-im = axes[1].imshow(cluster_data.T, cmap='RdYlGn', aspect='auto', vmin=0, vmax=100)
+im = axes[1].imshow(cluster_data.T, cmap="RdYlGn", aspect="auto", vmin=0, vmax=100)
 
 axes[1].set_xticks(range(len(scales)))
 axes[1].set_xticklabels(scales)
 axes[1].set_yticks(range(5))
-axes[1].set_yticklabels([f'Cluster {i}' for i in range(5)])
-axes[1].set_title('Per-Cluster Accuracy Retention', fontsize=14, fontweight='bold')
+axes[1].set_yticklabels([f"Cluster {i}" for i in range(5)])
+axes[1].set_title("Per-Cluster Accuracy Retention", fontsize=14, fontweight="bold")
 
 # Add text annotations
 for i in range(len(scales)):
     for j in range(5):
-        text = axes[1].text(i, j, f'{cluster_data[i, j]:.0f}%',
-                           ha="center", va="center", color="black", fontsize=10)
+        text = axes[1].text(
+            i,
+            j,
+            f"{cluster_data[i, j]:.0f}%",
+            ha="center",
+            va="center",
+            color="black",
+            fontsize=10,
+        )
 
-plt.colorbar(im, ax=axes[1], label='Accuracy (%)')
+plt.colorbar(im, ax=axes[1], label="Accuracy (%)")
 
 plt.tight_layout()
-plt.savefig('pipeline_outputs_2500/visualizations/scale_comparison.png', dpi=150, bbox_inches='tight')
+plt.savefig(
+    "pipeline_outputs_2500/visualizations/scale_comparison.png",
+    dpi=150,
+    bbox_inches="tight",
+)
 print("✓ Saved scale comparison visualization")
 
 # Print analysis
-print("\n" + "="*60)
+print("\n" + "=" * 60)
 print("Catastrophic Forgetting Analysis")
-print("="*60)
+print("=" * 60)
 print("\nKey Findings:")
 print(f"  • Both scales show COMPLETE forgetting of earlier clusters")
 print(f"  • Only the final cluster (Cluster 4) is retained at 100%")

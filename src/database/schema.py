@@ -5,11 +5,11 @@ This module defines the complete database schema for storing organism profiles,
 analysis reports, similarity matrices, and cross-analysis results.
 """
 
-import sqlite3
-from pathlib import Path
-from typing import Optional, Dict, Any
 import logging
+import sqlite3
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

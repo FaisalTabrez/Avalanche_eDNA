@@ -5,11 +5,11 @@ Database migration script for eDNA analysis system.
 This script handles database schema migrations and version upgrades.
 """
 
+import logging
 import os
 import sys
-import logging
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 # Add src to path
 project_root = Path(__file__).parent.parent
@@ -17,8 +17,9 @@ src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
 import sqlite3
-from src.database.schema import DatabaseSchema
+
 from src.database.manager import DatabaseManager
+from src.database.schema import DatabaseSchema
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

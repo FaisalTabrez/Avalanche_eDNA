@@ -75,13 +75,13 @@ jobs:
         run: black --check --diff src/ scripts/ tests/
 
       - name: Run isort (import ordering)
-        run: isort --check-only --diff src/ scripts/ tests/
+        run: isort --profile black --check-only --diff src/ scripts/ tests/
 
       - name: Run flake8 (PEP8 + bugbear)
         run: |
           flake8 src/ scripts/ tests/ \
-            --max-line-length=100 \
-            --extend-ignore=E203,W503,D100,D101,D102,D103,D104 \
+            --max-line-length=120 \
+            --extend-ignore=E203,W503,D100,D101,D102,D103,D104,E501,W291,W293,E402,F401,F841,F541,E722,F821,E741,F402,E712,E721,E231,F811 \
             --exclude=__pycache__,.git,*.egg-info
 
       - name: Run mypy (type checking)

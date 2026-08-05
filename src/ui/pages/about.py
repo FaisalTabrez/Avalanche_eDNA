@@ -1,13 +1,15 @@
 """
 About Page
 """
+
 import streamlit as st
+
 
 def render():
     """Display about page"""
-    
+
     st.title("About eDNA Biodiversity Assessment System")
-    
+
     st.markdown("""
     ## Project Overview
     
@@ -188,4 +190,3 @@ def render():
     
     For questions, issues, or feature requests, please contact the development team.
     """)
-

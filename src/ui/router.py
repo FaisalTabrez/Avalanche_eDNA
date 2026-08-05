@@ -1,24 +1,27 @@
 """
 Page Router
 """
+
 import streamlit as st
+
 from src.ui.pages import (
-    home,
+    about,
     analysis,
-    training,
-    sra_browser,
     biodiversity_results,
-    taxonomy,
-    progress_updates,
-    model_training_dashboard,
     dynamic_scaling_config,
-    about
+    home,
+    model_training_dashboard,
+    progress_updates,
+    sra_browser,
+    taxonomy,
+    training,
 )
 from src.ui.workflow import render_workflow_hub
 
+
 def render_page(page_key):
     """Render the requested page content"""
-    
+
     if page_key == "home":
         home.render()
     elif page_key == "workflow_hub":
@@ -43,6 +46,7 @@ def render_page(page_key):
         about.render()
     else:
         st.error(f"Page not found: {page_key}")
+
 
 def get_pages_config():
     """Return the list of available pages"""

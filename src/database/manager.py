@@ -5,25 +5,25 @@ This module provides high-level database operations and transaction management
 for storing and retrieving analysis data.
 """
 
-import sqlite3
-import logging
-from pathlib import Path
-from typing import Optional, List, Dict, Any, Tuple
-from contextlib import contextmanager
 import json
+import logging
+import sqlite3
+from contextlib import contextmanager
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
-from .schema import DatabaseSchema
 from .models import (
-    OrganismProfile,
-    DatasetInfo,
     AnalysisReport,
-    SimilarityMatrix,
-    ReportComparison,
     AnalysisStatus,
+    DatasetInfo,
+    OrganismProfile,
+    ReportComparison,
     SequenceType,
+    SimilarityMatrix,
     serialize_to_json,
 )
+from .schema import DatabaseSchema
 
 logger = logging.getLogger(__name__)
 
@@ -138,9 +138,11 @@ class DatabaseManager:
                 profile.confidence_score,
                 profile.is_novel_candidate,
                 profile.novelty_score,
-                json.dumps(profile.reference_databases)
-                if profile.reference_databases
-                else None,
+                (
+                    json.dumps(profile.reference_databases)
+                    if profile.reference_databases
+                    else None
+                ),
                 profile.notes,
             ),
         )
@@ -174,9 +176,11 @@ class DatabaseManager:
                 profile.confidence_score,
                 profile.is_novel_candidate,
                 profile.novelty_score,
-                json.dumps(profile.reference_databases)
-                if profile.reference_databases
-                else None,
+                (
+                    json.dumps(profile.reference_databases)
+                    if profile.reference_databases
+                    else None
+                ),
                 profile.notes,
                 profile.organism_id,
             ),
@@ -245,12 +249,16 @@ class DatabaseManager:
                         dataset.temperature_celsius,
                         dataset.ph_level,
                         dataset.salinity,
-                        json.dumps(dataset.environmental_conditions)
-                        if dataset.environmental_conditions
-                        else None,
-                        json.dumps(dataset.preprocessing_params)
-                        if dataset.preprocessing_params
-                        else None,
+                        (
+                            json.dumps(dataset.environmental_conditions)
+                            if dataset.environmental_conditions
+                            else None
+                        ),
+                        (
+                            json.dumps(dataset.preprocessing_params)
+                            if dataset.preprocessing_params
+                            else None
+                        ),
                     ),
                 )
 
@@ -298,12 +306,16 @@ class DatabaseManager:
                         report.mean_length,
                         report.median_length,
                         report.std_length,
-                        report.sequence_type_detected.value
-                        if report.sequence_type_detected
-                        else None,
-                        json.dumps(report.composition_data)
-                        if report.composition_data
-                        else None,
+                        (
+                            report.sequence_type_detected.value
+                            if report.sequence_type_detected
+                            else None
+                        ),
+                        (
+                            json.dumps(report.composition_data)
+                            if report.composition_data
+                            else None
+                        ),
                         report.shannon_diversity,
                         report.simpson_diversity,
                         report.evenness,
@@ -542,9 +554,9 @@ class DatabaseManager:
                             "confidence_score": row[6],
                             "assignment_method": row[7],
                             "novelty_score": row[8],
-                            "is_novel_candidate": bool(row[9])
-                            if row[9] is not None
-                            else None,
+                            "is_novel_candidate": (
+                                bool(row[9]) if row[9] is not None else None
+                            ),
                         }
                     )
 

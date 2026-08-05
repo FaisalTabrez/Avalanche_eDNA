@@ -6,4 +6,4 @@ This module provides comprehensive analysis capabilities for biological sequence
 
 from .dataset_analyzer import DatasetAnalyzer
 
-__all__ = ['DatasetAnalyzer']
+__all__ = ["DatasetAnalyzer"]

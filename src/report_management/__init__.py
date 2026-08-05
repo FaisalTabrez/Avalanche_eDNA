@@ -7,6 +7,4 @@ functionality for organizing and analyzing eDNA biodiversity assessment results.
 
 from .catalogue_manager import ReportCatalogueManager
 
-__all__ = [
-    'ReportCatalogueManager'
-]
+__all__ = ["ReportCatalogueManager"]

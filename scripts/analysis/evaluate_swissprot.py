@@ -5,10 +5,12 @@ This file has been archived and copied to `experiments/swissprot/` for historica
 Do not use for current eDNA workflows.
 """
 
-print("Archived: use experiments/swissprot/scripts/analysis/evaluate_swissprot.py for the original code.")
+print(
+    "Archived: use experiments/swissprot/scripts/analysis/evaluate_swissprot.py for the original code."
+)
 
 # Load the latest checkpoint to get the correct number of clusters
-checkpoints = sorted((output_dir / 'checkpoints').glob('checkpoint_*.pt'))
+checkpoints = sorted((output_dir / "checkpoints").glob("checkpoint_*.pt"))
 if not checkpoints:
     print("ERROR: No checkpoints found!")
     sys.exit(1)
@@ -19,10 +21,12 @@ print(f"Loading checkpoint: {latest_checkpoint.name}")
 checkpoint_data = torch.load(latest_checkpoint, map_location=pipeline.device)
 
 # Get the actual number of clusters from the model checkpoint
-architecture = checkpoint_data.get('architecture', [256, 128])
+architecture = checkpoint_data.get("architecture", [256, 128])
 # Find output layer size from the state dict
-output_layer_key = [k for k in checkpoint_data['model_state_dict'].keys() if 'bias' in k][-1]
-best_k = checkpoint_data['model_state_dict'][output_layer_key].shape[0]
+output_layer_key = [
+    k for k in checkpoint_data["model_state_dict"].keys() if "bias" in k
+][-1]
+best_k = checkpoint_data["model_state_dict"][output_layer_key].shape[0]
 
 print(f"Model trained with {best_k} clusters")
 
@@ -40,24 +44,23 @@ print(f"Loaded {len(embeddings)} sequences with {best_k} clusters")
 
 # Rebuild the model architecture
 import torch.nn as nn
+
 embedding_dim = embeddings.shape[1]
-architecture = checkpoint_data.get('architecture', [256, 128])
+architecture = checkpoint_data.get("architecture", [256, 128])
 
 layers = []
 prev_dim = embedding_dim
 for hidden_dim in architecture:
-    layers.extend([
-        nn.Linear(prev_dim, hidden_dim),
-        nn.ReLU(),
-        nn.Dropout(0.3)
-    ])
+    layers.extend([nn.Linear(prev_dim, hidden_dim), nn.ReLU(), nn.Dropout(0.3)])
     prev_dim = hidden_dim
 layers.append(nn.Linear(prev_dim, best_k))
 
 pipeline.classifier_model = nn.Sequential(*layers).to(pipeline.device)
-pipeline.classifier_model.load_state_dict(checkpoint_data['model_state_dict'])
+pipeline.classifier_model.load_state_dict(checkpoint_data["model_state_dict"])
 
-print(f"Model loaded: {embedding_dim} -> {' -> '.join(map(str, architecture))} -> {best_k}")
+print(
+    f"Model loaded: {embedding_dim} -> {' -> '.join(map(str, architecture))} -> {best_k}"
+)
 
 # Make predictions
 print("Making predictions...")
@@ -88,22 +91,42 @@ early_mask = np.isin(cluster_labels, early_clusters)
 middle_mask = np.isin(cluster_labels, middle_clusters)
 recent_mask = np.isin(cluster_labels, recent_clusters)
 
-early_acc = np.mean(predictions[early_mask] == cluster_labels[early_mask]) if early_mask.sum() > 0 else 0
-middle_acc = np.mean(predictions[middle_mask] == cluster_labels[middle_mask]) if middle_mask.sum() > 0 else 0
-recent_acc = np.mean(predictions[recent_mask] == cluster_labels[recent_mask]) if recent_mask.sum() > 0 else 0
+early_acc = (
+    np.mean(predictions[early_mask] == cluster_labels[early_mask])
+    if early_mask.sum() > 0
+    else 0
+)
+middle_acc = (
+    np.mean(predictions[middle_mask] == cluster_labels[middle_mask])
+    if middle_mask.sum() > 0
+    else 0
+)
+recent_acc = (
+    np.mean(predictions[recent_mask] == cluster_labels[recent_mask])
+    if recent_mask.sum() > 0
+    else 0
+)
 
 # Recency bias
 recency_bias = (recent_acc - early_acc) * 100
 
-print("\n" + "="*80)
+print("\n" + "=" * 80)
 print("SWISSPROT EVALUATION RESULTS")
-print("="*80)
+print("=" * 80)
 print()
 print(f"📊 Performance Metrics:")
-print(f"   Overall Accuracy: {overall_acc*100:.1f}% ({int(overall_acc*len(embeddings))}/{len(embeddings):,})")
-print(f"   Early clusters ({early_clusters[0]}-{early_clusters[-1]}): {early_acc*100:.1f}%")
-print(f"   Middle clusters ({middle_clusters[0]}-{middle_clusters[-1]}): {middle_acc*100:.1f}%")
-print(f"   Recent clusters ({recent_clusters[0]}-{recent_clusters[-1]}): {recent_acc*100:.1f}%")
+print(
+    f"   Overall Accuracy: {overall_acc*100:.1f}% ({int(overall_acc*len(embeddings))}/{len(embeddings):,})"
+)
+print(
+    f"   Early clusters ({early_clusters[0]}-{early_clusters[-1]}): {early_acc*100:.1f}%"
+)
+print(
+    f"   Middle clusters ({middle_clusters[0]}-{middle_clusters[-1]}): {middle_acc*100:.1f}%"
+)
+print(
+    f"   Recent clusters ({recent_clusters[0]}-{recent_clusters[-1]}): {recent_acc*100:.1f}%"
+)
 print(f"   Recency bias: {recency_bias:+.1f}pp")
 print()
 print(f"Per-cluster accuracy:")
@@ -112,20 +135,20 @@ for i, acc in enumerate(cluster_accs):
 
 # Save results
 results = {
-    'timestamp': datetime.now().isoformat(),
-    'dataset': 'SwissProt',
-    'sequences': len(embeddings),
-    'n_clusters': best_k,
-    'overall_accuracy': float(overall_acc),
-    'early_accuracy': float(early_acc),
-    'middle_accuracy': float(middle_acc),
-    'recent_accuracy': float(recent_acc),
-    'recency_bias_pp': float(recency_bias),
-    'per_cluster_accuracy': [float(acc) for acc in cluster_accs]
+    "timestamp": datetime.now().isoformat(),
+    "dataset": "SwissProt",
+    "sequences": len(embeddings),
+    "n_clusters": best_k,
+    "overall_accuracy": float(overall_acc),
+    "early_accuracy": float(early_acc),
+    "middle_accuracy": float(middle_acc),
+    "recent_accuracy": float(recent_acc),
+    "recency_bias_pp": float(recency_bias),
+    "per_cluster_accuracy": [float(acc) for acc in cluster_accs],
 }
 
 results_file = output_dir / "evaluation_results.json"
-with open(results_file, 'w') as f:
+with open(results_file, "w") as f:
     json.dump(results, f, indent=2)
 
 print()

@@ -45,7 +45,9 @@ sys.path.append(str(Path(__file__).parent.parent))
 from scripts.run_pipeline import eDNABiodiversityPipeline  # type: ignore
 
 
-def read_fasta_sequences(fasta_path: Path, max_seqs: Optional[int] = None) -> List[SeqIO.SeqRecord]:
+def read_fasta_sequences(
+    fasta_path: Path, max_seqs: Optional[int] = None
+) -> List[SeqIO.SeqRecord]:
     records = []
     count = 0
     with open(fasta_path, "r", encoding="utf-8", errors="ignore") as handle:
@@ -77,14 +79,27 @@ def build_labels_from_records(records: List[SeqIO.SeqRecord]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def merge_labels(records: List[SeqIO.SeqRecord], labels_csv: Optional[Path]) -> pd.DataFrame:
+def merge_labels(
+    records: List[SeqIO.SeqRecord], labels_csv: Optional[Path]
+) -> pd.DataFrame:
     if labels_csv is None:
         return build_labels_from_records(records)
     df = pd.read_csv(labels_csv)
     if "sequence_id" not in df.columns:
-        raise ValueError("labels CSV must contain a 'sequence_id' column matching FASTA record IDs")
+        raise ValueError(
+            "labels CSV must contain a 'sequence_id' column matching FASTA record IDs"
+        )
     # Keep only known taxonomy columns (create if missing)
-    wanted = ["sequence_id", "species", "genus", "family", "order", "class", "phylum", "kingdom"]
+    wanted = [
+        "sequence_id",
+        "species",
+        "genus",
+        "family",
+        "order",
+        "class",
+        "phylum",
+        "kingdom",
+    ]
     for col in wanted:
         if col not in df.columns:
             df[col] = None
@@ -95,7 +110,9 @@ def merge_labels(records: List[SeqIO.SeqRecord], labels_csv: Optional[Path]) -> 
     df_indexed = df.set_index("sequence_id").reindex(id_order)
     missing = [sid for sid in id_order if sid not in df_indexed.index]
     if missing:
-        print(f"[WARN] {len(missing)} sequence IDs missing in labels CSV; filling minimal labels.")
+        print(
+            f"[WARN] {len(missing)} sequence IDs missing in labels CSV; filling minimal labels."
+        )
         fallback = build_labels_from_records(records)
         fallback = fallback.set_index("sequence_id").reindex(id_order)
         df_indexed = df_indexed.combine_first(fallback)
@@ -111,7 +128,9 @@ def embed_sequences(records: List[SeqIO.SeqRecord], out_dir: Path) -> np.ndarray
     return embeddings.astype(np.float32)
 
 
-def write_outputs(embeddings: np.ndarray, labels: pd.DataFrame, out_dir: Path) -> Dict[str, str]:
+def write_outputs(
+    embeddings: np.ndarray, labels: pd.DataFrame, out_dir: Path
+) -> Dict[str, str]:
     out_dir.mkdir(parents=True, exist_ok=True)
     emb_path = out_dir / "reference_embeddings.npy"
     lab_path = out_dir / "reference_labels.csv"
@@ -131,15 +150,31 @@ def write_outputs(embeddings: np.ndarray, labels: pd.DataFrame, out_dir: Path) -
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
 
-    return {"embeddings": str(emb_path), "labels": str(lab_path), "meta": str(meta_path)}
+    return {
+        "embeddings": str(emb_path),
+        "labels": str(lab_path),
+        "meta": str(meta_path),
+    }
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Build KNN reference index for taxonomy assignment")
+    p = argparse.ArgumentParser(
+        description="Build KNN reference index for taxonomy assignment"
+    )
     p.add_argument("--fasta", required=True, help="Path to reference FASTA")
-    p.add_argument("--labels-csv", help="Optional CSV mapping 'sequence_id' to taxonomy columns")
-    p.add_argument("--output-dir", default="data/reference", help="Output directory for reference files")
-    p.add_argument("--max-seqs", type=int, help="Optional cap on number of sequences to embed (for testing)")
+    p.add_argument(
+        "--labels-csv", help="Optional CSV mapping 'sequence_id' to taxonomy columns"
+    )
+    p.add_argument(
+        "--output-dir",
+        default="data/reference",
+        help="Output directory for reference files",
+    )
+    p.add_argument(
+        "--max-seqs",
+        type=int,
+        help="Optional cap on number of sequences to embed (for testing)",
+    )
 
     args = p.parse_args()
 
@@ -168,9 +203,9 @@ def main() -> None:
     paths = write_outputs(embeddings, labels, out_dir)
 
     print("[DONE]")
-    print("Embeddings:", paths["embeddings"]) 
-    print("Labels:", paths["labels"]) 
-    print("Meta:", paths["meta"]) 
+    print("Embeddings:", paths["embeddings"])
+    print("Labels:", paths["labels"])
+    print("Meta:", paths["meta"])
     print("\nUpdate config taxonomy.knn to:")
     print(f"  embeddings_path: \"{paths['embeddings']}\"")
     print(f"  labels_path: \"{paths['labels']}\"")

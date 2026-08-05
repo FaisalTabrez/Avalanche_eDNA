@@ -10,20 +10,21 @@ This script provides functionality to:
 """
 
 import argparse
+import gzip
 import json
 import logging
-import subprocess
-import time
-import xml.etree.ElementTree as ET
-from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-import urllib.request
-import urllib.parse
-import gzip
 import shutil
-import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
+import subprocess
 import sys
+import time
+import urllib.parse
+import urllib.request
+import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import pandas as pd
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent.parent / "src"))
@@ -32,10 +33,10 @@ from src.utils.config import config
 
 # Setup logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 class SRADownloader:
     """NCBI SRA data downloader and processor"""
@@ -43,11 +44,15 @@ class SRADownloader:
     def __init__(self, config_path: Optional[str] = None):
         """Initialize SRA downloader with configuration"""
         self.config = config
-        self.sra_config = config.get('databases', {}).get('sra', {})
+        self.sra_config = config.get("databases", {}).get("sra", {})
 
         # SRA URLs
-        self.sra_search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-        self.sra_summary_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+        self.sra_search_url = (
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+        )
+        self.sra_summary_url = (
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+        )
         self.sra_fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
         # Output directories
@@ -56,8 +61,9 @@ class SRADownloader:
 
         logger.info("SRA Downloader initialized")
 
-    def search_edna_studies(self, keywords: Optional[List[str]] = None,
-                          max_results: int = 100) -> List[Dict]:
+    def search_edna_studies(
+        self, keywords: Optional[List[str]] = None, max_results: int = 100
+    ) -> List[Dict]:
         """
         Search NCBI SRA for eDNA-relevant studies
 
@@ -69,23 +75,23 @@ class SRADownloader:
             List of study metadata dictionaries
         """
         if keywords is None:
-            keywords = self.sra_config.get('search', {}).get('edna_keywords', [])
+            keywords = self.sra_config.get("search", {}).get("edna_keywords", [])
 
         # Build search query
-        search_terms = ['eDNA', 'environmental DNA', 'metabarcoding']
+        search_terms = ["eDNA", "environmental DNA", "metabarcoding"]
         search_terms.extend(keywords)
 
-        query = ' OR '.join(f'"{term}"' for term in search_terms)
+        query = " OR ".join(f'"{term}"' for term in search_terms)
         query += ' AND "environmental"[filter]'
 
         logger.info(f"Searching SRA for eDNA studies with query: {query}")
 
         # Search parameters
         params = {
-            'db': 'sra',
-            'term': query,
-            'retmax': str(max_results),
-            'retmode': 'json'
+            "db": "sra",
+            "term": query,
+            "retmax": str(max_results),
+            "retmode": "json",
         }
 
         url = f"{self.sra_search_url}?{urllib.parse.urlencode(params)}"
@@ -94,7 +100,7 @@ class SRADownloader:
             with urllib.request.urlopen(url) as response:
                 data = json.loads(response.read().decode())
 
-            study_ids = data.get('esearchresult', {}).get('idlist', [])
+            study_ids = data.get("esearchresult", {}).get("idlist", [])
             logger.info(f"Found {len(study_ids)} SRA studies")
 
             return self._get_study_details(study_ids)
@@ -110,13 +116,9 @@ class SRADownloader:
         # Process in batches to avoid overwhelming the API
         batch_size = 50
         for i in range(0, len(study_ids), batch_size):
-            batch_ids = study_ids[i:i+batch_size]
+            batch_ids = study_ids[i : i + batch_size]
 
-            params = {
-                'db': 'sra',
-                'id': ','.join(batch_ids),
-                'retmode': 'xml'
-            }
+            params = {"db": "sra", "id": ",".join(batch_ids), "retmode": "xml"}
 
             url = f"{self.sra_summary_url}?{urllib.parse.urlencode(params)}"
 
@@ -124,7 +126,7 @@ class SRADownloader:
                 with urllib.request.urlopen(url) as response:
                     root = ET.fromstring(response.read())
 
-                for docsum in root.findall('.//DocSum'):
+                for docsum in root.findall(".//DocSum"):
                     study_info = self._parse_study_xml(docsum)
                     if study_info:
                         studies.append(study_info)
@@ -141,20 +143,31 @@ class SRADownloader:
             study_info = {}
 
             # Extract basic information
-            for item in docsum.findall('.//Item'):
-                name = item.get('Name')
+            for item in docsum.findall(".//Item"):
+                name = item.get("Name")
                 value = item.text
 
-                if name in ['Accession', 'Title', 'Organism', 'Platform', 'Spots', 'Bases']:
+                if name in [
+                    "Accession",
+                    "Title",
+                    "Organism",
+                    "Platform",
+                    "Spots",
+                    "Bases",
+                ]:
                     study_info[name.lower()] = value
 
             # Filter for eDNA-relevant studies
-            title = study_info.get('title', '').lower()
-            edna_keywords = self.sra_config.get('search', {}).get('edna_keywords', [])
+            title = study_info.get("title", "").lower()
+            edna_keywords = self.sra_config.get("search", {}).get("edna_keywords", [])
 
-            is_edna_relevant = any(keyword.lower() in title for keyword in edna_keywords)
+            is_edna_relevant = any(
+                keyword.lower() in title for keyword in edna_keywords
+            )
 
-            if is_edna_relevant and int(study_info.get('spots', 0)) >= self.sra_config.get('search', {}).get('min_spots', 1000000):
+            if is_edna_relevant and int(
+                study_info.get("spots", 0)
+            ) >= self.sra_config.get("search", {}).get("min_spots", 1000000):
                 return study_info
 
         except Exception as e:
@@ -162,7 +175,9 @@ class SRADownloader:
 
         return None
 
-    def download_sra_run(self, accession: str, output_dir: Optional[Path] = None) -> bool:
+    def download_sra_run(
+        self, accession: str, output_dir: Optional[Path] = None
+    ) -> bool:
         """
         Download SRA run using SRA Toolkit or direct download
 
@@ -190,14 +205,20 @@ class SRADownloader:
     def _download_with_sra_tools(self, accession: str, output_dir: Path) -> bool:
         """Download using SRA Toolkit"""
         try:
-            prefetch_path = self.sra_config.get('sra_tools', {}).get('prefetch_path', 'prefetch')
-            fastq_dump_path = self.sra_config.get('sra_tools', {}).get('fastq_dump_path', 'fastq-dump')
+            prefetch_path = self.sra_config.get("sra_tools", {}).get(
+                "prefetch_path", "prefetch"
+            )
+            fastq_dump_path = self.sra_config.get("sra_tools", {}).get(
+                "fastq_dump_path", "fastq-dump"
+            )
 
             # Prefetch SRA file
             logger.info(f"Prefetching {accession}...")
             result = subprocess.run(
-                [prefetch_path, accession, '-O', str(output_dir)],
-                capture_output=True, text=True, timeout=600
+                [prefetch_path, accession, "-O", str(output_dir)],
+                capture_output=True,
+                text=True,
+                timeout=600,
             )
 
             if result.returncode != 0:
@@ -209,11 +230,23 @@ class SRADownloader:
             if sra_file.exists():
                 logger.info(f"Converting {accession} to FASTQ...")
                 fastq_result = subprocess.run(
-                    [fastq_dump_path, '--outdir', str(output_dir),
-                     '--gzip', '--skip-technical', '--readids',
-                     '--read-filter', 'pass', '--dumpbase',
-                     '--split-3', '--clip', str(sra_file)],
-                    capture_output=True, text=True, timeout=1200
+                    [
+                        fastq_dump_path,
+                        "--outdir",
+                        str(output_dir),
+                        "--gzip",
+                        "--skip-technical",
+                        "--readids",
+                        "--read-filter",
+                        "pass",
+                        "--dumpbase",
+                        "--split-3",
+                        "--clip",
+                        str(sra_file),
+                    ],
+                    capture_output=True,
+                    text=True,
+                    timeout=1200,
                 )
 
                 if fastq_result.returncode == 0:
@@ -250,7 +283,9 @@ class SRADownloader:
 
         return False
 
-    def convert_sra_to_fastq(self, sra_file: Path, output_dir: Optional[Path] = None) -> List[Path]:
+    def convert_sra_to_fastq(
+        self, sra_file: Path, output_dir: Optional[Path] = None
+    ) -> List[Path]:
         """
         Convert SRA file to FASTQ format
 
@@ -269,16 +304,30 @@ class SRADownloader:
         fastq_files = []
 
         try:
-            fastq_dump_path = self.sra_config.get('sra_tools', {}).get('fastq_dump_path', 'fastq-dump')
+            fastq_dump_path = self.sra_config.get("sra_tools", {}).get(
+                "fastq_dump_path", "fastq-dump"
+            )
 
             logger.info(f"Converting {sra_file} to FASTQ...")
 
             result = subprocess.run(
-                [fastq_dump_path, '--outdir', str(output_dir),
-                 '--gzip', '--skip-technical', '--readids',
-                 '--read-filter', 'pass', '--dumpbase',
-                 '--split-3', '--clip', str(sra_file)],
-                capture_output=True, text=True, timeout=1800
+                [
+                    fastq_dump_path,
+                    "--outdir",
+                    str(output_dir),
+                    "--gzip",
+                    "--skip-technical",
+                    "--readids",
+                    "--read-filter",
+                    "pass",
+                    "--dumpbase",
+                    "--split-3",
+                    "--clip",
+                    str(sra_file),
+                ],
+                capture_output=True,
+                text=True,
+                timeout=1800,
             )
 
             if result.returncode == 0:
@@ -295,8 +344,9 @@ class SRADownloader:
 
         return fastq_files
 
-    def download_edna_datasets(self, study_type: str = "marine_sediment",
-                              max_downloads: int = 10) -> List[Path]:
+    def download_edna_datasets(
+        self, study_type: str = "marine_sediment", max_downloads: int = 10
+    ) -> List[Path]:
         """
         Download eDNA datasets of specified type
 
@@ -307,7 +357,7 @@ class SRADownloader:
         Returns:
             List of downloaded FASTQ file paths
         """
-        studies = self.sra_config.get('edna_studies', {}).get(study_type, [])
+        studies = self.sra_config.get("edna_studies", {}).get(study_type, [])
 
         if not studies:
             logger.warning(f"No predefined studies for type: {study_type}")
@@ -320,7 +370,9 @@ class SRADownloader:
             if download_count >= max_downloads:
                 break
 
-            logger.info(f"Processing study {accession} ({download_count + 1}/{max_downloads})")
+            logger.info(
+                f"Processing study {accession} ({download_count + 1}/{max_downloads})"
+            )
 
             if self.download_sra_run(accession, self.sra_data_dir / accession):
                 # Convert to FASTQ
@@ -332,7 +384,9 @@ class SRADownloader:
 
             time.sleep(2)  # Rate limiting
 
-        logger.info(f"Downloaded {len(downloaded_files)} FASTQ files from {download_count} SRA runs")
+        logger.info(
+            f"Downloaded {len(downloaded_files)} FASTQ files from {download_count} SRA runs"
+        )
         return downloaded_files
 
     def search_and_download_relevant_studies(self, max_results: int = 20) -> List[Path]:
@@ -353,11 +407,13 @@ class SRADownloader:
         logger.info(f"Found {len(studies)} relevant studies")
 
         for i, study in enumerate(studies[:max_results]):
-            accession = study.get('accession')
+            accession = study.get("accession")
             if not accession:
                 continue
 
-            logger.info(f"Downloading study {i+1}/{min(max_results, len(studies))}: {accession}")
+            logger.info(
+                f"Downloading study {i+1}/{min(max_results, len(studies))}: {accession}"
+            )
 
             if self.download_sra_run(accession, self.sra_data_dir / accession):
                 sra_file = self.sra_data_dir / accession / f"{accession}.sra"
@@ -372,59 +428,63 @@ class SRADownloader:
     def create_sra_metadata_report(self, output_path: str) -> None:
         """Create a report of downloaded SRA data"""
         metadata = {
-            'download_date': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'total_studies': 0,
-            'total_runs': 0,
-            'total_files': 0,
-            'studies': []
+            "download_date": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_studies": 0,
+            "total_runs": 0,
+            "total_files": 0,
+            "studies": [],
         }
 
         # Scan downloaded data
         for study_dir in self.sra_data_dir.iterdir():
             if study_dir.is_dir():
-                study_info = {
-                    'accession': study_dir.name,
-                    'files': [],
-                    'total_size': 0
-                }
+                study_info = {"accession": study_dir.name, "files": [], "total_size": 0}
 
-                for file_path in study_dir.rglob('*'):
+                for file_path in study_dir.rglob("*"):
                     if file_path.is_file():
-                        study_info['files'].append({
-                            'name': file_path.name,
-                            'size_mb': file_path.stat().st_size / (1024 * 1024),
-                            'type': file_path.suffix
-                        })
-                        study_info['total_size'] += file_path.stat().st_size
+                        study_info["files"].append(
+                            {
+                                "name": file_path.name,
+                                "size_mb": file_path.stat().st_size / (1024 * 1024),
+                                "type": file_path.suffix,
+                            }
+                        )
+                        study_info["total_size"] += file_path.stat().st_size
 
-                if study_info['files']:
-                    metadata['studies'].append(study_info)
-                    metadata['total_studies'] += 1
-                    metadata['total_files'] += len(study_info['files'])
+                if study_info["files"]:
+                    metadata["studies"].append(study_info)
+                    metadata["total_studies"] += 1
+                    metadata["total_files"] += len(study_info["files"])
 
         # Save metadata
-        with open(output_path, 'w') as f:
+        with open(output_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
         logger.info(f"SRA metadata report saved to: {output_path}")
+
 
 def main():
     """Main function for SRA data downloading"""
     parser = argparse.ArgumentParser(description="Download eDNA data from NCBI SRA")
 
-    parser.add_argument('--search', action='store_true',
-                       help="Search for eDNA-relevant studies")
-    parser.add_argument('--download-type', type=str,
-                       choices=['marine_sediment', 'deep_sea', 'plankton'],
-                       help="Type of eDNA studies to download")
-    parser.add_argument('--max-results', type=int, default=10,
-                       help="Maximum number of studies to process")
-    parser.add_argument('--accession', type=str,
-                       help="Download specific SRA accession")
-    parser.add_argument('--output-dir', type=str,
-                       help="Output directory for downloads")
-    parser.add_argument('--report', type=str,
-                       help="Generate metadata report")
+    parser.add_argument(
+        "--search", action="store_true", help="Search for eDNA-relevant studies"
+    )
+    parser.add_argument(
+        "--download-type",
+        type=str,
+        choices=["marine_sediment", "deep_sea", "plankton"],
+        help="Type of eDNA studies to download",
+    )
+    parser.add_argument(
+        "--max-results",
+        type=int,
+        default=10,
+        help="Maximum number of studies to process",
+    )
+    parser.add_argument("--accession", type=str, help="Download specific SRA accession")
+    parser.add_argument("--output-dir", type=str, help="Output directory for downloads")
+    parser.add_argument("--report", type=str, help="Generate metadata report")
 
     args = parser.parse_args()
 
@@ -433,12 +493,16 @@ def main():
     try:
         if args.search:
             logger.info("Searching and downloading relevant eDNA studies...")
-            downloaded_files = downloader.search_and_download_relevant_studies(args.max_results)
+            downloaded_files = downloader.search_and_download_relevant_studies(
+                args.max_results
+            )
             logger.info(f"Downloaded {len(downloaded_files)} files")
 
         elif args.download_type:
             logger.info(f"Downloading {args.download_type} eDNA datasets...")
-            downloaded_files = downloader.download_edna_datasets(args.download_type, args.max_results)
+            downloaded_files = downloader.download_edna_datasets(
+                args.download_type, args.max_results
+            )
             logger.info(f"Downloaded {len(downloaded_files)} files")
 
         elif args.accession:
@@ -458,6 +522,7 @@ def main():
     except Exception as e:
         logger.error(f"Error: {e}")
         return 1
+
 
 if __name__ == "__main__":
     exit(main())

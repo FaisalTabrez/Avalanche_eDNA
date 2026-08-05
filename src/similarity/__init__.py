@@ -7,7 +7,4 @@ across different reports and calculating comprehensive similarity metrics.
 
 from .cross_analysis_engine import CrossAnalysisEngine, SimilarityCalculator
 
-__all__ = [
-    'CrossAnalysisEngine',
-    'SimilarityCalculator'
-]
+__all__ = ["CrossAnalysisEngine", "SimilarityCalculator"]

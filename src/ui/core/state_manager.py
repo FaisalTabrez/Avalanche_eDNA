@@ -1,27 +1,21 @@
-import streamlit as st
 from typing import Any, Dict, Optional
+
+import streamlit as st
+
 
 class StateManager:
     """
     Centralized management for Streamlit session state.
     Ensures type safety and default values for app-wide state.
     """
-    
+
     DEFAULTS = {
         "current_page": "Mission Control",
         "analysis_active": False,
         "current_analysis_id": None,
-        "user_settings": {
-            "theme": "dark",
-            "notifications": True
-        },
+        "user_settings": {"theme": "dark", "notifications": True},
         "recent_activities": [],
-        "system_status": {
-            "cpu": 0,
-            "memory": 0,
-            "disk": 0,
-            "db_connected": False
-        }
+        "system_status": {"cpu": 0, "memory": 0, "disk": 0, "db_connected": False},
     }
 
     @staticmethod

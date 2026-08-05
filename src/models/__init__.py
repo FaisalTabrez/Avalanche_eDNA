@@ -6,5 +6,5 @@ Models module for DNA sequence embedding and analysis
 from .tokenizer import DNATokenizer
 
 __all__ = [
-    'DNATokenizer',
+    "DNATokenizer",
 ]

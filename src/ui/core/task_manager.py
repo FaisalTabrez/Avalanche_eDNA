@@ -1,20 +1,22 @@
-import multiprocessing
-import uuid
-import time
-import psutil
 import json
+import multiprocessing
+import time
+import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
+import psutil
+
 
 class TaskManager:
     """
     Manages background tasks for the Avalanche system.
     Uses multiprocessing to run tasks without blocking the UI.
     """
-    
+
     _instance = None
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(TaskManager, cls).__new__(cls)
@@ -46,19 +48,20 @@ class TaskManager:
         except Exception as e:
             print(f"Error saving task history: {e}")
 
-    def submit_task(self, name: str, target_func, args: tuple = (), kwargs: dict = {}) -> str:
+    def submit_task(
+        self, name: str, target_func, args: tuple = (), kwargs: dict = {}
+    ) -> str:
         """
         Submit a new task to run in the background.
         Returns the task ID.
         """
         task_id = str(uuid.uuid4())
-        
+
         # Create a wrapper to handle status updates and logging
         process = multiprocessing.Process(
-            target=self._task_wrapper,
-            args=(task_id, name, target_func, args, kwargs)
+            target=self._task_wrapper, args=(task_id, name, target_func, args, kwargs)
         )
-        
+
         self.tasks[task_id] = {
             "id": task_id,
             "name": name,
@@ -66,17 +69,17 @@ class TaskManager:
             "start_time": datetime.now().isoformat(),
             "end_time": None,
             "pid": None,
-            "error": None
+            "error": None,
         }
-        
+
         process.start()
         self.processes[task_id] = process
-        
+
         # Update with PID
         self.tasks[task_id]["pid"] = process.pid
         self.tasks[task_id]["status"] = "running"
         self.save_tasks()
-        
+
         return task_id
 
     def _task_wrapper(self, task_id, name, func, args, kwargs):
@@ -86,10 +89,10 @@ class TaskManager:
             # Update status file (since we can't share memory easily across processes without a Manager)
             # For simplicity in this UI demo, we'll assume the main process checks process liveness
             # But to persist 'completed' state, we should write to a specific task file
-            
+
             result = func(*args, **kwargs)
             self._update_task_file(task_id, "completed", result=str(result))
-            
+
         except Exception as e:
             self._update_task_file(task_id, "failed", error=str(e))
 
@@ -100,7 +103,7 @@ class TaskManager:
             "status": status,
             "end_time": datetime.now().isoformat(),
             "result": result,
-            "error": error
+            "error": error,
         }
         with open(task_file, "w") as f:
             json.dump(data, f)
@@ -109,9 +112,9 @@ class TaskManager:
         """Get the current status of a task."""
         if task_id not in self.tasks:
             return None
-            
+
         task = self.tasks[task_id]
-        
+
         # Check if there's an update file from the worker
         task_file = self.storage_path / f"{task_id}.json"
         if task_file.exists():
@@ -120,12 +123,15 @@ class TaskManager:
                     update = json.load(f)
                     task.update(update)
                     # Clean up process reference if done
-                    if task["status"] in ["completed", "failed"] and task_id in self.processes:
+                    if (
+                        task["status"] in ["completed", "failed"]
+                        and task_id in self.processes
+                    ):
                         del self.processes[task_id]
                     self.save_tasks()
             except:
                 pass
-                
+
         # Check if process is still alive if marked running
         if task["status"] == "running" and task_id in self.processes:
             if not self.processes[task_id].is_alive():
@@ -134,7 +140,7 @@ class TaskManager:
                     task["status"] = "failed"
                     task["error"] = "Process terminated unexpectedly"
                     self.save_tasks()
-        
+
         return task
 
     def stop_task(self, task_id: str):
@@ -144,7 +150,7 @@ class TaskManager:
             process.terminate()
             process.join()
             del self.processes[task_id]
-            
+
             self.tasks[task_id]["status"] = "stopped"
             self.tasks[task_id]["end_time"] = datetime.now().isoformat()
             self.save_tasks()
@@ -162,5 +168,5 @@ class TaskManager:
         return {
             "cpu": psutil.cpu_percent(interval=None),
             "memory": psutil.virtual_memory().percent,
-            "disk": psutil.disk_usage('/').percent
+            "disk": psutil.disk_usage("/").percent,
         }

@@ -6,14 +6,15 @@ This script provides monitoring, health checks, and performance analysis
 for the database.
 """
 
+import logging
 import os
 import sys
 import time
-import psutil
-import logging
-from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from pathlib import Path
+from typing import Any, Dict, List
+
+import psutil
 
 # Add src to path
 project_root = Path(__file__).parent.parent
@@ -145,9 +146,11 @@ class DatabaseMonitor:
                     {
                         "name": check["name"],
                         "status": status,
-                        "details": f"Check completed successfully"
-                        if result
-                        else "Integrity violation detected",
+                        "details": (
+                            f"Check completed successfully"
+                            if result
+                            else "Integrity violation detected"
+                        ),
                     }
                 )
 

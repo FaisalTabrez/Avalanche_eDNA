@@ -5,9 +5,9 @@ Active Replay Success - Detailed Analysis
 import matplotlib.pyplot as plt
 import numpy as np
 
-print("="*80)
+print("=" * 80)
 print("🎯 ACTIVE REPLAY: CATASTROPHIC FORGETTING ELIMINATED!")
-print("="*80)
+print("=" * 80)
 
 print("\n📊 RESULTS COMPARISON:\n")
 print("┌────────────────────┬───────────┬───────────┬─────────────────────┐")
@@ -25,7 +25,7 @@ clusters_data = [
     ("Cluster 1", 513, 0.0, 75.2, 0, 386),
     ("Cluster 2", 737, 0.0, 87.1, 0, 642),
     ("Cluster 3", 354, 0.0, 96.9, 0, 343),
-    ("Cluster 4", 449, 100.0, 99.8, 449, 448)
+    ("Cluster 4", 449, 100.0, 99.8, 449, 448),
 ]
 
 print("┌──────────┬───────┬──────────┬─────────┬──────────┬──────────┐")
@@ -40,13 +40,17 @@ for cluster, size, passive, active, passive_correct, active_correct in clusters_
     total_saved += saved
     lost = size - active_correct
     total_lost += lost
-    print(f"│ {cluster:<8} │ {size:>5} │ {passive:>6.1f}% │ {active:>6.1f}% │ {saved:>8} │ {lost:>8} │")
+    print(
+        f"│ {cluster:<8} │ {size:>5} │ {passive:>6.1f}% │ {active:>6.1f}% │ {saved:>8} │ {lost:>8} │"
+    )
 
 print("├──────────┼───────┼──────────┼─────────┼──────────┼──────────┤")
 print(f"│ TOTAL    │ 2500  │   18.0% │  89.0% │ {total_saved:>8} │ {total_lost:>8} │")
 print("└──────────┴───────┴──────────┴─────────┴──────────┴──────────┘")
 
-print(f"\n💡 Active replay recovered {total_saved} sequences that were lost to forgetting!")
+print(
+    f"\n💡 Active replay recovered {total_saved} sequences that were lost to forgetting!"
+)
 print(f"   Only {total_lost} sequences remain misclassified (11% error rate)")
 
 print("\n🔑 KEY INSIGHTS:\n")
@@ -82,80 +86,135 @@ print("   5. Real DNABERT-2 embeddings work perfectly on CPU")
 print("\n✅ CONCLUSION:")
 print("   Active replay with mixed batches effectively eliminates catastrophic")
 print("   forgetting in continual learning for eDNA sequence classification!")
-print("="*80)
+print("=" * 80)
 
 # Create visualization
 fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
 # Plot 1: Accuracy improvement
-strategies = ['Passive\nReplay', 'Active\nReplay']
+strategies = ["Passive\nReplay", "Active\nReplay"]
 overall = [18.0, 89.0]
-colors = ['#e74c3c', '#27ae60']
+colors = ["#e74c3c", "#27ae60"]
 
-bars = axes[0, 0].bar(strategies, overall, color=colors, alpha=0.8, edgecolor='black', linewidth=2)
-axes[0, 0].set_ylabel('Overall Accuracy (%)', fontsize=13, fontweight='bold')
-axes[0, 0].set_title('🎯 Catastrophic Forgetting: SOLVED!', fontsize=15, fontweight='bold')
+bars = axes[0, 0].bar(
+    strategies, overall, color=colors, alpha=0.8, edgecolor="black", linewidth=2
+)
+axes[0, 0].set_ylabel("Overall Accuracy (%)", fontsize=13, fontweight="bold")
+axes[0, 0].set_title(
+    "🎯 Catastrophic Forgetting: SOLVED!", fontsize=15, fontweight="bold"
+)
 axes[0, 0].set_ylim([0, 100])
-axes[0, 0].axhline(y=20, color='gray', linestyle='--', alpha=0.4, label='Random (20%)')
-axes[0, 0].grid(axis='y', alpha=0.3)
+axes[0, 0].axhline(y=20, color="gray", linestyle="--", alpha=0.4, label="Random (20%)")
+axes[0, 0].grid(axis="y", alpha=0.3)
 
 for bar, val in zip(bars, overall):
-    axes[0, 0].text(bar.get_x() + bar.get_width()/2, val + 3,
-                   f'{val:.1f}%', ha='center', fontsize=14, fontweight='bold')
+    axes[0, 0].text(
+        bar.get_x() + bar.get_width() / 2,
+        val + 3,
+        f"{val:.1f}%",
+        ha="center",
+        fontsize=14,
+        fontweight="bold",
+    )
 
 # Add improvement annotation
-axes[0, 0].annotate('', xy=(1, 89), xytext=(0, 18),
-                   arrowprops=dict(arrowstyle='->', lw=2, color='green'))
-axes[0, 0].text(0.5, 55, '+71.0pp', ha='center', fontsize=12, 
-               bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.8))
+axes[0, 0].annotate(
+    "",
+    xy=(1, 89),
+    xytext=(0, 18),
+    arrowprops=dict(arrowstyle="->", lw=2, color="green"),
+)
+axes[0, 0].text(
+    0.5,
+    55,
+    "+71.0pp",
+    ha="center",
+    fontsize=12,
+    bbox=dict(boxstyle="round", facecolor="lightgreen", alpha=0.8),
+)
 
 # Plot 2: Per-cluster comparison
-clusters = ['C0', 'C1', 'C2', 'C3', 'C4']
+clusters = ["C0", "C1", "C2", "C3", "C4"]
 passive_acc = [0.0, 0.0, 0.0, 0.0, 100.0]
 active_acc = [90.6, 75.2, 87.1, 96.9, 99.8]
 
 x = np.arange(len(clusters))
 width = 0.35
 
-bars1 = axes[0, 1].bar(x - width/2, passive_acc, width, label='Passive', 
-                       color='#e74c3c', alpha=0.7, edgecolor='black')
-bars2 = axes[0, 1].bar(x + width/2, active_acc, width, label='Active',
-                       color='#27ae60', alpha=0.7, edgecolor='black')
+bars1 = axes[0, 1].bar(
+    x - width / 2,
+    passive_acc,
+    width,
+    label="Passive",
+    color="#e74c3c",
+    alpha=0.7,
+    edgecolor="black",
+)
+bars2 = axes[0, 1].bar(
+    x + width / 2,
+    active_acc,
+    width,
+    label="Active",
+    color="#27ae60",
+    alpha=0.7,
+    edgecolor="black",
+)
 
-axes[0, 1].set_xlabel('Cluster ID', fontsize=12, fontweight='bold')
-axes[0, 1].set_ylabel('Accuracy (%)', fontsize=12, fontweight='bold')
-axes[0, 1].set_title('📊 All Clusters Retained!', fontsize=15, fontweight='bold')
+axes[0, 1].set_xlabel("Cluster ID", fontsize=12, fontweight="bold")
+axes[0, 1].set_ylabel("Accuracy (%)", fontsize=12, fontweight="bold")
+axes[0, 1].set_title("📊 All Clusters Retained!", fontsize=15, fontweight="bold")
 axes[0, 1].set_xticks(x)
 axes[0, 1].set_xticklabels(clusters)
 axes[0, 1].legend(fontsize=11)
-axes[0, 1].grid(axis='y', alpha=0.3)
+axes[0, 1].grid(axis="y", alpha=0.3)
 axes[0, 1].set_ylim([0, 110])
 
 # Plot 3: Samples saved/lost
-cluster_names = ['C0', 'C1', 'C2', 'C3', 'C4']
+cluster_names = ["C0", "C1", "C2", "C3", "C4"]
 saved = [405, 386, 642, 343, -1]  # C4 already had 100% so -1 lost
 lost = [42, 127, 95, 11, 1]
 
 x = np.arange(len(cluster_names))
 width = 0.35
 
-bars1 = axes[1, 0].bar(x - width/2, saved, width, label='Saved by Active Replay',
-                       color='#27ae60', alpha=0.7, edgecolor='black')
-bars2 = axes[1, 0].bar(x + width/2, [-l for l in lost], width, label='Still Lost',
-                       color='#e67e22', alpha=0.7, edgecolor='black')
+bars1 = axes[1, 0].bar(
+    x - width / 2,
+    saved,
+    width,
+    label="Saved by Active Replay",
+    color="#27ae60",
+    alpha=0.7,
+    edgecolor="black",
+)
+bars2 = axes[1, 0].bar(
+    x + width / 2,
+    [-l for l in lost],
+    width,
+    label="Still Lost",
+    color="#e67e22",
+    alpha=0.7,
+    edgecolor="black",
+)
 
-axes[1, 0].set_xlabel('Cluster ID', fontsize=12, fontweight='bold')
-axes[1, 0].set_ylabel('Number of Sequences', fontsize=12, fontweight='bold')
-axes[1, 0].set_title('🔄 Sequences Recovered', fontsize=15, fontweight='bold')
+axes[1, 0].set_xlabel("Cluster ID", fontsize=12, fontweight="bold")
+axes[1, 0].set_ylabel("Number of Sequences", fontsize=12, fontweight="bold")
+axes[1, 0].set_title("🔄 Sequences Recovered", fontsize=15, fontweight="bold")
 axes[1, 0].set_xticks(x)
 axes[1, 0].set_xticklabels(cluster_names)
 axes[1, 0].legend(fontsize=11)
-axes[1, 0].grid(axis='y', alpha=0.3)
-axes[1, 0].axhline(y=0, color='black', linewidth=1)
+axes[1, 0].grid(axis="y", alpha=0.3)
+axes[1, 0].axhline(y=0, color="black", linewidth=1)
 
 # Plot 4: Training dynamics
-axes[1, 1].text(0.5, 0.85, '🔑 Active Replay Mechanism', 
-               ha='center', fontsize=14, fontweight='bold', transform=axes[1, 1].transAxes)
+axes[1, 1].text(
+    0.5,
+    0.85,
+    "🔑 Active Replay Mechanism",
+    ha="center",
+    fontsize=14,
+    fontweight="bold",
+    transform=axes[1, 1].transAxes,
+)
 
 mechanism = """
 PASSIVE REPLAY (❌ Failed):
@@ -178,13 +237,20 @@ KEY PARAMETERS:
 • Training: 10 epochs per cluster
 """
 
-axes[1, 1].text(0.05, 0.75, mechanism, 
-               ha='left', va='top', fontsize=9, family='monospace',
-               transform=axes[1, 1].transAxes,
-               bbox=dict(boxstyle='round', facecolor='lightblue', alpha=0.3))
+axes[1, 1].text(
+    0.05,
+    0.75,
+    mechanism,
+    ha="left",
+    va="top",
+    fontsize=9,
+    family="monospace",
+    transform=axes[1, 1].transAxes,
+    bbox=dict(boxstyle="round", facecolor="lightblue", alpha=0.3),
+)
 
-axes[1, 1].axis('off')
+axes[1, 1].axis("off")
 
 plt.tight_layout()
-plt.savefig('active_replay_success.png', dpi=150, bbox_inches='tight')
+plt.savefig("active_replay_success.png", dpi=150, bbox_inches="tight")
 print("\n✓ Saved active_replay_success.png")

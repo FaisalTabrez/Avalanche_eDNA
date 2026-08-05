@@ -12,8 +12,6 @@ except ImportError:
 
 from .plots import BiodiversityPlotter
 
-__all__ = [
-    'BiodiversityPlotter'
-]
+__all__ = ["BiodiversityPlotter"]
 if BiodiversityDashboard is not None:
-    __all__.append('BiodiversityDashboard')
+    __all__.append("BiodiversityDashboard")
