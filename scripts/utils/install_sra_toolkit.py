@@ -105,7 +105,8 @@ def update_config_yaml(sra_dir: Path):
     print(f'      prefetch_path: "{prefetch_path}"')
     print(f'      fastq_dump_path: "{fastq_dump_path}"')
     print(f'      fasterq_dump_path: "{fasterq_dump_path}"')
-    print(f"      bin_dir: \"{str(bin_dir).replace('\\', '/')}\"")
+    bin_dir_str = str(bin_dir).replace("\\", "/")
+    print(f'      bin_dir: "{bin_dir_str}"')
 
 
 def add_to_path(bin_dir: Path):
