@@ -39,6 +39,8 @@ env:
   ARTIFACT_REGISTRY: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev
   IMAGE_NAME: ${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO || 'edna-pipeline' }}/avalanche-edna
   GKE_CLUSTER: ${{ vars.GKE_CLUSTER_NAME || 'edna-gke-cluster' }}
+  HAS_GCP_SECRET: ${{ secrets.GCP_SA_KEY }}
+
 
 jobs:
   # ===========================================================================
@@ -212,11 +214,11 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
-        if: github.event_name != 'pull_request' && secrets.GCP_SA_KEY != ''
+        if: github.event_name != 'pull_request' && env.HAS_GCP_SECRET != ''
 
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.ARTIFACT_REGISTRY }} --quiet
-        if: github.event_name != 'pull_request' && secrets.GCP_SA_KEY != ''
+        if: github.event_name != 'pull_request' && env.HAS_GCP_SECRET != ''
 
       - name: Extract Docker metadata (tags + labels)
         id: meta
@@ -238,7 +240,7 @@ jobs:
           context: .
           dockerfile: Dockerfile
           target: runtime
-          push: ${{ github.event_name != 'pull_request' && secrets.GCP_SA_KEY != '' }}
+          push: ${{ github.event_name != 'pull_request' && env.HAS_GCP_SECRET != '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
@@ -261,7 +263,7 @@ jobs:
     name: "🔒 Security Scan"
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name != 'pull_request' && secrets.GCP_SA_KEY != ''
+    if: github.event_name != 'pull_request' && env.HAS_GCP_SECRET != ''
 
     steps:
       - name: Authenticate to Google Cloud
@@ -294,7 +296,7 @@ jobs:
     name: "🚀 Deploy to Staging (GKE)"
     runs-on: ubuntu-latest
     needs: [build, security-scan]
-    if: github.ref == 'refs/heads/develop' && secrets.GCP_SA_KEY != ''
+    if: github.ref == 'refs/heads/develop' && env.HAS_GCP_SECRET != ''
     environment:
       name: staging
       url: https://edna-staging.your-domain.com
@@ -330,7 +332,7 @@ jobs:
     name: "🚀 Deploy to Production (GKE)"
     runs-on: ubuntu-latest
     needs: [build, security-scan]
-    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && secrets.GCP_SA_KEY != ''
+    if: (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')) && env.HAS_GCP_SECRET != ''
     environment:
       name: production
       url: https://edna.your-domain.com
