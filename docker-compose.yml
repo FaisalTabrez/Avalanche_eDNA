@@ -95,6 +95,8 @@ x-edna-base: &edna-base
     LANCEDB_URI: /app/data/lancedb
     TRANSFORMERS_CACHE: /app/.cache/huggingface
     HF_HOME: /app/.cache/huggingface
+    USE_GPU: "false"
+    OMP_NUM_THREADS: "0"
   volumes:
     - edna_data_raw:/app/data/raw
     - edna_data_processed:/app/data/processed
@@ -147,13 +149,6 @@ services:
       python3 scripts/run_pipeline.py
       --input /app/data/raw
       --output /app/data/output
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     # No profile — starts by default with `docker compose up`
 
   # ---- Model Training ---------------------------------------------------------
@@ -165,13 +160,6 @@ services:
       --input /app/data/processed
       --output /app/models/trained
       --model-type contrastive
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
     profiles:
       - training
 
