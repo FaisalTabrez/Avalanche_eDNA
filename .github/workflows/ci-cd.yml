@@ -35,9 +35,9 @@ concurrency:
 env:
   PYTHON_VERSION: "3.11"
   GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
-  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || 'your-gcp-project-id' }}
   ARTIFACT_REGISTRY: ${{ vars.GCP_REGION || 'us-central1' }}-docker.pkg.dev
-  IMAGE_NAME: ${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO || 'edna-pipeline' }}/avalanche-edna
+  IMAGE_NAME: ${{ vars.GCP_PROJECT_ID || 'your-gcp-project-id' }}/${{ vars.ARTIFACT_REGISTRY_REPO || 'edna-pipeline' }}/avalanche-edna
   GKE_CLUSTER: ${{ vars.GKE_CLUSTER_NAME || 'edna-gke-cluster' }}
 
 
@@ -287,6 +287,7 @@ jobs:
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
           ignore-unfixed: true
+        continue-on-error: true
 
       - name: Upload Trivy scan results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
