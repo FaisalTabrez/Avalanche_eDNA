@@ -89,24 +89,32 @@ class DNABERTEmbedder:
                     # Add a new padding token
                     self.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
+            logger.info("Loading model configuration...")
+            from transformers import AutoConfig
+
+            config = AutoConfig.from_pretrained(
+                self.model_name, cache_dir=cache_dir, trust_remote_code=True
+            )
+            if not hasattr(config, "pad_token_id") or config.pad_token_id is None:
+                config.pad_token_id = getattr(self.tokenizer, "pad_token_id", 0)
+
             logger.info("Loading model (this may take a few minutes on first run)...")
             # Try to load with revision pinned to avoid compatibility issues
             try:
                 self.model = AutoModel.from_pretrained(
                     self.model_name,
+                    config=config,
                     cache_dir=cache_dir,
                     trust_remote_code=True,
-                    revision="main",
-                    # Disable Flash Attention for CPU compatibility
-                    attn_implementation="eager",
                 )
             except Exception as e:
-                logger.warning(f"Failed to load with AutoModel: {e}")
-                logger.info("Trying alternative loading method...")
-                # Fallback: Try loading EsmModel directly
-                from transformers import EsmModel
-
-                self.model = EsmModel.from_pretrained(
+                logger.warning(f"Failed to load {self.model_name}: {e}")
+                logger.info("Falling back to CPU-native DNABERT-1 (zhihan1996/DNA_bert_6)...")
+                self.model_name = "zhihan1996/DNA_bert_6"
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.model_name, cache_dir=cache_dir, trust_remote_code=True
+                )
+                self.model = AutoModel.from_pretrained(
                     self.model_name, cache_dir=cache_dir, trust_remote_code=True
                 )
 

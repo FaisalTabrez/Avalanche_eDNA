@@ -100,10 +100,15 @@ class SequenceQualityFilter:
         }
 
         logger.info(f"Filtering {input_file} -> {output_file}")
+        file_fmt = (
+            "fasta"
+            if str(input_file).lower().endswith((".fasta", ".fa", ".fna"))
+            else "fastq"
+        )
 
         with open(output_file, "w") as out_handle:
             for record in tqdm(
-                SeqIO.parse(input_file, "fastq"), desc="Filtering sequences"
+                SeqIO.parse(input_file, file_fmt), desc="Filtering sequences"
             ):
                 stats["total_sequences"] += 1
 
@@ -130,7 +135,12 @@ class SequenceQualityFilter:
 
                 # Final filter decision
                 if self.filter_sequence(record):
-                    SeqIO.write(record, out_handle, "fastq")
+                    out_fmt = (
+                        "fasta"
+                        if str(output_file).lower().endswith((".fasta", ".fa", ".fna"))
+                        else file_fmt
+                    )
+                    SeqIO.write(record, out_handle, out_fmt)
                     stats["final_passed"] += 1
 
         logger.info(
@@ -332,22 +342,32 @@ class PreprocessingPipeline:
         stats = {"input_file": str(input_file), "processing_steps": []}
 
         # Step 1: Adapter trimming
-        trimmed_file = self.processed_dir / f"{output_prefix}_trimmed.fastq"
+        ext = ".fasta" if str(input_file).lower().endswith((".fasta", ".fa", ".fna")) else ".fastq"
+        trimmed_file = self.processed_dir / f"{output_prefix}_trimmed{ext}"
         if self.adapter_trimmer.trim_adapters(input_file, trimmed_file):
             stats["processing_steps"].append("adapter_trimming")
         else:
-            logger.error(f"Adapter trimming failed for {input_file}")
-            return stats
+            logger.warning(
+                f"Adapter trimming failed/unavailable for {input_file}, proceeding with un-trimmed input"
+            )
+            import shutil
+            shutil.copy(input_file, trimmed_file)
+            stats["processing_steps"].append("adapter_trimming_skipped")
 
         # Step 2: Quality filtering
-        filtered_file = self.processed_dir / f"{output_prefix}_filtered.fastq"
+        filtered_file = self.processed_dir / f"{output_prefix}_filtered{ext}"
         filter_stats = self.quality_filter.filter_fastq(trimmed_file, filtered_file)
         stats["filtering_stats"] = filter_stats
         stats["processing_steps"].append("quality_filtering")
 
         # Step 3: Convert to FASTA for chimera detection
         fasta_file = self.processed_dir / f"{output_prefix}_filtered.fasta"
-        self._fastq_to_fasta(filtered_file, fasta_file)
+        if ext == ".fasta":
+            if filtered_file != fasta_file:
+                import shutil
+                shutil.copy(filtered_file, fasta_file)
+        else:
+            self._fastq_to_fasta(filtered_file, fasta_file)
 
         # Step 4: Chimera detection
         final_file = self.processed_dir / f"{output_prefix}_final.fasta"
