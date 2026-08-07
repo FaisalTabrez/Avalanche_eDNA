@@ -342,7 +342,11 @@ class PreprocessingPipeline:
         stats = {"input_file": str(input_file), "processing_steps": []}
 
         # Step 1: Adapter trimming
-        ext = ".fasta" if str(input_file).lower().endswith((".fasta", ".fa", ".fna")) else ".fastq"
+        ext = (
+            ".fasta"
+            if str(input_file).lower().endswith((".fasta", ".fa", ".fna"))
+            else ".fastq"
+        )
         trimmed_file = self.processed_dir / f"{output_prefix}_trimmed{ext}"
         if self.adapter_trimmer.trim_adapters(input_file, trimmed_file):
             stats["processing_steps"].append("adapter_trimming")
@@ -351,6 +355,7 @@ class PreprocessingPipeline:
                 f"Adapter trimming failed/unavailable for {input_file}, proceeding with un-trimmed input"
             )
             import shutil
+
             shutil.copy(input_file, trimmed_file)
             stats["processing_steps"].append("adapter_trimming_skipped")
 
@@ -365,6 +370,7 @@ class PreprocessingPipeline:
         if ext == ".fasta":
             if filtered_file != fasta_file:
                 import shutil
+
                 shutil.copy(filtered_file, fasta_file)
         else:
             self._fastq_to_fasta(filtered_file, fasta_file)

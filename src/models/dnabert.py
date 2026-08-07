@@ -109,7 +109,9 @@ class DNABERTEmbedder:
                 )
             except Exception as e:
                 logger.warning(f"Failed to load {self.model_name}: {e}")
-                logger.info("Falling back to CPU-native DNABERT-1 (zhihan1996/DNA_bert_6)...")
+                logger.info(
+                    "Falling back to CPU-native DNABERT-1 (zhihan1996/DNA_bert_6)..."
+                )
                 self.model_name = "zhihan1996/DNA_bert_6"
                 self.tokenizer = AutoTokenizer.from_pretrained(
                     self.model_name, cache_dir=cache_dir, trust_remote_code=True
