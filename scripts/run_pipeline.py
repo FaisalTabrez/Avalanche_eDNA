@@ -395,7 +395,9 @@ class eDNABiodiversityPipeline:
         # Device selection
         use_gpu = bool(self.config.get("performance.use_gpu", True))
         device = "cuda" if (use_gpu and torch.cuda.is_available()) else "cpu"
-        if device == "cpu" and "DNABERT-2" in model_id:
+        if device == "cpu" and any(
+            k in model_id.lower() for k in ["dnabert-2", "dnabert2", "117m"]
+        ):
             logger.info(
                 "CPU environment detected: automatically switching to CPU-optimized model (zhihan1996/DNA_bert_6)"
             )
