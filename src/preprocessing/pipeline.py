@@ -420,19 +420,25 @@ class PreprocessingPipeline:
 
         input_dir = Path(input_dir)
 
-        # Find all FASTQ files
-        fastq_files = list(input_dir.glob("*.fastq")) + list(
-            input_dir.glob("*.fastq.gz")
+        # Find all FASTQ and FASTA sequence files
+        seq_files = (
+            list(input_dir.glob("*.fastq"))
+            + list(input_dir.glob("*.fastq.gz"))
+            + list(input_dir.glob("*.fq"))
+            + list(input_dir.glob("*.fq.gz"))
+            + list(input_dir.glob("*.fasta"))
+            + list(input_dir.glob("*.fa"))
+            + list(input_dir.glob("*.fna"))
         )
 
-        if not fastq_files:
-            logger.warning(f"No FASTQ files found in {input_dir}")
+        if not seq_files:
+            logger.warning(f"No FASTQ or FASTA files found in {input_dir}")
             return []
 
-        logger.info(f"Found {len(fastq_files)} FASTQ files to process")
+        logger.info(f"Found {len(seq_files)} sequence files to process")
 
         results = []
-        for fastq_file in fastq_files:
+        for fastq_file in seq_files:
             output_prefix = fastq_file.stem.replace(".fastq", "")
 
             try:

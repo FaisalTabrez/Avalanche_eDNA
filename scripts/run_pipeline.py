@@ -400,18 +400,18 @@ class eDNABiodiversityPipeline:
         # Load model and tokenizer
         from transformers import AutoConfig
 
-        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-        config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
-        if not hasattr(config, "pad_token_id") or config.pad_token_id is None:
-            config.pad_token_id = getattr(tokenizer, "pad_token_id", 0)
-
         try:
+            tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+            config = AutoConfig.from_pretrained(model_id, trust_remote_code=True)
+            if not hasattr(config, "pad_token_id") or config.pad_token_id is None:
+                config.pad_token_id = getattr(tokenizer, "pad_token_id", 0)
+
             model = AutoModel.from_pretrained(
                 model_id, config=config, trust_remote_code=True
             )
         except Exception as e:
             logger.warning(
-                f"Failed to load {model_id}: {e}. Trying CPU-native DNABERT-1..."
+                f"Failed to load {model_id}: {e}. Falling back to CPU-native DNABERT-1 (zhihan1996/DNA_bert_6)..."
             )
             model_id = "zhihan1996/DNA_bert_6"
             tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)

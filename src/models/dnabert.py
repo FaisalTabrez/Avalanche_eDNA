@@ -74,33 +74,32 @@ class DNABERTEmbedder:
 
         # Load tokenizer and model
         try:
-            logger.info("Loading tokenizer...")
-            self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name, cache_dir=cache_dir, trust_remote_code=True
-            )
-
-            # Ensure padding token is set (required for ESM-based models like DNABERT-2)
-            if self.tokenizer.pad_token is None:
-                if self.tokenizer.eos_token is not None:
-                    self.tokenizer.pad_token = self.tokenizer.eos_token
-                elif self.tokenizer.unk_token is not None:
-                    self.tokenizer.pad_token = self.tokenizer.unk_token
-                else:
-                    # Add a new padding token
-                    self.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
-
-            logger.info("Loading model configuration...")
-            from transformers import AutoConfig
-
-            config = AutoConfig.from_pretrained(
-                self.model_name, cache_dir=cache_dir, trust_remote_code=True
-            )
-            if not hasattr(config, "pad_token_id") or config.pad_token_id is None:
-                config.pad_token_id = getattr(self.tokenizer, "pad_token_id", 0)
-
-            logger.info("Loading model (this may take a few minutes on first run)...")
-            # Try to load with revision pinned to avoid compatibility issues
             try:
+                logger.info("Loading tokenizer...")
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.model_name, cache_dir=cache_dir, trust_remote_code=True
+                )
+
+                if self.tokenizer.pad_token is None:
+                    if self.tokenizer.eos_token is not None:
+                        self.tokenizer.pad_token = self.tokenizer.eos_token
+                    elif self.tokenizer.unk_token is not None:
+                        self.tokenizer.pad_token = self.tokenizer.unk_token
+                    else:
+                        self.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+
+                logger.info("Loading model configuration...")
+                from transformers import AutoConfig
+
+                config = AutoConfig.from_pretrained(
+                    self.model_name, cache_dir=cache_dir, trust_remote_code=True
+                )
+                if not hasattr(config, "pad_token_id") or config.pad_token_id is None:
+                    config.pad_token_id = getattr(self.tokenizer, "pad_token_id", 0)
+
+                logger.info(
+                    "Loading model (this may take a few minutes on first run)..."
+                )
                 self.model = AutoModel.from_pretrained(
                     self.model_name,
                     config=config,
