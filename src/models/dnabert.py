@@ -63,6 +63,15 @@ class DNABERTEmbedder:
         else:
             self.device = torch.device(device)
 
+        # Auto-switch to CPU-optimized model when running on CPU
+        if str(self.device) == "cpu" and (
+            "dnabert2" in model_size or "DNABERT-2" in self.model_name
+        ):
+            logger.info(
+                "CPU device detected: automatically switching to CPU-optimized model (zhihan1996/DNA_bert_6)"
+            )
+            self.model_name = "zhihan1996/DNA_bert_6"
+
         logger.info(f"Initializing DNABERT model ({model_size})")
         logger.info(f"Model: {self.model_name}")
         logger.info(f"Device: {self.device}")

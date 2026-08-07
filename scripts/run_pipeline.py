@@ -387,7 +387,7 @@ class eDNABiodiversityPipeline:
         embedding_cfg = self.config.get("embedding", {})
         transformer_cfg = embedding_cfg.get("transformer", {}) or {}
 
-        model_id = transformer_cfg.get("model_id", "zhihan1996/DNABERT-2-117M")
+        model_id = transformer_cfg.get("model_id", "zhihan1996/DNA_bert_6")
         max_len = embedding_cfg.get("max_sequence_length", 512)
         stride = transformer_cfg.get("stride", 256)
         batch_size = transformer_cfg.get("batch_size", 8)
@@ -395,7 +395,13 @@ class eDNABiodiversityPipeline:
         # Device selection
         use_gpu = bool(self.config.get("performance.use_gpu", True))
         device = "cuda" if (use_gpu and torch.cuda.is_available()) else "cpu"
-        logger.info(f"Loading DNABERT-2 model: {model_id} on device: {device}")
+        if device == "cpu" and "DNABERT-2" in model_id:
+            logger.info(
+                "CPU environment detected: automatically switching to CPU-optimized model (zhihan1996/DNA_bert_6)"
+            )
+            model_id = "zhihan1996/DNA_bert_6"
+
+        logger.info(f"Loading DNABERT model: {model_id} on device: {device}")
 
         # Load model and tokenizer
         from transformers import AutoConfig

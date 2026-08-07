@@ -132,8 +132,8 @@ embedding:
   
   # Transformer specific
   transformer:
-    # Hugging Face model id for DNABERT-2
-    model_id: "zhihan1996/DNABERT-2-117M"
+    # Hugging Face model id (CPU-compatible DNABERT)
+    model_id: "zhihan1996/DNA_bert_6"
     # Inference settings
     stride: 128
     batch_size: 256
