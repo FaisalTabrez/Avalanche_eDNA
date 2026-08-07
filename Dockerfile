@@ -75,6 +75,7 @@ RUN pip install --no-cache-dir \
     matplotlib>=3.7.0 \
     seaborn>=0.12.0 \
     plotly>=5.18.0 \
+    streamlit>=1.31.0 \
     pytest>=7.4.0 \
     pytest-cov>=4.1.0 \
     cutadapt>=4.6

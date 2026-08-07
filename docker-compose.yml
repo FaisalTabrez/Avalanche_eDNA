@@ -140,12 +140,25 @@ services:
       - edna_network
     restart: unless-stopped
 
-  # ---- One-shot Pipeline Runner (default service) ----------------------------
+  # ---- Streamlit Dashboard (web application interface) -----------------------
+  dashboard:
+    <<: *edna-base
+    container_name: edna_dashboard
+    command: >
+      streamlit run src/ui/app.py
+      --server.port 8501
+      --server.address 0.0.0.0
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+
+  # ---- One-shot Pipeline Runner ----------------------------------------------
   pipeline:
     <<: *edna-base
     container_name: edna_pipeline
     command: >
       python3 scripts/run_pipeline.py
+      --create-sample
       --input /app/data/raw
       --output /app/data/output
     # No profile — starts by default with `docker compose up`
