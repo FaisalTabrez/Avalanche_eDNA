@@ -3,6 +3,7 @@
 ## Problem
 
 Failed to download SRX31101225 from NCBI SRA Toolkit, showing error:
+
 ```
 Failed to download SRX31101225 when I try to download a dataset from SRA toolkit
 ```
@@ -42,6 +43,7 @@ python install_sra_toolkit.py
 ```
 
 This will:
+
 - Download SRA Toolkit v3.0.10 for Windows
 - Extract to `%USERPROFILE%/sra-toolkit`
 - Configure and test installation  
@@ -54,6 +56,7 @@ This will:
 Created detailed guide: **SRA_DOWNLOAD_GUIDE.md**
 
 Covers:
+
 - Two download methods (ENA vs SRA Toolkit)
 - Installation instructions
 - Troubleshooting common issues
@@ -94,7 +97,7 @@ print(f'Success: {success}, Path: {path}')
 "
 ```
 
-###Option C: Use the Streamlit UI
+### Option C: Use the Streamlit UI
 
 ```bash
 # Start the app
@@ -147,12 +150,14 @@ success, path = sra_ui.download_sra_dataset(
 
 ## Files Created/Modified
 
-### New Files:
+### New Files
+
 - `install_sra_toolkit.py` - Automated Windows installer
 - `SRA_DOWNLOAD_GUIDE.md` - Comprehensive user guide
 - `test_sra_download.py` - Test suite
 
-### Modified Files:
+### Modified Files
+
 - `src/utils/sra_integration.py` - Enhanced with:
   - `_convert_srx_to_srr()` - Automatic accession conversion
   - `_download_from_ena()` - ENA fallback method
@@ -162,7 +167,7 @@ success, path = sra_ui.download_sra_dataset(
 ## Next Steps
 
 1. **Immediate**: Try downloading a working dataset first (SRR1553606 or SRR35551197)
-2. **Short-term**: Install SRA Toolkit for SRX31101225 
+2. **Short-term**: Install SRA Toolkit for SRX31101225
 3. **Alternative**: Wait for ENA to generate FASTQ files for SRR36053676
 4. **Long-term**: Use the system with any SRA accession
 
@@ -175,6 +180,7 @@ python test_sra_download.py
 ```
 
 Expected results:
+
 - ✅ SRX→SRR conversion: PASS
 - ⚠️ Download SRR36053676: FAIL (no FASTQ files yet)
 - ✅ Download SRR1553606: PASS (if you change the test dataset)
@@ -183,17 +189,19 @@ Expected results:
 ## Support
 
 For additional help:
+
 1. Read `SRA_DOWNLOAD_GUIDE.md`
 2. Check logs in console output
-3. Verify accession exists: https://www.ncbi.nlm.nih.gov/sra/?term=SRX31101225
+3. Verify accession exists: <https://www.ncbi.nlm.nih.gov/sra/?term=SRX31101225>
 4. Try alternative accessions from your search results
 
 ## Quick Reference
 
 | Task | Command |
-|------|---------|
+| ------ | --------- |
 | Install SRA Toolkit | `python install_sra_toolkit.py` |
 | Test System | `python test_sra_download.py` |
 | Download Dataset | See scripts/examples above |
 | Browse SRA | Use Streamlit UI → SRA Browser |
 | Read Guide | Open `SRA_DOWNLOAD_GUIDE.md` |
+diddy
