@@ -198,3 +198,7 @@ AvalancheData/
 
 # Large temporary files
 files-to-remove.txt
+
+# CI/CD test reports and build packages
+reports/
+build-artifacts/
