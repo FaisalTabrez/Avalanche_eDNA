@@ -31,6 +31,11 @@ pipeline {
             defaultValue: true,
             description: 'Trigger automated deployment and health checks if tests pass'
         )
+        booleanParam(
+            name: 'DEPLOY_PAGES',
+            defaultValue: true,
+            description: 'Deploy static UI Mission Control to GitHub Pages (gh-pages branch)'
+        )
     }
 
     environment {
@@ -105,6 +110,19 @@ pipeline {
             steps {
                 echo "=== Stage 6: Deployment to [${params.TARGET_ENV.toUpperCase()}] & Health Probes ==="
                 runRunner("deploy --env ${params.TARGET_ENV} --mode ${params.RUN_MODE == 'full' ? 'real' : 'mock'}")
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Stage 7: Deploy to GitHub Pages
+        // ---------------------------------------------------------------------
+        stage('Deploy to GitHub Pages') {
+            when {
+                expression { return params.DEPLOY_PAGES == true }
+            }
+            steps {
+                echo "=== Stage 7: Deploying UI Dashboard to GitHub Pages (gh-pages) ==="
+                runRunner("deploy-gh-pages")
             }
         }
     }

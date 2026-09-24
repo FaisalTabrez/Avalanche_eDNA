@@ -353,6 +353,64 @@ def cmd_deploy(args):
     return 0
 
 
+def cmd_deploy_gh_pages(args):
+    """Deploy the web/ UI directly to GitHub Pages (gh-pages branch)."""
+    import tempfile
+    log("PAGES", "Starting automated GitHub Pages deployment...")
+    ensure_directories()
+    web_dir = ROOT_DIR / "web"
+    if not (web_dir / "index.html").exists():
+        log("PAGES", "web/index.html not found! Aborting deployment.", level="ERROR")
+        return 1
+
+    git_bin = shutil.which("git")
+    if not git_bin:
+        log("PAGES", "Git executable not found in PATH.", level="ERROR")
+        return 1
+
+    try:
+        remote_url = subprocess.check_output(
+            [git_bin, "config", "--get", "remote.origin.url"],
+            cwd=ROOT_DIR
+        ).decode().strip()
+    except Exception as e:
+        log("PAGES", f"Could not retrieve git remote URL: {e}", level="ERROR")
+        return 1
+
+    log("PAGES", f"Deploying static web UI from {web_dir} to {remote_url} (branch: gh-pages)...")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        for item in web_dir.iterdir():
+            target = temp_path / item.name
+            if item.is_dir():
+                shutil.copytree(item, target)
+            else:
+                shutil.copy2(item, target)
+
+        (temp_path / ".nojekyll").touch()
+
+        cmds = [
+            [git_bin, "init", "-b", "gh-pages"],
+            [git_bin, "config", "user.name", "Jenkins CI"],
+            [git_bin, "config", "user.email", "jenkins-ci@avalanche-edna.local"],
+            [git_bin, "add", "-A"],
+            [git_bin, "commit", "-m", f"Automated deployment to GitHub Pages via Jenkins [build {datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d_%H%M%S')}]"],
+            [git_bin, "remote", "add", "origin", remote_url],
+            [git_bin, "push", "--force", "origin", "gh-pages"]
+        ]
+
+        for cmd in cmds:
+            res = subprocess.run(cmd, cwd=temp_path, capture_output=True, text=True)
+            if res.returncode != 0:
+                log("PAGES", f"Command failed: {' '.join(cmd)}\nStderr: {res.stderr}", level="ERROR")
+                return 1
+
+    log("PAGES", "Successfully deployed web UI to GitHub Pages!", level="SUCCESS")
+    log("PAGES", "Live URL: https://faisaltabrez.github.io/Avalanche_eDNA/", level="SUCCESS")
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(description="Avalanche eDNA CI/CD Pipeline Automation Engine")
     subparsers = parser.add_subparsers(dest="command", required=True, help="CI/CD stage to execute")
@@ -386,6 +444,10 @@ def main():
     p_dep.add_argument("--env", choices=["staging", "production", "dev"], default="staging", help="Target environment")
     p_dep.add_argument("--mode", choices=["mock", "real"], default="mock", help="Execution mode")
     p_dep.set_defaults(func=cmd_deploy)
+
+    # deploy-gh-pages
+    p_gh = subparsers.add_parser("deploy-gh-pages", help="Deploy web UI to GitHub Pages (gh-pages branch)")
+    p_gh.set_defaults(func=cmd_deploy_gh_pages)
 
     args = parser.parse_args()
     return args.func(args)

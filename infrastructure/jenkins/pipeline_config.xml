@@ -35,6 +35,11 @@
           <description>Trigger automated deployment and health checks if tests pass</description>
           <defaultValue>true</defaultValue>
         </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>DEPLOY_PAGES</name>
+          <description>Deploy static UI Mission Control to GitHub Pages (gh-pages branch)</description>
+          <defaultValue>true</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
   </properties>
