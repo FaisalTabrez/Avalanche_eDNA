@@ -26,6 +26,7 @@ The pipeline is implemented as a **Declarative Jenkins Pipeline** ([Jenkinsfile]
 | **Stage 4** | **Security & Dependency Audit** | Performs automated vulnerability and secret scanning. Outputs `reports/security-audit.json`. |
 | **Stage 5** | **Package & Container Build** | Creates deployment bundle and Docker container build manifest. Outputs to `build-artifacts/`. |
 | **Stage 6** | **Deploy & Health Checks** | Simulates rolling zero-downtime deployment to the target environment with automated HTTP/API health probes. Outputs `reports/deployment-manifest.json`. |
+| **Stage 7** | **Deploy to GitHub Pages** | Synchronizes the interactive UI Mission Control dashboard to the `gh-pages` branch, serving live at [https://faisaltabrez.github.io/Avalanche_eDNA/](https://faisaltabrez.github.io/Avalanche_eDNA/). |
 
 ---
 
