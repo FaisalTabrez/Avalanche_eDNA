@@ -3,644 +3,720 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Avalanche eDNA — Jenkins CI/CD Mission Control &amp; Deployment Hub</title>
-  <meta name="description" content="Next-generation CI/CD Mission Control and interactive deployment dashboard for Avalanche eDNA biodiversity pipeline, deployed via Jenkins to GitHub Pages.">
-  <meta name="theme-color" content="#080b14">
+  <title>Avalanche Mission Control 🏔️ | eDNA Biodiversity System</title>
+  <meta name="description" content="Avalanche Mission Control - Streamlit UI for the Avalanche eDNA Biodiversity &amp; Autonomous Genomic Surveillance Platform.">
+  <meta name="theme-color" content="#0E1117">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <!-- Ambient background glow effect -->
-  <div class="ambient-glow glow-1"></div>
-  <div class="ambient-glow glow-2"></div>
-  <div class="ambient-glow glow-3"></div>
+<body class="stApp">
+  <!-- Streamlit Top Rainbow Accent Bar -->
+  <div class="stTopBar"></div>
 
-  <!-- Header -->
-  <header class="app-header">
-    <div class="header-container">
-      <div class="brand">
-        <div class="logo-wrapper">
-          <div class="logo-icon">🧬</div>
-          <div class="pulse-ring"></div>
-        </div>
-        <div class="brand-text">
-          <div class="brand-title">
-            <span class="gradient-text">Avalanche eDNA</span>
-            <span class="badge badge-primary">CI/CD MISSION CONTROL</span>
+  <!-- Layout Container -->
+  <div class="app-layout">
+    <!-- Streamlit Sidebar -->
+    <aside class="stSidebar" id="stSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <span class="sidebar-logo">🏔️</span>
+          <div class="sidebar-titles">
+            <h1 class="sidebar-app-name">Avalanche</h1>
+            <span class="sidebar-app-caption">eDNA Biodiversity System</span>
           </div>
-          <p class="brand-subtitle">Autonomous Genomic Pipeline &amp; Continuous Deployment Platform</p>
+        </div>
+        <div class="sidebar-divider"></div>
+      </div>
+
+      <!-- Navigation Section -->
+      <div class="sidebar-section">
+        <label class="sidebar-label">NAVIGATE</label>
+        <nav class="sidebar-nav" id="sidebarNav">
+          <button class="nav-item active" data-page="mission-control">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text">Mission Control</span>
+          </button>
+          <button class="nav-item" data-page="analysis-hub">
+            <span class="nav-icon">🧬</span>
+            <span class="nav-text">Analysis Hub</span>
+          </button>
+          <button class="nav-item" data-page="data-explorer">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-text">Data Explorer</span>
+          </button>
+          <button class="nav-item" data-page="model-forge">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-text">Model Forge</span>
+          </button>
+          <button class="nav-item" data-page="system-monitor">
+            <span class="nav-icon">🖥️</span>
+            <span class="nav-text">System Monitor</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Quick System Status in Sidebar -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">System Status</h3>
+        <div class="sidebar-status-grid">
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">CPU</span>
+            <span class="status-val" id="sidebarCpu">24%</span>
+          </div>
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">Memory</span>
+            <span class="status-val" id="sidebarMem">42%</span>
+          </div>
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">Postgres</span>
+            <span class="status-val text-green">Online</span>
+          </div>
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">BLAST+</span>
+            <span class="status-val text-green">Ready</span>
+          </div>
         </div>
       </div>
 
-      <div class="header-badges">
-        <div class="status-pill status-live" title="Deployed through Jenkins to GitHub Pages">
-          <span class="status-dot"></span>
-          <span>GitHub Pages: <strong>LIVE</strong></span>
+      <div class="sidebar-divider"></div>
+
+      <!-- Deployment & Repo Badge in Sidebar -->
+      <div class="sidebar-footer">
+        <div class="sidebar-pill">
+          <span class="pill-dot"></span>
+          <span>Deployed via <strong>Jenkins</strong></span>
         </div>
-        <div class="status-pill status-jenkins" title="Local Jenkins Service running on port 8081">
-          <span class="jenkins-icon">⚙️</span>
-          <span>Jenkins: <strong>PORT 8081</strong></span>
-        </div>
-        <a href="https://github.com/FaisalTabrez/Avalanche_eDNA" target="_blank" rel="noopener" class="status-pill status-github" title="View GitHub Repository">
-          <svg class="gh-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-          <span>FaisalTabrez/Avalanche_eDNA</span>
+        <a href="https://github.com/FaisalTabrez/Avalanche_eDNA" target="_blank" rel="noopener" class="sidebar-repo-link">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>v2.0 &bull; main @ 7cab19f</span>
         </a>
       </div>
-    </div>
-  </header>
+    </aside>
 
-  <!-- Main Container -->
-  <main class="main-content">
-    <!-- Top Telemetry Row -->
-    <section class="telemetry-grid">
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Pipeline Success Rate</span>
-          <span class="metric-icon">🎯</span>
-        </div>
-        <div class="metric-value text-emerald">98.4%</div>
-        <div class="metric-footer">
-          <span class="trend-up">↑ +2.1%</span>
-          <span class="metric-sub">Last 50 automated builds</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill fill-emerald" style="width: 98.4%;"></div></div>
-      </div>
+    <!-- Main Content Area -->
+    <main class="stMain">
+      <div class="stContainer">
 
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Mean Build Time</span>
-          <span class="metric-icon">⚡</span>
-        </div>
-        <div class="metric-value text-cyan">11.8s</div>
-        <div class="metric-footer">
-          <span class="badge-mini">MOCK MODE</span>
-          <span class="metric-sub">Instant CI verification</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill fill-cyan" style="width: 82%;"></div></div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Code Coverage</span>
-          <span class="metric-icon">🧪</span>
-        </div>
-        <div class="metric-value text-violet">87.04%</div>
-        <div class="metric-footer">
-          <span class="metric-sub">1,088 / 1,250 lines covered</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill fill-violet" style="width: 87.04%;"></div></div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-header">
-          <span class="metric-label">Security &amp; Vulnerabilities</span>
-          <span class="metric-icon">🛡️</span>
-        </div>
-        <div class="metric-value text-emerald">0 Critical</div>
-        <div class="metric-footer">
-          <span class="badge-mini-success">PASSED</span>
-          <span class="metric-sub">Zero leaked secrets detected</span>
-        </div>
-        <div class="progress-bar-bg"><div class="progress-bar-fill fill-emerald" style="width: 100%;"></div></div>
-      </div>
-    </section>
-
-    <!-- Pipeline Control & Action Bar -->
-    <section class="control-panel glass-card">
-      <div class="control-left">
-        <div class="build-meta">
-          <span class="build-tag">BUILD #42</span>
-          <span class="branch-pill">🌿 main</span>
-          <span class="commit-pill"><code>7cab19f</code></span>
-          <span class="timestamp-pill" id="lastRunTime">Just now</span>
-        </div>
-      </div>
-
-      <div class="control-actions">
-        <div class="action-group">
-          <label for="modeSelect" class="control-label">Mode:</label>
-          <select id="modeSelect" class="form-select">
-            <option value="mock" selected>Mock CI (Fast ~10s)</option>
-            <option value="quick_real">Quick Real (Syntax)</option>
-            <option value="full">Full Pipeline Suite</option>
-          </select>
-        </div>
-
-        <div class="action-group">
-          <label for="envSelect" class="control-label">Target:</label>
-          <select id="envSelect" class="form-select">
-            <option value="staging" selected>Staging</option>
-            <option value="production">Production</option>
-            <option value="dev">Dev Cluster</option>
-          </select>
-        </div>
-
-        <div class="action-group toggle-group">
-          <label class="switch-label" title="Simulate an error at a stage to test automated recovery">
-            <input type="checkbox" id="failToggle">
-            <span class="switch-slider"></span>
-            <span class="toggle-text">Test Failover</span>
-          </label>
-        </div>
-
-        <button id="triggerBuildBtn" class="btn btn-primary">
-          <span class="btn-icon">▶</span>
-          <span>Trigger Jenkins Pipeline</span>
-        </button>
-
-        <button id="deployGhPagesBtn" class="btn btn-secondary" title="Re-sync UI directly to GitHub Pages branch">
-          <span class="btn-icon">🚀</span>
-          <span>Sync to GitHub Pages</span>
-        </button>
-      </div>
-    </section>
-
-    <!-- Interactive Pipeline Stage Graph -->
-    <section class="pipeline-section glass-card">
-      <div class="section-header">
-        <div class="section-title-wrap">
-          <h2 class="section-title">Declarative Pipeline Stage View</h2>
-          <span class="badge badge-neutral" id="pipelineStatusBadge">READY</span>
-        </div>
-        <div class="stage-legend">
-          <span class="legend-item"><span class="legend-dot dot-success"></span> Completed</span>
-          <span class="legend-item"><span class="legend-dot dot-running"></span> In Progress</span>
-          <span class="legend-item"><span class="legend-dot dot-idle"></span> Queued</span>
-          <span class="legend-item"><span class="legend-dot dot-failed"></span> Failed</span>
-        </div>
-      </div>
-
-      <!-- Stage Flow Cards -->
-      <div class="stage-flow" id="stageFlow">
-        <!-- Stage 1 -->
-        <div class="stage-card" data-stage="1" id="stageCard1">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">01</div>
-          <div class="stage-body">
-            <div class="stage-name">Pre-flight &amp; Env</div>
-            <div class="stage-desc">Python 3.13 &bull; Git &bull; Docker Check</div>
-            <div class="stage-metric" id="stageTime1">1.2s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge1">SUCCESS</div>
-        </div>
-
-        <div class="stage-connector"><div class="connector-line"></div></div>
-
-        <!-- Stage 2 -->
-        <div class="stage-card" data-stage="2" id="stageCard2">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">02</div>
-          <div class="stage-body">
-            <div class="stage-name">Lint &amp; Quality</div>
-            <div class="stage-desc">72 modules &bull; PEP8 &bull; Syntax scan</div>
-            <div class="stage-metric" id="stageTime2">2.1s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge2">SUCCESS</div>
-        </div>
-
-        <div class="stage-connector"><div class="connector-line"></div></div>
-
-        <!-- Stage 3 -->
-        <div class="stage-card" data-stage="3" id="stageCard3">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">03</div>
-          <div class="stage-body">
-            <div class="stage-name">Unit &amp; Tests</div>
-            <div class="stage-desc">10 Suites &bull; JUnit XML &bull; 87% Cov</div>
-            <div class="stage-metric" id="stageTime3">3.4s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge3">10/10 PASS</div>
-        </div>
-
-        <div class="stage-connector"><div class="connector-line"></div></div>
-
-        <!-- Stage 4 -->
-        <div class="stage-card" data-stage="4" id="stageCard4">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">04</div>
-          <div class="stage-body">
-            <div class="stage-name">Security Audit</div>
-            <div class="stage-desc">CVE Audit &bull; Leaked Secrets Scan</div>
-            <div class="stage-metric" id="stageTime4">1.8s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge4">CLEAN</div>
-        </div>
-
-        <div class="stage-connector"><div class="connector-line"></div></div>
-
-        <!-- Stage 5 -->
-        <div class="stage-card" data-stage="5" id="stageCard5">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">05</div>
-          <div class="stage-body">
-            <div class="stage-name">Package &amp; Build</div>
-            <div class="stage-desc">Wheel &bull; Docker Buildx Image Manifest</div>
-            <div class="stage-metric" id="stageTime5">2.5s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge5">PACKAGED</div>
-        </div>
-
-        <div class="stage-connector"><div class="connector-line"></div></div>
-
-        <!-- Stage 6 -->
-        <div class="stage-card" data-stage="6" id="stageCard6">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">06</div>
-          <div class="stage-body">
-            <div class="stage-name">Deploy &amp; Health</div>
-            <div class="stage-desc">Zero-Downtime &bull; HTTP 200 Probes</div>
-            <div class="stage-metric" id="stageTime6">2.8s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge6">DEPLOYED</div>
-        </div>
-
-        <div class="stage-connector"><div class="connector-line"></div></div>
-
-        <!-- Stage 7 -->
-        <div class="stage-card" data-stage="7" id="stageCard7">
-          <div class="stage-status-indicator"></div>
-          <div class="stage-number">07</div>
-          <div class="stage-body">
-            <div class="stage-name">GitHub Pages</div>
-            <div class="stage-desc">Publish UI &bull; CDN Sync to gh-pages</div>
-            <div class="stage-metric" id="stageTime7">1.5s</div>
-          </div>
-          <div class="stage-badge" id="stageBadge7">ONLINE</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Deep Dive Tabs Section -->
-    <section class="details-section">
-      <div class="tabs-header">
-        <button class="tab-btn active" data-tab="terminal">
-          <span class="tab-icon">💻</span>
-          <span>Live Console Output</span>
-          <span class="pulse-indicator"></span>
-        </button>
-        <button class="tab-btn" data-tab="tests">
-          <span class="tab-icon">🧪</span>
-          <span>JUnit Test Explorer (10)</span>
-        </button>
-        <button class="tab-btn" data-tab="coverage">
-          <span class="tab-icon">📊</span>
-          <span>Coverage &amp; Code Quality</span>
-        </button>
-        <button class="tab-btn" data-tab="artifacts">
-          <span class="tab-icon">📦</span>
-          <span>Build Artifacts &amp; Reports</span>
-        </button>
-        <button class="tab-btn" data-tab="jenkins-arch">
-          <span class="tab-icon">⚙️</span>
-          <span>Jenkins Integration Specs</span>
-        </button>
-      </div>
-
-      <!-- Tab Content 1: Terminal Console -->
-      <div class="tab-pane active" id="pane-terminal">
-        <div class="terminal-card glass-card">
-          <div class="terminal-toolbar">
-            <div class="terminal-window-buttons">
-              <span class="btn-dot dot-red"></span>
-              <span class="btn-dot dot-yellow"></span>
-              <span class="btn-dot dot-green"></span>
+        <!-- ===================================================================
+             PAGE 1: MISSION CONTROL (DASHBOARD)
+             =================================================================== -->
+        <section class="page-view active" id="page-mission-control">
+          <div class="page-title-row">
+            <div>
+              <h1 class="stHeader">🚀 Mission Control</h1>
+              <p class="stSubtitle">Welcome to the Avalanche eDNA System.</p>
             </div>
-            <div class="terminal-title">jenkins-worker-01:~/Avalanche_eDNA/Jenkinsfile (Pipeline Console)</div>
-            <div class="terminal-actions">
-              <label class="autoscroll-toggle">
-                <input type="checkbox" id="autoscrollCheck" checked>
-                <span>Autoscroll</span>
+            <button class="stButton btn-secondary" id="btnRefreshDashboard">
+              <span>🔄 Refresh Status</span>
+            </button>
+          </div>
+
+          <!-- Top Metric Cards -->
+          <div class="metric-row">
+            <div class="avalanche-card">
+              <h3>System Status</h3>
+              <div class="metric-value text-green">Online</div>
+              <div class="metric-label">All Systems Go</div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Active Jobs</h3>
+              <div class="metric-value text-cyan" id="activeJobsCount">2</div>
+              <div class="metric-label">Running in Background</div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Storage</h3>
+              <div class="metric-value" id="storagePercent">38%</div>
+              <div class="metric-label">380 GB / 1 TB Used</div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Database</h3>
+              <div class="metric-value text-green">Connected</div>
+              <div class="metric-label">PostgreSQL 15 (Vector Index)</div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="quick-actions-bar">
+            <button class="stButton btn-primary" onclick="navigateToPage('analysis-hub')">
+              <span>🧬 Start New Analysis</span>
+            </button>
+            <button class="stButton btn-secondary" onclick="navigateToPage('data-explorer')">
+              <span>🔍 Explore Biodiversity Data</span>
+            </button>
+            <button class="stButton btn-secondary" onclick="navigateToPage('model-forge')">
+              <span>⚡ Train DNABERT-2 Model</span>
+            </button>
+          </div>
+
+          <!-- Recent Activity Section -->
+          <div class="section-block">
+            <h2 class="stSubheader">Recent Activity</h2>
+            <div class="activity-list">
+              <details class="stExpander" open>
+                <summary class="expander-summary">
+                  <span class="status-indicator status-active"></span>
+                  <span class="expander-title">eDNA Taxonomy Pipeline Run v2 — COMPLETED</span>
+                  <span class="expander-tag">2m ago</span>
+                </summary>
+                <div class="expander-content">
+                  <div class="details-grid">
+                    <div><strong>Job ID:</strong> <code>task-20260924-01</code></div>
+                    <div><strong>Dataset:</strong> SRA SRR35551197 (Alpine Lake Water)</div>
+                    <div><strong>Started:</strong> 2026-09-24 13:15:00</div>
+                    <div><strong>Ended:</strong> 2026-09-24 13:17:15 (2m 15s)</div>
+                    <div><strong>Identified Taxa:</strong> 148 species, 2,000 reads assigned</div>
+                    <div><strong>Status:</strong> <span class="badge badge-success">SUCCESS</span></div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="stExpander">
+                <summary class="expander-summary">
+                  <span class="status-indicator status-active"></span>
+                  <span class="expander-title">Continuous Learning Elastic Weight Consolidation — COMPLETED</span>
+                  <span class="expander-tag">18m ago</span>
+                </summary>
+                <div class="expander-content">
+                  <div class="details-grid">
+                    <div><strong>Job ID:</strong> <code>task-20260924-02</code></div>
+                    <div><strong>Model:</strong> DNABERT-2 CPU Fine-tuned checkpoint</div>
+                    <div><strong>Buffer Size:</strong> 5,000 exemplar sequences</div>
+                    <div><strong>Loss Delta:</strong> -0.38 (accuracy: 94.8%)</div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="stExpander">
+                <summary class="expander-summary">
+                  <span class="status-indicator status-active"></span>
+                  <span class="expander-title">Silva 138 Reference Indexing — COMPLETED</span>
+                  <span class="expander-tag">1h ago</span>
+                </summary>
+                <div class="expander-content">
+                  <div class="details-grid">
+                    <div><strong>Job ID:</strong> <code>task-20260924-03</code></div>
+                    <div><strong>Sequences Indexed:</strong> 512,400 16S/18S markers</div>
+                    <div><strong>Index Type:</strong> FAISS HNSW + Snappy Compression</div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 2: ANALYSIS HUB
+             =================================================================== -->
+        <section class="page-view" id="page-analysis-hub">
+          <h1 class="stHeader">🧬 Analysis Hub</h1>
+          <p class="stSubtitle">Configure, execute, and monitor automated eDNA taxonomic assignment workflows.</p>
+
+          <!-- Wizard Progress Bar -->
+          <div class="wizard-header">
+            <div class="wizard-steps-indicator">
+              <div class="step-indicator active" id="wizardStepInd1" onclick="goToWizardStep(1)">
+                <span class="step-num">1</span>
+                <span class="step-name">Input Data</span>
+              </div>
+              <div class="wizard-line" id="wizardLine1"></div>
+              <div class="step-indicator" id="wizardStepInd2" onclick="goToWizardStep(2)">
+                <span class="step-num">2</span>
+                <span class="step-name">Configuration</span>
+              </div>
+              <div class="wizard-line" id="wizardLine2"></div>
+              <div class="step-indicator" id="wizardStepInd3" onclick="goToWizardStep(3)">
+                <span class="step-num">3</span>
+                <span class="step-name">Review &amp; Run</span>
+              </div>
+              <div class="wizard-line" id="wizardLine3"></div>
+              <div class="step-indicator" id="wizardStepInd4" onclick="goToWizardStep(4)">
+                <span class="step-num">4</span>
+                <span class="step-name">Execution</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <!-- Wizard Step 1: Input Data -->
+          <div class="wizard-pane active" id="wizardPane1">
+            <h2 class="stSubheader">Step 1: Input Data</h2>
+            <div class="stRadioGroup">
+              <label class="stRadioOption">
+                <input type="radio" name="inputMethod" value="sra" checked onchange="toggleInputMethod(this.value)">
+                <span>SRA Accession ID</span>
               </label>
-              <button class="terminal-btn" id="clearConsoleBtn" title="Clear Console">Clear</button>
-              <button class="terminal-btn" id="copyConsoleBtn" title="Copy Output to Clipboard">Copy Logs</button>
+              <label class="stRadioOption">
+                <input type="radio" name="inputMethod" value="upload" onchange="toggleInputMethod(this.value)">
+                <span>Upload Files (FASTQ / FASTA)</span>
+              </label>
             </div>
-          </div>
-          <pre class="terminal-body" id="terminalOutput"><code>[Pipeline] Start of Pipeline
-[Pipeline] node
-Running on Jenkins Windows Node in C:\ProgramData\Jenkins\.jenkins\workspace\Avalanche-eDNA-Pipeline
-[Pipeline] {
-[Pipeline] stage: Pre-flight & Environment Check
-2026-09-24 13:20:00 [INFO] [ENV_CHECK] Starting environment pre-flight inspection...
-2026-09-24 13:20:00 [INFO] [ENV_CHECK] Git repository detected: main @ 7cab19f
-2026-09-24 13:20:01 [INFO] [ENV_CHECK] Docker runtime detected: Docker version 29.6.2, build dfc4efb
-2026-09-24 13:20:01 [SUCCESS] [ENV_CHECK] Environment pre-flight passed. Details written to reports/env-check.json
-[Pipeline] stage: Lint & Code Quality
-2026-09-24 13:20:01 [INFO] [LINT] Running linting stage in [mock] mode...
-2026-09-24 13:20:01 [INFO] [LINT] Verifying Python syntax of src/ modules...
-2026-09-24 13:20:02 [SUCCESS] [LINT] Checked 72 Python source files. Zero syntax errors.
-[Pipeline] stage: Unit & Integration Tests
-2026-09-24 13:20:03 [INFO] [TEST] Running automated test suites in [mock] mode...
-2026-09-24 13:20:03 [INFO] [TEST]   Running tests.test_enhanced_taxonomy.test_taxonomy_pipeline_v2_assignment ... OK (0.38s)
-2026-09-24 13:20:03 [INFO] [TEST]   Running tests.test_enhanced_taxonomy.test_confidence_calibration_scoring ... OK (0.25s)
-2026-09-24 13:20:04 [INFO] [TEST]   Running tests.test_enhanced_taxonomy.test_hierarchical_consistency ... OK (0.31s)
-2026-09-24 13:20:04 [INFO] [TEST]   Running tests.test_continual_learning.test_continual_learning_replay_buffer ... OK (0.42s)
-2026-09-24 13:20:04 [INFO] [TEST]   Running tests.test_continual_learning.test_elastic_weight_consolidation ... OK (0.55s)
-2026-09-24 13:20:05 [INFO] [TEST]   Running tests.test_dynamic_pipeline_integration.test_dynamic_pipeline_flow_executor ... OK (0.49s)
-2026-09-24 13:20:05 [INFO] [TEST]   Running tests.test_model_memory.test_embedding_compression_snappy ... OK (0.29s)
-2026-09-24 13:20:05 [INFO] [TEST]   Running tests.test_system.test_blast_database_indexer ... OK (0.35s)
-2026-09-24 13:20:06 [INFO] [TEST]   Running tests.test_system.test_api_health_endpoint ... OK (0.12s)
-2026-09-24 13:20:06 [INFO] [TEST]   Running tests.test_system.test_pipeline_config_loader ... OK (0.18s)
-2026-09-24 13:20:06 [SUCCESS] [TEST] All 10 tests passed successfully!
-2026-09-24 13:20:06 [SUCCESS] [TEST] Test reports saved to: reports/junit.xml and reports/coverage.xml
-[Pipeline] junit
-Recording test results: 10 tests, 0 failures, 0 errors.
-[Pipeline] stage: Security & Dependency Audit
-2026-09-24 13:20:07 [INFO] [SECURITY] Initiating automated security audit in [mock] mode...
-2026-09-24 13:20:07 [SUCCESS] [SECURITY] Security scan completed: 0 Critical, 0 High vulnerabilities.
-2026-09-24 13:20:07 [INFO] [SECURITY] Security report written to reports/security-audit.json
-[Pipeline] stage: Package & Container Build
-2026-09-24 13:20:08 [INFO] [PACKAGE] Building application artifacts in [mock] mode...
-2026-09-24 13:20:08 [SUCCESS] [PACKAGE] Artifact created: build-artifacts/avalanche-edna-build.zip (2736 bytes)
-2026-09-24 13:20:08 [SUCCESS] [PACKAGE] Build manifest created: build-artifacts/manifest.json
-[Pipeline] stage: Deploy & Health Checks
-2026-09-24 13:20:09 [INFO] [DEPLOY] Initiating automated deployment to [STAGING] environment...
-2026-09-24 13:20:09 [INFO] [DEPLOY]   -> Acquiring deployment lock & provisioning infrastructure
-2026-09-24 13:20:10 [INFO] [DEPLOY]   -> Pulling verified image avalanche-edna:latest into [staging] cluster
-2026-09-24 13:20:10 [INFO] [DEPLOY]   -> Executing rolling container update with zero-downtime
-2026-09-24 13:20:11 [INFO] [DEPLOY]   -> Running health check probe on http://mock-cluster:8000/api/v1/health ... 200 OK
-2026-09-24 13:20:11 [INFO] [DEPLOY]   -> Running taxonomic inference probe on test eDNA marker ... 200 OK
-2026-09-24 13:20:11 [INFO] [DEPLOY]   -> Switching traffic routing to new active deployment revision
-2026-09-24 13:20:11 [SUCCESS] [DEPLOY] Successfully deployed to [STAGING]. All health checks passing!
-[Pipeline] stage: Deploy to GitHub Pages
-2026-09-24 13:20:12 [INFO] [PAGES] Synchronizing UI dashboard to branch 'gh-pages'...
-2026-09-24 13:20:12 [SUCCESS] [PAGES] Deployed to GitHub Pages! Live URL: https://faisaltabrez.github.io/Avalanche_eDNA/
-[Pipeline] archiveArtifacts
-Archiving reports/* and build-artifacts/*
-[Pipeline] End of Pipeline
-Finished: SUCCESS</code></pre>
-        </div>
-      </div>
 
-      <!-- Tab Content 2: Test Explorer -->
-      <div class="tab-pane" id="pane-tests">
-        <div class="glass-card table-card">
-          <div class="table-header">
-            <div class="table-title">JUnit Test Suite Execution Summary</div>
-            <div class="table-filters">
-              <span class="badge badge-success">10 PASSED</span>
-              <span class="badge badge-neutral">0 FAILED</span>
-              <span class="badge badge-neutral">0 SKIPPED</span>
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>Test Case Name</th>
-                  <th>Module / Class</th>
-                  <th>Duration</th>
-                  <th>Type</th>
-                </tr>
-              </thead>
-              <tbody id="testTableBody">
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_taxonomy_pipeline_v2_assignment</code></td>
-                  <td><code>tests.test_enhanced_taxonomy</code></td>
-                  <td>380ms</td>
-                  <td><span class="badge-mini">Taxonomy</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_confidence_calibration_scoring</code></td>
-                  <td><code>tests.test_enhanced_taxonomy</code></td>
-                  <td>250ms</td>
-                  <td><span class="badge-mini">Bayesian</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_hierarchical_consistency</code></td>
-                  <td><code>tests.test_enhanced_taxonomy</code></td>
-                  <td>310ms</td>
-                  <td><span class="badge-mini">Lineage</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_continual_learning_replay_buffer</code></td>
-                  <td><code>tests.test_continual_learning</code></td>
-                  <td>420ms</td>
-                  <td><span class="badge-mini">Replay</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_elastic_weight_consolidation</code></td>
-                  <td><code>tests.test_continual_learning</code></td>
-                  <td>550ms</td>
-                  <td><span class="badge-mini">EWC</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_dynamic_pipeline_flow_executor</code></td>
-                  <td><code>tests.test_dynamic_pipeline_integration</code></td>
-                  <td>490ms</td>
-                  <td><span class="badge-mini">Integration</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_embedding_compression_snappy</code></td>
-                  <td><code>tests.test_model_memory</code></td>
-                  <td>290ms</td>
-                  <td><span class="badge-mini">Compression</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_blast_database_indexer</code></td>
-                  <td><code>tests.test_system</code></td>
-                  <td>350ms</td>
-                  <td><span class="badge-mini">BLAST+</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_api_health_endpoint</code></td>
-                  <td><code>tests.test_system</code></td>
-                  <td>120ms</td>
-                  <td><span class="badge-mini">FastAPI</span></td>
-                </tr>
-                <tr>
-                  <td><span class="status-tag tag-pass">PASS</span></td>
-                  <td><code>test_pipeline_config_loader</code></td>
-                  <td><code>tests.test_system</code></td>
-                  <td>180ms</td>
-                  <td><span class="badge-mini">YAML Config</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab Content 3: Coverage -->
-      <div class="tab-pane" id="pane-coverage">
-        <div class="glass-card coverage-container">
-          <div class="coverage-summary-row">
-            <div class="cov-box">
-              <span class="cov-title">Overall Line Rate</span>
-              <span class="cov-num text-emerald">87.04%</span>
-              <span class="cov-sub">1,088 of 1,250 executable lines</span>
-            </div>
-            <div class="cov-box">
-              <span class="cov-title">Branch Coverage</span>
-              <span class="cov-num text-cyan">84.2%</span>
-              <span class="cov-sub">High confidence execution paths</span>
-            </div>
-            <div class="cov-box">
-              <span class="cov-title">Python Runtime</span>
-              <span class="cov-num text-violet">3.13.2</span>
-              <span class="cov-sub">Bytecode syntax checked (72 files)</span>
-            </div>
-          </div>
-
-          <div class="package-breakdown">
-            <h3 class="breakdown-title">Package Level Coverage Breakdown</h3>
-            <div class="breakdown-item">
-              <div class="breakdown-info">
-                <span>src.pipeline (Taxonomy &amp; Workflow Dispatcher)</span>
-                <span class="text-emerald">89.2%</span>
+            <div id="sraInputSection" class="input-card">
+              <label class="stInputLabel" for="sraAccessionInput">Enter NCBI SRA Accession ID</label>
+              <div class="input-with-button">
+                <input type="text" id="sraAccessionInput" class="stTextInput" value="SRR35551197" placeholder="e.g., SRR12345678">
+                <button class="stButton btn-secondary" onclick="prefillDemoSRA()">Load Alpine Sample</button>
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill fill-emerald" style="width: 89.2%;"></div></div>
+              <p class="stHint">Pre-indexed accession from Alpine biodiversity study (2,000 target reads ready).</p>
             </div>
-            <div class="breakdown-item">
-              <div class="breakdown-info">
-                <span>src.models (Continual Learning &amp; Elastic Weights)</span>
-                <span class="text-emerald">84.8%</span>
+
+            <div id="fileUploadSection" class="input-card" style="display: none;">
+              <div class="stFileUploader">
+                <div class="uploader-icon">📁</div>
+                <div class="uploader-text">Drag and drop FASTQ/FASTA files here</div>
+                <div class="uploader-hint">Supports .fastq, .fq, .fasta, .fa, .gz (Max 200MB)</div>
+                <input type="file" id="fileUploaderInput" class="file-hidden-input">
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill fill-emerald" style="width: 84.8%;"></div></div>
             </div>
-            <div class="breakdown-item">
-              <div class="breakdown-info">
-                <span>src.utils (Configuration &amp; I/O Stream Utilities)</span>
-                <span class="text-cyan">92.4%</span>
+
+            <div class="wizard-actions">
+              <div></div>
+              <button class="stButton btn-primary" onclick="goToWizardStep(2)">
+                <span>Next: Configuration ➡️</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Wizard Step 2: Configuration -->
+          <div class="wizard-pane" id="wizardPane2">
+            <h2 class="stSubheader">Step 2: Analysis Configuration</h2>
+            <div class="config-grid">
+              <div class="config-card">
+                <label class="stInputLabel" for="dbSelect">Reference Taxonomic Database</label>
+                <select id="dbSelect" class="stSelect">
+                  <option value="silva" selected>Silva 138 (SSU/LSU Ribosomal RNA)</option>
+                  <option value="blast_nt">NCBI BLAST nt (Comprehensive Nucleotide)</option>
+                  <option value="swissprot">UniProtKB / Swiss-Prot High Confidence</option>
+                  <option value="custom">Custom Alpine eDNA Reference v2</option>
+                </select>
+
+                <label class="stInputLabel" for="identitySlider" style="margin-top: 1rem;">
+                  Minimum BLAST Identity Threshold: <strong id="identityVal">97.0%</strong>
+                </label>
+                <input type="range" id="identitySlider" min="80" max="100" step="0.5" value="97" class="stSlider" oninput="document.getElementById('identityVal').textContent = this.value + '%'">
+
+                <label class="stInputLabel" for="evalueSelect" style="margin-top: 1rem;">E-Value Cutoff</label>
+                <select id="evalueSelect" class="stSelect">
+                  <option value="1e-5" selected>1e-5 (Standard Strict)</option>
+                  <option value="1e-10">1e-10 (High Stringency)</option>
+                  <option value="1e-3">1e-3 (Permissive)</option>
+                </select>
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill fill-cyan" style="width: 92.4%;"></div></div>
-            </div>
-            <div class="breakdown-item">
-              <div class="breakdown-info">
-                <span>src.api (FastAPI Routing &amp; Schema Validation)</span>
-                <span class="text-violet">88.5%</span>
+
+              <div class="config-card">
+                <label class="stInputLabel" for="threadsSlider">Parallel CPU Worker Threads: <strong id="threadsVal">4</strong></label>
+                <input type="range" id="threadsSlider" min="1" max="16" step="1" value="4" class="stSlider" oninput="document.getElementById('threadsVal').textContent = this.value">
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Refinement Features</label>
+                <div class="checkbox-group">
+                  <label class="stCheckbox"><input type="checkbox" checked id="chkBayesian"> <span>Bayesian Confidence Calibration</span></label>
+                  <label class="stCheckbox"><input type="checkbox" checked id="chkEwc"> <span>Elastic Weight Consolidation Replay</span></label>
+                  <label class="stCheckbox"><input type="checkbox" checked id="chkSnappy"> <span>Snappy Vector Compression</span></label>
+                </div>
               </div>
-              <div class="progress-bar-bg"><div class="progress-bar-fill fill-violet" style="width: 88.5%;"></div></div>
+            </div>
+
+            <div class="wizard-actions">
+              <button class="stButton btn-secondary" onclick="goToWizardStep(1)">⬅️ Back: Input</button>
+              <button class="stButton btn-primary" onclick="goToWizardStep(3)">Next: Review &amp; Run ➡️</button>
             </div>
           </div>
-        </div>
+
+          <!-- Wizard Step 3: Review & Run -->
+          <div class="wizard-pane" id="wizardPane3">
+            <h2 class="stSubheader">Step 3: Review &amp; Confirm</h2>
+            <div class="avalanche-card">
+              <h3>Execution Parameter Summary</h3>
+              <table class="stTable">
+                <tr><td><strong>Input Source:</strong></td><td id="revSource">SRA Accession SRR35551197</td></tr>
+                <tr><td><strong>Reference Database:</strong></td><td id="revDb">Silva 138 (SSU/LSU)</td></tr>
+                <tr><td><strong>Identity Threshold:</strong></td><td id="revIdentity">97.0%</td></tr>
+                <tr><td><strong>E-Value:</strong></td><td id="revEvalue">1e-5</td></tr>
+                <tr><td><strong>CPU Threads:</strong></td><td id="revThreads">4 Workers</td></tr>
+                <tr><td><strong>Estimated Duration:</strong></td><td>~12-15 seconds (Optimized Pipeline)</td></tr>
+              </table>
+            </div>
+
+            <div class="wizard-actions">
+              <button class="stButton btn-secondary" onclick="goToWizardStep(2)">⬅️ Back: Configuration</button>
+              <button class="stButton btn-primary" onclick="startAnalysisExecution()">🚀 Launch eDNA Pipeline</button>
+            </div>
+          </div>
+
+          <!-- Wizard Step 4: Execution -->
+          <div class="wizard-pane" id="wizardPane4">
+            <h2 class="stSubheader">Step 4: Real-Time Execution</h2>
+            <div class="execution-box">
+              <div class="exec-progress-bar-wrap">
+                <div class="exec-progress-bar" id="execProgress" style="width: 0%;"></div>
+              </div>
+              <div class="exec-status-row">
+                <span id="execStepLabel">Initializing worker threads...</span>
+                <span id="execPercentage" class="text-cyan">0%</span>
+              </div>
+
+              <div class="stTerminal" id="execLogBox">
+                <code>[0.0s] Worker node online. Allocating memory buffers...</code>
+              </div>
+
+              <!-- Live Results Preview (shown when finished) -->
+              <div id="execResultsPreview" style="display: none; margin-top: 1.5rem;">
+                <div class="stAlert success-alert">
+                  <span>✅ <strong>Analysis Finished Successfully!</strong> 2,000 sequences analyzed, 148 species identified.</span>
+                </div>
+                <div class="quick-actions-bar" style="margin-top: 1rem;">
+                  <button class="stButton btn-primary" onclick="navigateToPage('data-explorer')">🔍 Open Results in Data Explorer</button>
+                  <button class="stButton btn-secondary" onclick="downloadMockResults()">📥 Download Taxonomy Predictions (.CSV)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 3: DATA EXPLORER
+             =================================================================== -->
+        <section class="page-view" id="page-data-explorer">
+          <div class="page-title-row">
+            <div>
+              <h1 class="stHeader">🔍 Data Explorer</h1>
+              <p class="stSubtitle">Interactive biodiversity inspection, taxonomic distribution, and abundance visualizer.</p>
+            </div>
+            <div class="filter-controls-row">
+              <label class="stInputLabel" style="margin: 0;">Min Confidence: <strong id="minConfLabel">0.85</strong></label>
+              <input type="range" id="minConfSlider" min="0.5" max="1.0" step="0.05" value="0.85" class="stSlider" style="width: 140px;" oninput="updateExplorerFilters(this.value)">
+            </div>
+          </div>
+
+          <!-- Top Metrics -->
+          <div class="metric-row">
+            <div class="avalanche-card">
+              <h3>Total Sequences</h3>
+              <div class="metric-value" id="expTotalSeq">2,000</div>
+              <div class="metric-label">Processed Reads</div>
+            </div>
+            <div class="avalanche-card">
+              <h3>Unique Species</h3>
+              <div class="metric-value text-cyan" id="expUniqueSpecies">148</div>
+              <div class="metric-label">Identified Taxa</div>
+            </div>
+            <div class="avalanche-card">
+              <h3>Avg Confidence</h3>
+              <div class="metric-value text-green" id="expAvgConf">0.94</div>
+              <div class="metric-label">Bayesian Calibration Score</div>
+            </div>
+          </div>
+
+          <!-- Tabs: Sunburst / Top Species / Raw Data -->
+          <div class="stTabsHeader">
+            <button class="stTabBtn active" data-subtab="abundance" onclick="switchDataSubtab('abundance')">📊 Species Abundance</button>
+            <button class="stTabBtn" data-subtab="sunburst" onclick="switchDataSubtab('sunburst')">☀️ Taxonomic Hierarchy</button>
+            <button class="stTabBtn" data-subtab="rawdata" onclick="switchDataSubtab('rawdata')">📄 Sequence Data Table</button>
+          </div>
+
+          <!-- Subtab 1: Abundance -->
+          <div class="stSubtabPane active" id="subtab-abundance">
+            <div class="avalanche-card">
+              <h3>Top 10 Identified Species in Alpine Water Sample</h3>
+              <div class="bar-chart-container" id="speciesBarChart">
+                <!-- Bar rows injected by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 2: Sunburst / Hierarchy -->
+          <div class="stSubtabPane" id="subtab-sunburst">
+            <div class="avalanche-card">
+              <h3>Taxonomic Lineage Tree (Phylum ➔ Genus)</h3>
+              <div class="hierarchy-grid">
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🐟 Chordata (38%)</div>
+                  <ul class="lineage-list">
+                    <li>Salmonidae &bull; <em>Salmo trutta</em> (Brown Trout)</li>
+                    <li>Salmonidae &bull; <em>Oncorhynchus mykiss</em> (Rainbow Trout)</li>
+                    <li>Cottidae &bull; <em>Cottus gobio</em> (Bullhead)</li>
+                  </ul>
+                </div>
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🦐 Arthropoda (31%)</div>
+                  <ul class="lineage-list">
+                    <li>Gammaridae &bull; <em>Gammarus pulex</em> (Freshwater Shrimp)</li>
+                    <li>Baetidae &bull; <em>Baetis rhodani</em> (Mayfly)</li>
+                    <li>Chironomidae &bull; <em>Chironomus riparius</em> (Midge)</li>
+                  </ul>
+                </div>
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🦠 Proteobacteria &bull; Cyanobacteria (22%)</div>
+                  <ul class="lineage-list">
+                    <li>Pseudomonadaceae &bull; <em>Pseudomonas fluorescens</em></li>
+                    <li>Nostocaceae &bull; <em>Anabaena flos-aquae</em></li>
+                  </ul>
+                </div>
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🌿 Chlorophyta (9%)</div>
+                  <ul class="lineage-list">
+                    <li>Chlamydomonadaceae &bull; <em>Chlamydomonas nivalis</em> (Snow Algae)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 3: Raw Sequence Data Table -->
+          <div class="stSubtabPane" id="subtab-rawdata">
+            <div class="avalanche-card">
+              <div class="table-actions-header">
+                <h3>Sequence Predictions (Sample SRR35551197)</h3>
+                <input type="text" id="seqSearchInput" class="stTextInput" placeholder="Search species, genus, rank..." style="width: 250px;" oninput="filterSequenceTable(this.value)">
+              </div>
+              <div class="table-scroll">
+                <table class="stTable" id="seqDataTable">
+                  <thead>
+                    <tr>
+                      <th>Sequence ID</th>
+                      <th>Rank</th>
+                      <th>Taxonomic Label</th>
+                      <th>Confidence</th>
+                      <th>BLAST Identity</th>
+                      <th>Phylum</th>
+                      <th>Species</th>
+                    </tr>
+                  </thead>
+                  <tbody id="seqTableBody">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 4: MODEL FORGE
+             =================================================================== -->
+        <section class="page-view" id="page-model-forge">
+          <h1 class="stHeader">⚡ Model Forge</h1>
+          <p class="stSubtitle">Train, fine-tune, and scale your eDNA foundational models with <strong>DNABERT-2 on CPU</strong>.</p>
+
+          <div class="stTabsHeader">
+            <button class="stTabBtn active" data-subtab="training-arena" onclick="switchForgeSubtab('training-arena')">🏋️ Training Arena</button>
+            <button class="stTabBtn" data-subtab="dynamic-scaling" onclick="switchForgeSubtab('dynamic-scaling')">⚖️ Dynamic Scaling</button>
+          </div>
+
+          <!-- Subtab 1: Training Arena -->
+          <div class="stSubtabPane active" id="subtab-training-arena">
+            <div class="forge-grid">
+              <div class="avalanche-card">
+                <h3>⚙️ Hyperparameters</h3>
+                <label class="stInputLabel">Base Model Architecture</label>
+                <select class="stSelect">
+                  <option selected>DNABERT-2-117M (CPU-Optimized Quantized)</option>
+                  <option>DNABERT-6mer Baseline</option>
+                  <option>Bio-NeMo Contrastive Transformer</option>
+                </select>
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Learning Rate: <strong id="lrVal">2e-5</strong></label>
+                <input type="range" min="1" max="10" step="0.5" value="2" class="stSlider" oninput="document.getElementById('lrVal').textContent = (this.value * 1e-5).toExponential(1)">
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Batch Size</label>
+                <select class="stSelect" id="batchSelect">
+                  <option value="16" selected>16 Sequences (Recommended for CPU)</option>
+                  <option value="32">32 Sequences</option>
+                  <option value="8">8 Sequences (Low Memory)</option>
+                </select>
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Training Epochs: <strong id="epochVal">5</strong></label>
+                <input type="range" id="epochSlider" min="1" max="10" value="5" class="stSlider" oninput="document.getElementById('epochVal').textContent = this.value">
+
+                <button class="stButton btn-primary" id="btnStartTraining" style="margin-top: 1.5rem; width: 100%;" onclick="simulateTraining()">
+                  <span>🏋️ Start Fine-Tuning Run</span>
+                </button>
+              </div>
+
+              <div class="avalanche-card">
+                <h3>📈 Training Loss &amp; Validation</h3>
+                <div class="training-metrics-row">
+                  <div class="metric-box">
+                    <span class="m-label">Current Loss</span>
+                    <span class="m-val text-cyan" id="trainLossVal">0.428</span>
+                  </div>
+                  <div class="metric-box">
+                    <span class="m-label">Val Accuracy</span>
+                    <span class="m-val text-green" id="trainAccVal">94.8%</span>
+                  </div>
+                  <div class="metric-box">
+                    <span class="m-label">Speed</span>
+                    <span class="m-val">42 seq/s</span>
+                  </div>
+                </div>
+
+                <div class="loss-chart-box" id="lossChartContainer">
+                  <svg class="line-chart-svg" viewBox="0 0 400 150">
+                    <polyline fill="none" stroke="#00A8E8" stroke-width="3" points="20,130 80,105 140,82 200,65 260,50 320,40 380,32"></polyline>
+                    <polyline fill="none" stroke="#00C851" stroke-width="2" stroke-dasharray="4" points="20,110 80,75 140,55 200,42 260,35 320,28 380,24"></polyline>
+                  </svg>
+                  <div class="chart-legend">
+                    <span class="text-cyan">&bull; Contrastive Loss</span>
+                    <span class="text-green">&bull; Validation Loss</span>
+                  </div>
+                </div>
+
+                <div class="stTerminal" id="trainingLog" style="height: 120px; margin-top: 1rem;">
+                  <code>[Epoch 5/5] Step 250/250 - Loss: 0.428 - Val Acc: 94.8% - Checkpoint saved.</code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 2: Dynamic Scaling -->
+          <div class="stSubtabPane" id="subtab-dynamic-scaling">
+            <div class="forge-grid">
+              <div class="avalanche-card">
+                <h3>⚖️ Buffer Configuration</h3>
+                <label class="stInputLabel">Memory Budget Ceiling</label>
+                <div class="metric-value">4.0 GB</div>
+                <div class="metric-label">Max RAM allocated for continual learning replay</div>
+
+                <label class="stInputLabel" style="margin-top: 1.5rem;">EWC Importance Factor (&lambda;): <strong id="ewcLambdaVal">0.45</strong></label>
+                <input type="range" min="0.1" max="1.0" step="0.05" value="0.45" class="stSlider" oninput="document.getElementById('ewcLambdaVal').textContent = this.value">
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Buffer Eviction Policy</label>
+                <select class="stSelect">
+                  <option selected>Hybrid (Exemplars 40% + Borderline 35% + Recency 25%)</option>
+                  <option>Reservoir Sampling Uniform</option>
+                  <option>Pure Entropy Active Selection</option>
+                </select>
+              </div>
+
+              <div class="avalanche-card">
+                <h3>📊 Replay Buffer Composition</h3>
+                <div class="pie-composition-bar">
+                  <div class="comp-seg seg-exemplar" style="width: 40%;" title="Exemplar Core Taxa: 40%">40% Core</div>
+                  <div class="comp-seg seg-borderline" style="width: 35%;" title="Borderline Novel Candidates: 35%">35% Novel</div>
+                  <div class="comp-seg seg-recent" style="width: 25%;" title="Recent Stream: 25%">25% Recent</div>
+                </div>
+                <p class="stHint" style="margin-top: 0.75rem;">Total items in active memory buffer: <strong>5,000 / 10,000</strong> sequence vectors.</p>
+
+                <h4 style="margin-top: 1.5rem; color: #00A8E8;">Memory Gauge</h4>
+                <div class="stProgressBarBg">
+                  <div class="stProgressBarFill" style="width: 52%;"></div>
+                </div>
+                <div class="metric-label" style="margin-top: 0.35rem;">2.08 GB / 4.00 GB (52% Allocated)</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 5: SYSTEM MONITOR
+             =================================================================== -->
+        <section class="page-view" id="page-system-monitor">
+          <div class="page-title-row">
+            <div>
+              <h1 class="stHeader">🖥️ System Monitor</h1>
+              <p class="stSubtitle">Real-time resource utilization, active tasks, and worker health.</p>
+            </div>
+            <button class="stButton btn-secondary" onclick="refreshSystemMonitor()">
+              <span>🔄 Refresh Tasks</span>
+            </button>
+          </div>
+
+          <!-- Gauges -->
+          <div class="metric-row">
+            <div class="avalanche-card">
+              <h3>CPU Usage</h3>
+              <div class="metric-value text-cyan" id="gaugeCpu">24%</div>
+              <div class="stProgressBarBg">
+                <div class="stProgressBarFill" id="gaugeCpuBar" style="width: 24%;"></div>
+              </div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Memory Usage</h3>
+              <div class="metric-value text-green" id="gaugeMem">42%</div>
+              <div class="stProgressBarBg">
+                <div class="stProgressBarFill fill-green" id="gaugeMemBar" style="width: 42%;"></div>
+              </div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Disk Usage</h3>
+              <div class="metric-value text-yellow" id="gaugeDisk">38%</div>
+              <div class="stProgressBarBg">
+                <div class="stProgressBarFill fill-yellow" id="gaugeDiskBar" style="width: 38%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Task Manager Table -->
+          <div class="avalanche-card" style="margin-top: 1.5rem;">
+            <h3>Task Manager &bull; Background Services</h3>
+            <div class="table-scroll">
+              <table class="stTable">
+                <thead>
+                  <tr>
+                    <th>Task Name</th>
+                    <th>Status</th>
+                    <th>PID / ID</th>
+                    <th>Start Time</th>
+                    <th>Duration</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="taskManagerBody">
+                  <tr>
+                    <td><strong>eDNA Taxonomy Classifier</strong></td>
+                    <td><span class="badge badge-success">COMPLETED</span></td>
+                    <td><code>task-9021</code></td>
+                    <td>13:15:00</td>
+                    <td>2m 15s</td>
+                    <td><button class="btn-table-action" onclick="alert('Logs for task-9021: 2,000 reads analyzed without errors.')">View Log</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>FAISS Embedding Indexer</strong></td>
+                    <td><span class="badge badge-success">COMPLETED</span></td>
+                    <td><code>task-9020</code></td>
+                    <td>13:00:10</td>
+                    <td>45s</td>
+                    <td><button class="btn-table-action" onclick="alert('Index built with 512,400 vectors.')">View Log</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>PostgreSQL Vector Sync</strong></td>
+                    <td><span class="badge badge-cyan">RUNNING</span></td>
+                    <td><code>task-9019</code></td>
+                    <td>12:45:00</td>
+                    <td>35m</td>
+                    <td><button class="btn-table-action">Inspect</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Celery Task Broker</strong></td>
+                    <td><span class="badge badge-cyan">RUNNING</span></td>
+                    <td><code>task-9018</code></td>
+                    <td>12:00:00</td>
+                    <td>1h 20m</td>
+                    <td><button class="btn-table-action">Inspect</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
       </div>
-
-      <!-- Tab Content 4: Artifacts -->
-      <div class="tab-pane" id="pane-artifacts">
-        <div class="glass-card artifacts-grid">
-          <div class="artifact-card">
-            <div class="artifact-icon">📄</div>
-            <div class="artifact-info">
-              <div class="artifact-title">junit.xml</div>
-              <div class="artifact-desc">Standard JUnit XML for Jenkins Test Result Trends</div>
-              <div class="artifact-size">1.3 KB &bull; XML</div>
-            </div>
-            <a href="data/junit.xml" download="junit.xml" class="btn btn-sm btn-outline">Download</a>
-          </div>
-
-          <div class="artifact-card">
-            <div class="artifact-icon">📊</div>
-            <div class="artifact-info">
-              <div class="artifact-title">coverage.xml</div>
-              <div class="artifact-desc">Cobertura XML code coverage matrix for pipeline</div>
-              <div class="artifact-size">1.1 KB &bull; XML</div>
-            </div>
-            <a href="data/coverage.xml" download="coverage.xml" class="btn btn-sm btn-outline">Download</a>
-          </div>
-
-          <div class="artifact-card">
-            <div class="artifact-icon">🛡️</div>
-            <div class="artifact-info">
-              <div class="artifact-title">security-audit.json</div>
-              <div class="artifact-desc">Vulnerability audit and secret leakage scan results</div>
-              <div class="artifact-size">450 B &bull; JSON</div>
-            </div>
-            <a href="data/security-audit.json" download="security-audit.json" class="btn btn-sm btn-outline">Download</a>
-          </div>
-
-          <div class="artifact-card">
-            <div class="artifact-icon">🚀</div>
-            <div class="artifact-info">
-              <div class="artifact-title">deployment-manifest.json</div>
-              <div class="artifact-desc">Zero-downtime deployment manifest and live probes</div>
-              <div class="artifact-size">520 B &bull; JSON</div>
-            </div>
-            <a href="data/deployment-manifest.json" download="deployment-manifest.json" class="btn btn-sm btn-outline">Download</a>
-          </div>
-
-          <div class="artifact-card">
-            <div class="artifact-icon">🔍</div>
-            <div class="artifact-info">
-              <div class="artifact-title">env-check.json</div>
-              <div class="artifact-desc">Pre-flight system, Python, Git and Docker validation</div>
-              <div class="artifact-size">390 B &bull; JSON</div>
-            </div>
-            <a href="data/env-check.json" download="env-check.json" class="btn btn-sm btn-outline">Download</a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab Content 5: Jenkins Integration Architecture -->
-      <div class="tab-pane" id="pane-jenkins-arch">
-        <div class="glass-card arch-card">
-          <h3 class="arch-title">Avalanche eDNA CI/CD &amp; GitHub Pages Architecture</h3>
-          <p class="arch-desc">
-            This deployment is powered by a cross-platform Jenkins pipeline running locally as a Windows Service at 
-            <code>http://localhost:8081</code>, interacting with Git origin and syncing production artifacts to GitHub Pages.
-          </p>
-          <div class="arch-flow-diagram">
-            <div class="arch-box">
-              <span class="arch-box-title">Jenkins Master</span>
-              <span class="arch-box-sub">Port 8081 &bull; Declarative Pipeline</span>
-            </div>
-            <div class="arch-arrow">➔</div>
-            <div class="arch-box">
-              <span class="arch-box-title">Mock CI/CD Runner</span>
-              <span class="arch-box-sub">scripts/ci/jenkins_runner.py</span>
-            </div>
-            <div class="arch-arrow">➔</div>
-            <div class="arch-box">
-              <span class="arch-box-title">Test &amp; Packaging</span>
-              <span class="arch-box-sub">JUnit XML &bull; Docker Manifest</span>
-            </div>
-            <div class="arch-arrow">➔</div>
-            <div class="arch-box highlight-box">
-              <span class="arch-box-title">GitHub Pages (gh-pages)</span>
-              <span class="arch-box-sub">Static CDN Deployment</span>
-            </div>
-          </div>
-
-          <div class="code-preview-block">
-            <div class="code-title">How to Trigger Directly from Terminal or Jenkins:</div>
-            <pre><code># Run complete mock pipeline locally:
-python scripts/ci/jenkins_runner.py test --mode mock
-python scripts/ci/jenkins_runner.py deploy --env staging --mode mock
-
-# Deploy UI to GitHub Pages via Jenkins runner:
-python scripts/ci/jenkins_runner.py deploy-gh-pages</code></pre>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="app-footer">
-    <div class="footer-content">
-      <div class="footer-left">
-        <span>Avalanche eDNA &copy; 2026. Automated Biodiversity Surveillance Platform.</span>
-      </div>
-      <div class="footer-right">
-        <a href="https://github.com/FaisalTabrez/Avalanche_eDNA/blob/main/Jenkinsfile" target="_blank" rel="noopener">View Jenkinsfile</a>
-        <span class="sep">&bull;</span>
-        <a href="https://github.com/FaisalTabrez/Avalanche_eDNA/blob/main/docs/JENKINS_CI_CD_GUIDE.md" target="_blank" rel="noopener">CI/CD Setup Guide</a>
-        <span class="sep">&bull;</span>
-        <a href="http://localhost:8081" target="_blank" rel="noopener">Local Jenkins Dashboard</a>
-      </div>
-    </div>
-  </footer>
+    </main>
+  </div>
 
   <script src="app.js"></script>
 </body>
