@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avalanche Mission Control 🏔️ | eDNA Biodiversity System</title>
+  <meta name="description" content="Avalanche Mission Control - Streamlit UI for the Avalanche eDNA Biodiversity &amp; Autonomous Genomic Surveillance Platform.">
+  <meta name="theme-color" content="#0E1117">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Code+Pro:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="stApp">
+  <!-- Streamlit Top Rainbow Accent Bar -->
+  <div class="stTopBar"></div>
+
+  <!-- Layout Container -->
+  <div class="app-layout">
+    <!-- Streamlit Sidebar -->
+    <aside class="stSidebar" id="stSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <span class="sidebar-logo">🏔️</span>
+          <div class="sidebar-titles">
+            <h1 class="sidebar-app-name">Avalanche</h1>
+            <span class="sidebar-app-caption">eDNA Biodiversity System</span>
+          </div>
+        </div>
+        <div class="sidebar-divider"></div>
+      </div>
+
+      <!-- Navigation Section -->
+      <div class="sidebar-section">
+        <label class="sidebar-label">NAVIGATE</label>
+        <nav class="sidebar-nav" id="sidebarNav">
+          <button class="nav-item active" data-page="mission-control">
+            <span class="nav-icon">🚀</span>
+            <span class="nav-text">Mission Control</span>
+          </button>
+          <button class="nav-item" data-page="analysis-hub">
+            <span class="nav-icon">🧬</span>
+            <span class="nav-text">Analysis Hub</span>
+          </button>
+          <button class="nav-item" data-page="data-explorer">
+            <span class="nav-icon">🔍</span>
+            <span class="nav-text">Data Explorer</span>
+          </button>
+          <button class="nav-item" data-page="model-forge">
+            <span class="nav-icon">⚡</span>
+            <span class="nav-text">Model Forge</span>
+          </button>
+          <button class="nav-item" data-page="system-monitor">
+            <span class="nav-icon">🖥️</span>
+            <span class="nav-text">System Monitor</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Quick System Status in Sidebar -->
+      <div class="sidebar-section">
+        <h3 class="sidebar-heading">System Status</h3>
+        <div class="sidebar-status-grid">
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">CPU</span>
+            <span class="status-val" id="sidebarCpu">24%</span>
+          </div>
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">Memory</span>
+            <span class="status-val" id="sidebarMem">42%</span>
+          </div>
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">Postgres</span>
+            <span class="status-val text-green">Online</span>
+          </div>
+          <div class="sidebar-status-card">
+            <span class="status-indicator status-active"></span>
+            <span class="status-name">BLAST+</span>
+            <span class="status-val text-green">Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Deployment & Repo Badge in Sidebar -->
+      <div class="sidebar-footer">
+        <div class="sidebar-pill">
+          <span class="pill-dot"></span>
+          <span>Deployed via <strong>Jenkins</strong></span>
+        </div>
+        <a href="https://github.com/FaisalTabrez/Avalanche_eDNA" target="_blank" rel="noopener" class="sidebar-repo-link">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>v2.0 &bull; main @ 7cab19f</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="stMain">
+      <div class="stContainer">
+
+        <!-- ===================================================================
+             PAGE 1: MISSION CONTROL (DASHBOARD)
+             =================================================================== -->
+        <section class="page-view active" id="page-mission-control">
+          <div class="page-title-row">
+            <div>
+              <h1 class="stHeader">🚀 Mission Control</h1>
+              <p class="stSubtitle">Welcome to the Avalanche eDNA System.</p>
+            </div>
+            <button class="stButton btn-secondary" id="btnRefreshDashboard">
+              <span>🔄 Refresh Status</span>
+            </button>
+          </div>
+
+          <!-- Top Metric Cards -->
+          <div class="metric-row">
+            <div class="avalanche-card">
+              <h3>System Status</h3>
+              <div class="metric-value text-green">Online</div>
+              <div class="metric-label">All Systems Go</div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Active Jobs</h3>
+              <div class="metric-value text-cyan" id="activeJobsCount">2</div>
+              <div class="metric-label">Running in Background</div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Storage</h3>
+              <div class="metric-value" id="storagePercent">38%</div>
+              <div class="metric-label">380 GB / 1 TB Used</div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Database</h3>
+              <div class="metric-value text-green">Connected</div>
+              <div class="metric-label">PostgreSQL 15 (Vector Index)</div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="quick-actions-bar">
+            <button class="stButton btn-primary" onclick="navigateToPage('analysis-hub')">
+              <span>🧬 Start New Analysis</span>
+            </button>
+            <button class="stButton btn-secondary" onclick="navigateToPage('data-explorer')">
+              <span>🔍 Explore Biodiversity Data</span>
+            </button>
+            <button class="stButton btn-secondary" onclick="navigateToPage('model-forge')">
+              <span>⚡ Train DNABERT-2 Model</span>
+            </button>
+          </div>
+
+          <!-- Recent Activity Section -->
+          <div class="section-block">
+            <h2 class="stSubheader">Recent Activity</h2>
+            <div class="activity-list">
+              <details class="stExpander" open>
+                <summary class="expander-summary">
+                  <span class="status-indicator status-active"></span>
+                  <span class="expander-title">eDNA Taxonomy Pipeline Run v2 — COMPLETED</span>
+                  <span class="expander-tag">2m ago</span>
+                </summary>
+                <div class="expander-content">
+                  <div class="details-grid">
+                    <div><strong>Job ID:</strong> <code>task-20260924-01</code></div>
+                    <div><strong>Dataset:</strong> SRA SRR35551197 (Alpine Lake Water)</div>
+                    <div><strong>Started:</strong> 2026-09-24 13:15:00</div>
+                    <div><strong>Ended:</strong> 2026-09-24 13:17:15 (2m 15s)</div>
+                    <div><strong>Identified Taxa:</strong> 148 species, 2,000 reads assigned</div>
+                    <div><strong>Status:</strong> <span class="badge badge-success">SUCCESS</span></div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="stExpander">
+                <summary class="expander-summary">
+                  <span class="status-indicator status-active"></span>
+                  <span class="expander-title">Continuous Learning Elastic Weight Consolidation — COMPLETED</span>
+                  <span class="expander-tag">18m ago</span>
+                </summary>
+                <div class="expander-content">
+                  <div class="details-grid">
+                    <div><strong>Job ID:</strong> <code>task-20260924-02</code></div>
+                    <div><strong>Model:</strong> DNABERT-2 CPU Fine-tuned checkpoint</div>
+                    <div><strong>Buffer Size:</strong> 5,000 exemplar sequences</div>
+                    <div><strong>Loss Delta:</strong> -0.38 (accuracy: 94.8%)</div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="stExpander">
+                <summary class="expander-summary">
+                  <span class="status-indicator status-active"></span>
+                  <span class="expander-title">Silva 138 Reference Indexing — COMPLETED</span>
+                  <span class="expander-tag">1h ago</span>
+                </summary>
+                <div class="expander-content">
+                  <div class="details-grid">
+                    <div><strong>Job ID:</strong> <code>task-20260924-03</code></div>
+                    <div><strong>Sequences Indexed:</strong> 512,400 16S/18S markers</div>
+                    <div><strong>Index Type:</strong> FAISS HNSW + Snappy Compression</div>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 2: ANALYSIS HUB
+             =================================================================== -->
+        <section class="page-view" id="page-analysis-hub">
+          <h1 class="stHeader">🧬 Analysis Hub</h1>
+          <p class="stSubtitle">Configure, execute, and monitor automated eDNA taxonomic assignment workflows.</p>
+
+          <!-- Wizard Progress Bar -->
+          <div class="wizard-header">
+            <div class="wizard-steps-indicator">
+              <div class="step-indicator active" id="wizardStepInd1" onclick="goToWizardStep(1)">
+                <span class="step-num">1</span>
+                <span class="step-name">Input Data</span>
+              </div>
+              <div class="wizard-line" id="wizardLine1"></div>
+              <div class="step-indicator" id="wizardStepInd2" onclick="goToWizardStep(2)">
+                <span class="step-num">2</span>
+                <span class="step-name">Configuration</span>
+              </div>
+              <div class="wizard-line" id="wizardLine2"></div>
+              <div class="step-indicator" id="wizardStepInd3" onclick="goToWizardStep(3)">
+                <span class="step-num">3</span>
+                <span class="step-name">Review &amp; Run</span>
+              </div>
+              <div class="wizard-line" id="wizardLine3"></div>
+              <div class="step-indicator" id="wizardStepInd4" onclick="goToWizardStep(4)">
+                <span class="step-num">4</span>
+                <span class="step-name">Execution</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <!-- Wizard Step 1: Input Data -->
+          <div class="wizard-pane active" id="wizardPane1">
+            <h2 class="stSubheader">Step 1: Input Data</h2>
+            <div class="stRadioGroup">
+              <label class="stRadioOption">
+                <input type="radio" name="inputMethod" value="sra" checked onchange="toggleInputMethod(this.value)">
+                <span>SRA Accession ID</span>
+              </label>
+              <label class="stRadioOption">
+                <input type="radio" name="inputMethod" value="upload" onchange="toggleInputMethod(this.value)">
+                <span>Upload Files (FASTQ / FASTA)</span>
+              </label>
+            </div>
+
+            <div id="sraInputSection" class="input-card">
+              <label class="stInputLabel" for="sraAccessionInput">Enter NCBI SRA Accession ID</label>
+              <div class="input-with-button">
+                <input type="text" id="sraAccessionInput" class="stTextInput" value="SRR35551197" placeholder="e.g., SRR12345678">
+                <button class="stButton btn-secondary" onclick="prefillDemoSRA()">Load Alpine Sample</button>
+              </div>
+              <p class="stHint">Pre-indexed accession from Alpine biodiversity study (2,000 target reads ready).</p>
+            </div>
+
+            <div id="fileUploadSection" class="input-card" style="display: none;">
+              <div class="stFileUploader">
+                <div class="uploader-icon">📁</div>
+                <div class="uploader-text">Drag and drop FASTQ/FASTA files here</div>
+                <div class="uploader-hint">Supports .fastq, .fq, .fasta, .fa, .gz (Max 200MB)</div>
+                <input type="file" id="fileUploaderInput" class="file-hidden-input">
+              </div>
+            </div>
+
+            <div class="wizard-actions">
+              <div></div>
+              <button class="stButton btn-primary" onclick="goToWizardStep(2)">
+                <span>Next: Configuration ➡️</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Wizard Step 2: Configuration -->
+          <div class="wizard-pane" id="wizardPane2">
+            <h2 class="stSubheader">Step 2: Analysis Configuration</h2>
+            <div class="config-grid">
+              <div class="config-card">
+                <label class="stInputLabel" for="dbSelect">Reference Taxonomic Database</label>
+                <select id="dbSelect" class="stSelect">
+                  <option value="silva" selected>Silva 138 (SSU/LSU Ribosomal RNA)</option>
+                  <option value="blast_nt">NCBI BLAST nt (Comprehensive Nucleotide)</option>
+                  <option value="swissprot">UniProtKB / Swiss-Prot High Confidence</option>
+                  <option value="custom">Custom Alpine eDNA Reference v2</option>
+                </select>
+
+                <label class="stInputLabel" for="identitySlider" style="margin-top: 1rem;">
+                  Minimum BLAST Identity Threshold: <strong id="identityVal">97.0%</strong>
+                </label>
+                <input type="range" id="identitySlider" min="80" max="100" step="0.5" value="97" class="stSlider" oninput="document.getElementById('identityVal').textContent = this.value + '%'">
+
+                <label class="stInputLabel" for="evalueSelect" style="margin-top: 1rem;">E-Value Cutoff</label>
+                <select id="evalueSelect" class="stSelect">
+                  <option value="1e-5" selected>1e-5 (Standard Strict)</option>
+                  <option value="1e-10">1e-10 (High Stringency)</option>
+                  <option value="1e-3">1e-3 (Permissive)</option>
+                </select>
+              </div>
+
+              <div class="config-card">
+                <label class="stInputLabel" for="threadsSlider">Parallel CPU Worker Threads: <strong id="threadsVal">4</strong></label>
+                <input type="range" id="threadsSlider" min="1" max="16" step="1" value="4" class="stSlider" oninput="document.getElementById('threadsVal').textContent = this.value">
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Refinement Features</label>
+                <div class="checkbox-group">
+                  <label class="stCheckbox"><input type="checkbox" checked id="chkBayesian"> <span>Bayesian Confidence Calibration</span></label>
+                  <label class="stCheckbox"><input type="checkbox" checked id="chkEwc"> <span>Elastic Weight Consolidation Replay</span></label>
+                  <label class="stCheckbox"><input type="checkbox" checked id="chkSnappy"> <span>Snappy Vector Compression</span></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-actions">
+              <button class="stButton btn-secondary" onclick="goToWizardStep(1)">⬅️ Back: Input</button>
+              <button class="stButton btn-primary" onclick="goToWizardStep(3)">Next: Review &amp; Run ➡️</button>
+            </div>
+          </div>
+
+          <!-- Wizard Step 3: Review & Run -->
+          <div class="wizard-pane" id="wizardPane3">
+            <h2 class="stSubheader">Step 3: Review &amp; Confirm</h2>
+            <div class="avalanche-card">
+              <h3>Execution Parameter Summary</h3>
+              <table class="stTable">
+                <tr><td><strong>Input Source:</strong></td><td id="revSource">SRA Accession SRR35551197</td></tr>
+                <tr><td><strong>Reference Database:</strong></td><td id="revDb">Silva 138 (SSU/LSU)</td></tr>
+                <tr><td><strong>Identity Threshold:</strong></td><td id="revIdentity">97.0%</td></tr>
+                <tr><td><strong>E-Value:</strong></td><td id="revEvalue">1e-5</td></tr>
+                <tr><td><strong>CPU Threads:</strong></td><td id="revThreads">4 Workers</td></tr>
+                <tr><td><strong>Estimated Duration:</strong></td><td>~12-15 seconds (Optimized Pipeline)</td></tr>
+              </table>
+            </div>
+
+            <div class="wizard-actions">
+              <button class="stButton btn-secondary" onclick="goToWizardStep(2)">⬅️ Back: Configuration</button>
+              <button class="stButton btn-primary" onclick="startAnalysisExecution()">🚀 Launch eDNA Pipeline</button>
+            </div>
+          </div>
+
+          <!-- Wizard Step 4: Execution -->
+          <div class="wizard-pane" id="wizardPane4">
+            <h2 class="stSubheader">Step 4: Real-Time Execution</h2>
+            <div class="execution-box">
+              <div class="exec-progress-bar-wrap">
+                <div class="exec-progress-bar" id="execProgress" style="width: 0%;"></div>
+              </div>
+              <div class="exec-status-row">
+                <span id="execStepLabel">Initializing worker threads...</span>
+                <span id="execPercentage" class="text-cyan">0%</span>
+              </div>
+
+              <div class="stTerminal" id="execLogBox">
+                <code>[0.0s] Worker node online. Allocating memory buffers...</code>
+              </div>
+
+              <!-- Live Results Preview (shown when finished) -->
+              <div id="execResultsPreview" style="display: none; margin-top: 1.5rem;">
+                <div class="stAlert success-alert">
+                  <span>✅ <strong>Analysis Finished Successfully!</strong> 2,000 sequences analyzed, 148 species identified.</span>
+                </div>
+                <div class="quick-actions-bar" style="margin-top: 1rem;">
+                  <button class="stButton btn-primary" onclick="navigateToPage('data-explorer')">🔍 Open Results in Data Explorer</button>
+                  <button class="stButton btn-secondary" onclick="downloadMockResults()">📥 Download Taxonomy Predictions (.CSV)</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 3: DATA EXPLORER
+             =================================================================== -->
+        <section class="page-view" id="page-data-explorer">
+          <div class="page-title-row">
+            <div>
+              <h1 class="stHeader">🔍 Data Explorer</h1>
+              <p class="stSubtitle">Interactive biodiversity inspection, taxonomic distribution, and abundance visualizer.</p>
+            </div>
+            <div class="filter-controls-row">
+              <label class="stInputLabel" style="margin: 0;">Min Confidence: <strong id="minConfLabel">0.85</strong></label>
+              <input type="range" id="minConfSlider" min="0.5" max="1.0" step="0.05" value="0.85" class="stSlider" style="width: 140px;" oninput="updateExplorerFilters(this.value)">
+            </div>
+          </div>
+
+          <!-- Top Metrics -->
+          <div class="metric-row">
+            <div class="avalanche-card">
+              <h3>Total Sequences</h3>
+              <div class="metric-value" id="expTotalSeq">2,000</div>
+              <div class="metric-label">Processed Reads</div>
+            </div>
+            <div class="avalanche-card">
+              <h3>Unique Species</h3>
+              <div class="metric-value text-cyan" id="expUniqueSpecies">148</div>
+              <div class="metric-label">Identified Taxa</div>
+            </div>
+            <div class="avalanche-card">
+              <h3>Avg Confidence</h3>
+              <div class="metric-value text-green" id="expAvgConf">0.94</div>
+              <div class="metric-label">Bayesian Calibration Score</div>
+            </div>
+          </div>
+
+          <!-- Tabs: Sunburst / Top Species / Raw Data -->
+          <div class="stTabsHeader">
+            <button class="stTabBtn active" data-subtab="abundance" onclick="switchDataSubtab('abundance')">📊 Species Abundance</button>
+            <button class="stTabBtn" data-subtab="sunburst" onclick="switchDataSubtab('sunburst')">☀️ Taxonomic Hierarchy</button>
+            <button class="stTabBtn" data-subtab="rawdata" onclick="switchDataSubtab('rawdata')">📄 Sequence Data Table</button>
+          </div>
+
+          <!-- Subtab 1: Abundance -->
+          <div class="stSubtabPane active" id="subtab-abundance">
+            <div class="avalanche-card">
+              <h3>Top 10 Identified Species in Alpine Water Sample</h3>
+              <div class="bar-chart-container" id="speciesBarChart">
+                <!-- Bar rows injected by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 2: Sunburst / Hierarchy -->
+          <div class="stSubtabPane" id="subtab-sunburst">
+            <div class="avalanche-card">
+              <h3>Taxonomic Lineage Tree (Phylum ➔ Genus)</h3>
+              <div class="hierarchy-grid">
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🐟 Chordata (38%)</div>
+                  <ul class="lineage-list">
+                    <li>Salmonidae &bull; <em>Salmo trutta</em> (Brown Trout)</li>
+                    <li>Salmonidae &bull; <em>Oncorhynchus mykiss</em> (Rainbow Trout)</li>
+                    <li>Cottidae &bull; <em>Cottus gobio</em> (Bullhead)</li>
+                  </ul>
+                </div>
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🦐 Arthropoda (31%)</div>
+                  <ul class="lineage-list">
+                    <li>Gammaridae &bull; <em>Gammarus pulex</em> (Freshwater Shrimp)</li>
+                    <li>Baetidae &bull; <em>Baetis rhodani</em> (Mayfly)</li>
+                    <li>Chironomidae &bull; <em>Chironomus riparius</em> (Midge)</li>
+                  </ul>
+                </div>
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🦠 Proteobacteria &bull; Cyanobacteria (22%)</div>
+                  <ul class="lineage-list">
+                    <li>Pseudomonadaceae &bull; <em>Pseudomonas fluorescens</em></li>
+                    <li>Nostocaceae &bull; <em>Anabaena flos-aquae</em></li>
+                  </ul>
+                </div>
+                <div class="hierarchy-card">
+                  <div class="phylum-title">🌿 Chlorophyta (9%)</div>
+                  <ul class="lineage-list">
+                    <li>Chlamydomonadaceae &bull; <em>Chlamydomonas nivalis</em> (Snow Algae)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 3: Raw Sequence Data Table -->
+          <div class="stSubtabPane" id="subtab-rawdata">
+            <div class="avalanche-card">
+              <div class="table-actions-header">
+                <h3>Sequence Predictions (Sample SRR35551197)</h3>
+                <input type="text" id="seqSearchInput" class="stTextInput" placeholder="Search species, genus, rank..." style="width: 250px;" oninput="filterSequenceTable(this.value)">
+              </div>
+              <div class="table-scroll">
+                <table class="stTable" id="seqDataTable">
+                  <thead>
+                    <tr>
+                      <th>Sequence ID</th>
+                      <th>Rank</th>
+                      <th>Taxonomic Label</th>
+                      <th>Confidence</th>
+                      <th>BLAST Identity</th>
+                      <th>Phylum</th>
+                      <th>Species</th>
+                    </tr>
+                  </thead>
+                  <tbody id="seqTableBody">
+                    <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 4: MODEL FORGE
+             =================================================================== -->
+        <section class="page-view" id="page-model-forge">
+          <h1 class="stHeader">⚡ Model Forge</h1>
+          <p class="stSubtitle">Train, fine-tune, and scale your eDNA foundational models with <strong>DNABERT-2 on CPU</strong>.</p>
+
+          <div class="stTabsHeader">
+            <button class="stTabBtn active" data-subtab="training-arena" onclick="switchForgeSubtab('training-arena')">🏋️ Training Arena</button>
+            <button class="stTabBtn" data-subtab="dynamic-scaling" onclick="switchForgeSubtab('dynamic-scaling')">⚖️ Dynamic Scaling</button>
+          </div>
+
+          <!-- Subtab 1: Training Arena -->
+          <div class="stSubtabPane active" id="subtab-training-arena">
+            <div class="forge-grid">
+              <div class="avalanche-card">
+                <h3>⚙️ Hyperparameters</h3>
+                <label class="stInputLabel">Base Model Architecture</label>
+                <select class="stSelect">
+                  <option selected>DNABERT-2-117M (CPU-Optimized Quantized)</option>
+                  <option>DNABERT-6mer Baseline</option>
+                  <option>Bio-NeMo Contrastive Transformer</option>
+                </select>
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Learning Rate: <strong id="lrVal">2e-5</strong></label>
+                <input type="range" min="1" max="10" step="0.5" value="2" class="stSlider" oninput="document.getElementById('lrVal').textContent = (this.value * 1e-5).toExponential(1)">
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Batch Size</label>
+                <select class="stSelect" id="batchSelect">
+                  <option value="16" selected>16 Sequences (Recommended for CPU)</option>
+                  <option value="32">32 Sequences</option>
+                  <option value="8">8 Sequences (Low Memory)</option>
+                </select>
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Training Epochs: <strong id="epochVal">5</strong></label>
+                <input type="range" id="epochSlider" min="1" max="10" value="5" class="stSlider" oninput="document.getElementById('epochVal').textContent = this.value">
+
+                <button class="stButton btn-primary" id="btnStartTraining" style="margin-top: 1.5rem; width: 100%;" onclick="simulateTraining()">
+                  <span>🏋️ Start Fine-Tuning Run</span>
+                </button>
+              </div>
+
+              <div class="avalanche-card">
+                <h3>📈 Training Loss &amp; Validation</h3>
+                <div class="training-metrics-row">
+                  <div class="metric-box">
+                    <span class="m-label">Current Loss</span>
+                    <span class="m-val text-cyan" id="trainLossVal">0.428</span>
+                  </div>
+                  <div class="metric-box">
+                    <span class="m-label">Val Accuracy</span>
+                    <span class="m-val text-green" id="trainAccVal">94.8%</span>
+                  </div>
+                  <div class="metric-box">
+                    <span class="m-label">Speed</span>
+                    <span class="m-val">42 seq/s</span>
+                  </div>
+                </div>
+
+                <div class="loss-chart-box" id="lossChartContainer">
+                  <svg class="line-chart-svg" viewBox="0 0 400 150">
+                    <polyline fill="none" stroke="#00A8E8" stroke-width="3" points="20,130 80,105 140,82 200,65 260,50 320,40 380,32"></polyline>
+                    <polyline fill="none" stroke="#00C851" stroke-width="2" stroke-dasharray="4" points="20,110 80,75 140,55 200,42 260,35 320,28 380,24"></polyline>
+                  </svg>
+                  <div class="chart-legend">
+                    <span class="text-cyan">&bull; Contrastive Loss</span>
+                    <span class="text-green">&bull; Validation Loss</span>
+                  </div>
+                </div>
+
+                <div class="stTerminal" id="trainingLog" style="height: 120px; margin-top: 1rem;">
+                  <code>[Epoch 5/5] Step 250/250 - Loss: 0.428 - Val Acc: 94.8% - Checkpoint saved.</code>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab 2: Dynamic Scaling -->
+          <div class="stSubtabPane" id="subtab-dynamic-scaling">
+            <div class="forge-grid">
+              <div class="avalanche-card">
+                <h3>⚖️ Buffer Configuration</h3>
+                <label class="stInputLabel">Memory Budget Ceiling</label>
+                <div class="metric-value">4.0 GB</div>
+                <div class="metric-label">Max RAM allocated for continual learning replay</div>
+
+                <label class="stInputLabel" style="margin-top: 1.5rem;">EWC Importance Factor (&lambda;): <strong id="ewcLambdaVal">0.45</strong></label>
+                <input type="range" min="0.1" max="1.0" step="0.05" value="0.45" class="stSlider" oninput="document.getElementById('ewcLambdaVal').textContent = this.value">
+
+                <label class="stInputLabel" style="margin-top: 1rem;">Buffer Eviction Policy</label>
+                <select class="stSelect">
+                  <option selected>Hybrid (Exemplars 40% + Borderline 35% + Recency 25%)</option>
+                  <option>Reservoir Sampling Uniform</option>
+                  <option>Pure Entropy Active Selection</option>
+                </select>
+              </div>
+
+              <div class="avalanche-card">
+                <h3>📊 Replay Buffer Composition</h3>
+                <div class="pie-composition-bar">
+                  <div class="comp-seg seg-exemplar" style="width: 40%;" title="Exemplar Core Taxa: 40%">40% Core</div>
+                  <div class="comp-seg seg-borderline" style="width: 35%;" title="Borderline Novel Candidates: 35%">35% Novel</div>
+                  <div class="comp-seg seg-recent" style="width: 25%;" title="Recent Stream: 25%">25% Recent</div>
+                </div>
+                <p class="stHint" style="margin-top: 0.75rem;">Total items in active memory buffer: <strong>5,000 / 10,000</strong> sequence vectors.</p>
+
+                <h4 style="margin-top: 1.5rem; color: #00A8E8;">Memory Gauge</h4>
+                <div class="stProgressBarBg">
+                  <div class="stProgressBarFill" style="width: 52%;"></div>
+                </div>
+                <div class="metric-label" style="margin-top: 0.35rem;">2.08 GB / 4.00 GB (52% Allocated)</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================================================================
+             PAGE 5: SYSTEM MONITOR
+             =================================================================== -->
+        <section class="page-view" id="page-system-monitor">
+          <div class="page-title-row">
+            <div>
+              <h1 class="stHeader">🖥️ System Monitor</h1>
+              <p class="stSubtitle">Real-time resource utilization, active tasks, and worker health.</p>
+            </div>
+            <button class="stButton btn-secondary" onclick="refreshSystemMonitor()">
+              <span>🔄 Refresh Tasks</span>
+            </button>
+          </div>
+
+          <!-- Gauges -->
+          <div class="metric-row">
+            <div class="avalanche-card">
+              <h3>CPU Usage</h3>
+              <div class="metric-value text-cyan" id="gaugeCpu">24%</div>
+              <div class="stProgressBarBg">
+                <div class="stProgressBarFill" id="gaugeCpuBar" style="width: 24%;"></div>
+              </div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Memory Usage</h3>
+              <div class="metric-value text-green" id="gaugeMem">42%</div>
+              <div class="stProgressBarBg">
+                <div class="stProgressBarFill fill-green" id="gaugeMemBar" style="width: 42%;"></div>
+              </div>
+            </div>
+
+            <div class="avalanche-card">
+              <h3>Disk Usage</h3>
+              <div class="metric-value text-yellow" id="gaugeDisk">38%</div>
+              <div class="stProgressBarBg">
+                <div class="stProgressBarFill fill-yellow" id="gaugeDiskBar" style="width: 38%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Task Manager Table -->
+          <div class="avalanche-card" style="margin-top: 1.5rem;">
+            <h3>Task Manager &bull; Background Services</h3>
+            <div class="table-scroll">
+              <table class="stTable">
+                <thead>
+                  <tr>
+                    <th>Task Name</th>
+                    <th>Status</th>
+                    <th>PID / ID</th>
+                    <th>Start Time</th>
+                    <th>Duration</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="taskManagerBody">
+                  <tr>
+                    <td><strong>eDNA Taxonomy Classifier</strong></td>
+                    <td><span class="badge badge-success">COMPLETED</span></td>
+                    <td><code>task-9021</code></td>
+                    <td>13:15:00</td>
+                    <td>2m 15s</td>
+                    <td><button class="btn-table-action" onclick="alert('Logs for task-9021: 2,000 reads analyzed without errors.')">View Log</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>FAISS Embedding Indexer</strong></td>
+                    <td><span class="badge badge-success">COMPLETED</span></td>
+                    <td><code>task-9020</code></td>
+                    <td>13:00:10</td>
+                    <td>45s</td>
+                    <td><button class="btn-table-action" onclick="alert('Index built with 512,400 vectors.')">View Log</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>PostgreSQL Vector Sync</strong></td>
+                    <td><span class="badge badge-cyan">RUNNING</span></td>
+                    <td><code>task-9019</code></td>
+                    <td>12:45:00</td>
+                    <td>35m</td>
+                    <td><button class="btn-table-action">Inspect</button></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Celery Task Broker</strong></td>
+                    <td><span class="badge badge-cyan">RUNNING</span></td>
+                    <td><code>task-9018</code></td>
+                    <td>12:00:00</td>
+                    <td>1h 20m</td>
+                    <td><button class="btn-table-action">Inspect</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

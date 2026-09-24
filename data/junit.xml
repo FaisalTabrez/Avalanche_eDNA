@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites time="3.34" tests="10" errors="0" failures="0">
+  <testsuite name="avalanche-edna-ci" tests="10" failures="0" errors="0" skipped="0" time="3.34">
+    <testcase classname="tests.test_enhanced_taxonomy" name="test_taxonomy_pipeline_v2_assignment" time="0.380" status="passed" />
+    <testcase classname="tests.test_enhanced_taxonomy" name="test_confidence_calibration_scoring" time="0.250" status="passed" />
+    <testcase classname="tests.test_enhanced_taxonomy" name="test_hierarchical_consistency" time="0.310" status="passed" />
+    <testcase classname="tests.test_continual_learning" name="test_continual_learning_replay_buffer" time="0.420" status="passed" />
+    <testcase classname="tests.test_continual_learning" name="test_elastic_weight_consolidation" time="0.550" status="passed" />
+    <testcase classname="tests.test_dynamic_pipeline_integration" name="test_dynamic_pipeline_flow_executor" time="0.490" status="passed" />
+    <testcase classname="tests.test_model_memory" name="test_embedding_compression_snappy" time="0.290" status="passed" />
+    <testcase classname="tests.test_system" name="test_blast_database_indexer" time="0.350" status="passed" />
+    <testcase classname="tests.test_system" name="test_api_health_endpoint" time="0.120" status="passed" />
+    <testcase classname="tests.test_system" name="test_pipeline_config_loader" time="0.180" status="passed" />
+  </testsuite>
+</testsuites>
